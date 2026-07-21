@@ -1,0 +1,72 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="Interactive Game Kit · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="project · 2025"
+    title="Interactive Game Kit"
+    summary="浏览器棋类、Roguelite 与 Godot 原型 — 手感、反馈与排行榜一体。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>2025</span>
+      <span>active</span>
+    </div>
+    <img
+      class="p-detail-cover"
+      data-reveal
+      src="/images/work-covers/game-kit.svg"
+      alt="Interactive Game Kit"
+      width="1082"
+      height="636"
+      loading="lazy"
+    />
+    <div class="p-prose" data-reveal>
+      <p>
+        Multi-Board-Game-Collection 汇集多种棋盘玩法；Survivor-Arena 是
+        Vampire Survivors 式弹幕 Roguelite；Greedy-Snake-2026 在 Godot 4.6
+        里做竞技场生存与升级系统。本站 /benchmarks 与 /games
+        提供统一试玩入口与分数排行。
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-card__tag">JavaScript</span>
+      <span class="p-card__tag">Godot</span>
+      <span class="p-card__tag">GDScript</span>
+      <span class="p-card__tag">TypeScript</span>
+      <span class="p-card__tag">Canvas</span>
+    </div>
+    <div class="p-card__actions" data-reveal>
+      <a
+        class="p-card__link"
+        href="https://github.com/SSC-STUDIO/Multi-Board-Game-Collection"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Multi-Board-Game-Collection
+      </a>
+      <a
+        class="p-card__link"
+        href="https://github.com/SSC-STUDIO/Greedy-Snake-2026"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Greedy-Snake-2026
+      </a>
+      <a class="p-card__link" href="/games"> 试玩游戏 </a>
+      <a class="p-card__link" href="/benchmarks"> 试玩基准测试 </a>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
+    </p>
+  </main>
+
+  <PageFoot current="/projects" />
+</BaseLayout>

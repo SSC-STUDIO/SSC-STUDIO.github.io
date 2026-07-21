@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Chen Runsen — Curious Builder">
+  <rect width="512" height="512" fill="#6B21A8"/>
+  <g transform="translate(256 248)">
+    <!-- Outer spark -->
+    <path
+      fill="#FFFFFF"
+      d="M0 -140 24 -24 140 0 24 24 0 140 -24 24 -140 0 -24 -24Z"
+    />
+    <!-- Inner spark -->
+    <path
+      fill="#FACC15"
+      d="M0 -52 9 -9 52 0 9 9 0 52 -9 9 -52 0 -9 -9Z"
+    />
+  </g>
+</svg>

@@ -1,0 +1,50 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="AI 原型的快速迭代循环 · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="article"
+    title="AI 原型的快速迭代循环"
+    summary="从想法到可点击 demo，我使用的四步循环。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>发布于 2026年2月15日</span>
+    </div>
+    <div class="p-prose" data-reveal>
+      <h2>循环</h2>
+      <ol>
+        <li>
+          <strong>定义一个问题</strong> — 足够小，能在 2 小时内验证。
+        </li>
+        <li>
+          <strong>做最小交互</strong> — 一个输入、一个输出、一个失败路径。
+        </li>
+        <li>
+          <strong>记录 tradeoff</strong> — 为什么选这个模型 / 框架 / UI 结构。
+        </li>
+        <li>
+          <strong>复盘并归档</strong> — 写成文章或项目条目，避免经验蒸发。
+        </li>
+      </ol>
+      <h2>原则</h2>
+      <p>速度优先，但不牺牲可读的代码与文档。</p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-chip">ai</span>
+      <span class="p-chip">engineering</span>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/articles">← 全部文章</a>
+    </p>
+  </main>
+
+  <PageFoot current="/articles" />
+</BaseLayout>

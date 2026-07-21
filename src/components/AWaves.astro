@@ -1,0 +1,529 @@
+---
+const { class: className } = Astro.props
+---
+
+<a-waves class:list={className} data-intersect>
+  <svg class="js-svg"></svg>
+</a-waves><!-- .a-waves -->
+
+<script>
+  import Emitter from '../utils/Emitter'
+  import Noise from '../utils/Noise'
+
+  class AWaves extends HTMLElement {
+    svg: HTMLElement
+
+    bounding: {
+      left: number
+      top: number
+      width: number
+      height: number
+    }
+
+    mouse: {
+      x: number
+      y: number
+      lx: number
+      ly: number
+      sx: number
+      sy: number
+      v: number
+      vs: number
+      a: number
+      set: boolean
+    }
+
+    lines: any[]
+    paths: any[]
+    noise: any
+
+    isInteractive: boolean
+    isPaused: boolean
+    isHovering: boolean
+    introFallbackTimer: number
+
+    /**
+     * Init
+     */
+    connectedCallback() {
+      // Elements
+      this.svg = this.querySelector('.js-svg')
+
+      // Properties
+      this.mouse = {
+        x: -10,
+        y: 0,
+        lx: 0,
+        ly: 0,
+        sx: 0,
+        sy: 0,
+        v: 0,
+        vs: 0,
+        a: 0,
+        set: false,
+      }
+
+      this.lines = []
+      this.paths = []
+      this.noise = new Noise(Math.random())
+
+      this.isInteractive = false
+      this.isPaused = true
+      this.isHovering = false
+
+      // Init
+      this.setSize()
+      this.setLines()
+
+      this.bindEvents()
+
+      // Fallback: enable interaction even if the intro never completes
+      this.introFallbackTimer = window.setTimeout(() => {
+        this.enableInteraction()
+      }, 4000)
+    }
+
+    /**
+     * Destroy
+     */
+    disconnectedCallback() {
+      window.clearTimeout(this.introFallbackTimer)
+
+      Emitter.off('mousemove', this.onMouseMove, this)
+      Emitter.off('resize', this.onResize, this)
+      Emitter.off('tick', this.tick, this)
+    }
+
+    /**
+     * Enable interaction
+     */
+    enableInteraction() {
+      if (this.isInteractive) return
+
+      this.isInteractive = true
+      this.classList.add('is-interactive')
+    }
+
+    /**
+     * Bind events
+     */
+    bindEvents() {
+      Emitter.on('mousemove', this.onMouseMove, this)
+      Emitter.on('resize', this.onResize, this)
+
+      this.addEventListener('pointermove', this.onPointerMove.bind(this), {
+        passive: true,
+      })
+      this.addEventListener('pointerenter', this.onPointerEnter.bind(this), {
+        passive: true,
+      })
+      this.addEventListener('pointerleave', this.onPointerLeave.bind(this), {
+        passive: true,
+      })
+
+      this.addEventListener('touchmove', this.onTouchMove.bind(this), {
+        passive: false,
+      })
+
+      this.addEventListener('intersect', this.onIntersect.bind(this), {
+        passive: true,
+      })
+
+      this.addEventListener('introend', this.onIntroEnd.bind(this))
+    }
+
+    /**
+     * Pointer enter handler
+     */
+    onPointerEnter() {
+      this.isHovering = true
+      this.enableInteraction()
+    }
+
+    /**
+     * Pointer leave handler
+     */
+    onPointerLeave() {
+      this.isHovering = false
+    }
+
+    /**
+     * Pointer move handler
+     */
+    onPointerMove(e) {
+      this.updateMousePosition(e.clientX, e.clientY)
+      this.enableInteraction()
+    }
+
+    /**
+     * Resize handler
+     */
+    onResize() {
+      this.setSize()
+      this.setLines()
+    }
+
+    /**
+     * Mouse handler
+     */
+    onMouseMove(x, y) {
+      this.updateMousePosition(x, y)
+    }
+
+    /**
+     * Touch handler
+     */
+    onTouchMove(e) {
+      e.preventDefault()
+
+      const touch = e.touches[0]
+      this.updateMousePosition(touch.clientX, touch.clientY)
+    }
+
+    /**
+     * Update mouse position
+     */
+    updateMousePosition(x, y) {
+      const { mouse } = this
+
+      const bounding = this.getBoundingClientRect()
+
+      mouse.x = x - bounding.left
+      mouse.y = y - bounding.top
+
+      if (!mouse.set) {
+        mouse.sx = mouse.x
+        mouse.sy = mouse.y
+        mouse.lx = mouse.x
+        mouse.ly = mouse.y
+
+        mouse.set = true
+      }
+    }
+
+    /**
+     * Intersect handler
+     */
+    onIntersect(e) {
+      this.isPaused = !e.detail.isIntersecting
+
+      if (this.isPaused) {
+        Emitter.off('tick', this.tick, this)
+      } else {
+        Emitter.on('tick', this.tick, this)
+        this.enableInteraction()
+      }
+    }
+
+    /**
+     * Intro end handler
+     */
+    onIntroEnd() {
+      window.clearTimeout(this.introFallbackTimer)
+      this.enableInteraction()
+    }
+
+    /**
+     * Set size
+     */
+    setSize() {
+      const bounding = this.getBoundingClientRect()
+
+      this.svg.style.width = ''
+      this.svg.style.height = ''
+
+      this.bounding = {
+        left: bounding.left,
+        top: bounding.top + window.scrollY,
+        width: this.clientWidth,
+        height: this.clientHeight,
+      }
+
+      this.svg.style.width = `${this.bounding.width}px`
+      this.svg.style.height = `${this.bounding.height}px`
+    }
+
+    /**
+     * Set lines
+     */
+    setLines() {
+      const { width, height } = this.bounding
+
+      this.lines = []
+
+      this.paths.forEach((path) => {
+        path.remove()
+      })
+      this.paths = []
+
+      const xGap = 10
+      const yGap = 32
+
+      const oWidth = width + 200
+      const oHeight = height + 30
+
+      const totalLines = Math.ceil(oWidth / xGap)
+      const totalPoints = Math.ceil(oHeight / yGap)
+
+      const xStart = (width - xGap * totalLines) / 2
+      const yStart = (height - yGap * totalPoints) / 2
+
+      for (let i = 0; i <= totalLines; i++) {
+        const points = []
+
+        for (let j = 0; j <= totalPoints; j++) {
+          const point = {
+            x: xStart + xGap * i,
+            y: yStart + yGap * j,
+            wave: { x: 0, y: 0 },
+            cursor: { x: 0, y: 0, vx: 0, vy: 0 },
+          }
+
+          points.push(point)
+        }
+
+        // Create path
+        const path = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'path'
+        )
+        path.classList.add('a__line')
+        path.classList.add('js-line')
+
+        this.svg.appendChild(path)
+        this.paths.push(path)
+
+        // Add points
+        this.lines.push(points)
+      }
+
+      if (this.isPaused) {
+        this.drawLines()
+      }
+    }
+
+    /**
+     * Move points
+     */
+    movePoints(time) {
+      const { lines, mouse, noise } = this
+
+      lines.forEach((points) => {
+        points.forEach((p) => {
+          // Wave movement
+          const move =
+            noise.perlin2(
+              (p.x + time * 0.0125) * 0.002,
+              (p.y + time * 0.005) * 0.0015
+            ) * 12
+          p.wave.x = Math.cos(move) * 32
+          p.wave.y = Math.sin(move) * 16
+
+          // Mouse effect
+          if (this.isInteractive) {
+            const dx = p.x - mouse.sx
+            const dy = p.y - mouse.sy
+            const d = Math.hypot(dx, dy)
+
+            const radius = this.isHovering
+              ? Math.max(240, mouse.vs * 2.2)
+              : Math.max(200, mouse.vs * 1.6)
+
+            if (d < radius && d > 0.001) {
+              const s = 1 - d / radius
+              const l = s * s
+              const f = this.isHovering ? l * 14 : l * 8
+              const angle = Math.atan2(dy, dx)
+
+              // Radial push away from the cursor
+              p.cursor.vx += Math.cos(angle) * f
+              p.cursor.vy += Math.sin(angle) * f
+
+              // Drag along the mouse direction at higher velocities
+              if (mouse.vs > 2) {
+                const x = Math.cos(d * 0.001) * l
+                const m = mouse.vs * 0.0018
+
+                p.cursor.vx += Math.cos(mouse.a) * x * radius * m
+                p.cursor.vy += Math.sin(mouse.a) * x * radius * m
+              }
+            }
+
+            p.cursor.vx += (0 - p.cursor.x) * 0.006 // String tension
+            p.cursor.vy += (0 - p.cursor.y) * 0.006
+
+            p.cursor.vx *= 0.9 // Friction/duration
+            p.cursor.vy *= 0.9
+
+            p.cursor.x += p.cursor.vx * 2.4 // Strength
+            p.cursor.y += p.cursor.vy * 2.4
+
+            p.cursor.x = Math.min(120, Math.max(-120, p.cursor.x)) // Clamp movement
+            p.cursor.y = Math.min(120, Math.max(-120, p.cursor.y))
+          }
+        })
+      })
+    }
+
+    /**
+     * Get point coordinates with movement added
+     */
+    moved(point, withCursorForce = true) {
+      const coords = {
+        x: point.x + point.wave.x + (withCursorForce ? point.cursor.x : 0),
+        y: point.y + point.wave.y + (withCursorForce ? point.cursor.y : 0),
+      }
+
+      // Round to 2 decimals
+      coords.x = Math.round(coords.x * 10) / 10
+      coords.y = Math.round(coords.y * 10) / 10
+
+      return coords
+    }
+
+    /**
+     * Draw lines
+     */
+    drawLines() {
+      const { lines, moved, paths, mouse } = this
+
+      const highlightDistance = this.isHovering ? 150 : 110
+
+      lines.forEach((points, lIndex) => {
+        let p1 = moved(points[0], false)
+
+        let d = `M ${p1.x} ${p1.y}`
+        let minDistance = Infinity
+
+        points.forEach((point, pIndex) => {
+          const isLast = pIndex === points.length - 1
+
+          p1 = moved(point, !isLast)
+          moved(points[pIndex + 1] || points[points.length - 1], !isLast)
+
+          d += `L ${p1.x} ${p1.y}`
+
+          if (this.isInteractive) {
+            const distance = Math.hypot(p1.x - mouse.sx, p1.y - mouse.sy)
+            minDistance = Math.min(minDistance, distance)
+          }
+        })
+
+        paths[lIndex].setAttribute('d', d)
+
+        // Highlight the lines close to the cursor
+        if (this.isInteractive && minDistance < highlightDistance) {
+          const proximity = 1 - minDistance / highlightDistance
+
+          paths[lIndex].style.stroke =
+            proximity > 0.55
+              ? 'var(--color-accent)'
+              : 'var(--color-secondary)'
+          paths[lIndex].style.opacity = String(0.55 + proximity * 0.45)
+        } else {
+          paths[lIndex].style.stroke = ''
+          paths[lIndex].style.opacity = ''
+        }
+      })
+    }
+
+    /**
+     * Tick
+     */
+    tick(time) {
+      const { mouse } = this
+
+      // Smooth mouse movement
+      mouse.sx += (mouse.x - mouse.sx) * 0.1
+      mouse.sy += (mouse.y - mouse.sy) * 0.1
+
+      // Mouse velocity
+      const dx = mouse.x - mouse.lx
+      const dy = mouse.y - mouse.ly
+      const d = Math.hypot(dx, dy)
+
+      mouse.v = d
+      mouse.vs += (d - mouse.vs) * 0.1
+      mouse.vs = Math.min(100, mouse.vs)
+
+      // Mouse last position
+      mouse.lx = mouse.x
+      mouse.ly = mouse.y
+
+      // Mouse angle
+      mouse.a = Math.atan2(dy, dx)
+
+      // Animation
+      this.style.setProperty('--x', `${mouse.sx}px`)
+      this.style.setProperty('--y', `${mouse.sy}px`)
+
+      this.movePoints(time)
+      this.drawLines()
+    }
+  }
+
+  customElements.define('a-waves', AWaves)
+</script>
+
+<style lang="scss">
+  a-waves {
+    --x: -0.5rem;
+    --y: 50%;
+
+    position: relative;
+
+    margin: 0;
+    padding: 0;
+
+    overflow: hidden;
+
+    &:before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+
+      width: 0.5rem;
+      height: 0.5rem;
+
+      background: color(secondary);
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 color(accent);
+
+      transform: translate3d(calc(var(--x) - 50%), calc(var(--y) - 50%), 0);
+
+      transition:
+        background 0.25s ease,
+        box-shadow 0.25s ease,
+        width 0.25s ease,
+        height 0.25s ease;
+
+      will-change: transform;
+
+      content: '';
+      pointer-events: none;
+    }
+
+    &.is-interactive:before {
+      width: 0.65rem;
+      height: 0.65rem;
+
+      background: color(accent);
+      box-shadow: 0 0 0 0.35rem
+        color-mix(in srgb, var(--color-accent) 35%, transparent);
+    }
+
+    svg {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      :global(.a__line) {
+        fill: none;
+        stroke: color(secondary);
+        stroke-width: 1px;
+      }
+    }
+  }
+</style>

@@ -1,0 +1,19 @@
+---
+import ASeparator from '../ASeparator.astro'
+
+interface Props {
+  kicker: string
+  title: string
+  summary: string
+}
+
+const { kicker, title, summary } = Astro.props
+---
+
+<header class="p-hero" data-intersect>
+  <p class="p-hero__kicker">{kicker}</p>
+  <h1 class="p-hero__title">{title}</h1>
+  <p class="p-hero__summary">{summary}</p>
+</header>
+
+<ASeparator style="accent" />

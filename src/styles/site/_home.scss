@@ -1,0 +1,8 @@
+/**
+ * Home page (index.astro) site-level styles.
+ *
+ * The five home sections (SHero, SAbout, SWork, SMyWay, SCTA) carry their
+ * own scoped styles inside their components, matching the chenrunsen.cn
+ * production build. This file is reserved for home-specific global tweaks;
+ * it intentionally stays minimal so the sections remain self-contained.
+ */

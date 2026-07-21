@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Chen Runsen — Curious Builder">
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  <g transform="translate(256 268)">
+    <!-- Outer spark — Curious -->
+    <path
+      fill="#6B21A8"
+      d="M0 -168 28 -28 168 0 28 28 0 168 -28 28 -168 0 -28 -28Z"
+    />
+    <!-- Inner spark — Builder / light -->
+    <path
+      fill="#FACC15"
+      d="M0 -64 11 -11 64 0 11 11 0 64 -11 11 -64 0 -11 -11Z"
+    />
+    <!-- Wave accent — ties to hero line field -->
+    <path
+      fill="none"
+      stroke="#6B21A8"
+      stroke-width="14"
+      stroke-linecap="round"
+      d="M-118 118c28-36 56-36 84 0s56 36 84 0"
+      opacity="0.55"
+    />
+  </g>
+</svg>

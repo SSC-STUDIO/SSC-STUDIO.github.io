@@ -1,0 +1,23 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import Leaderboard from '@/islands/Leaderboard'
+---
+
+<BaseLayout
+  title="Leaderboard · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="experiment"
+    title="Leaderboard"
+    summary="实验与游戏的分数排行 — 看看谁把反应和记忆推到了极限。"
+  />
+
+  <main class="p-page p-page--wide">
+    <Leaderboard client:load />
+  </main>
+
+  <PageFoot current="/leaderboard" />
+</BaseLayout>

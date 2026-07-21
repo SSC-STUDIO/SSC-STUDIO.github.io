@@ -1,0 +1,295 @@
+/**
+ * Site shell styles (body frame, wrapper, intro, mount, contrast mask, reveals)
+ */
+
+@use "../helpers/colors" as *;
+@use "../helpers/fonts" as *;
+@use "../helpers/responsive" as *;
+
+body {
+  position: relative;
+
+  padding: 1rem;
+  min-height: 100vh;
+
+  @include mq(phone) {
+    padding: 0.5rem;
+  }
+}
+
+/* Wrapper */
+
+.site-wrapper {
+  position: relative;
+  z-index: 2;
+
+  background: color(primary);
+  clip-path: inset(0 -1rem);
+
+  @include mq(phone) {
+    clip-path: inset(0 -0.5rem);
+  }
+
+  &.is-preparing {
+    opacity: 0;
+
+    pointer-events: none;
+
+    .site-head,
+    .s-hero {
+      opacity: 0 !important;
+    }
+  }
+}
+
+html.is-subpage-ready {
+  .site-wrapper {
+    opacity: 1;
+  }
+}
+
+/* Mount (border frame behind the wrapper) */
+
+.site-mount {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  border: 1rem solid color(secondary);
+  opacity: 0;
+
+  pointer-events: none;
+  will-change: border-width;
+
+  @include mq(phone) {
+    border-width: 0.5rem;
+  }
+}
+
+body.is-subpage {
+  .site-mount {
+    opacity: 1;
+  }
+}
+
+/* Contrast mask (theme toggle sweep) */
+
+.site-contrast-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+
+  width: 100%;
+  height: 100%;
+
+  background: color(primary);
+  border-color: color(secondary);
+  border-style: solid;
+  border-width: 0 1rem 0 0;
+  mix-blend-mode: darken;
+  transform: translate3d(-100%, 0, 0);
+
+  pointer-events: none;
+  will-change: transform;
+
+  @include mq(phone) {
+    border-right-width: 0.5rem;
+  }
+}
+
+.theme-contrasted {
+  .site-contrast-mask {
+    mix-blend-mode: normal;
+    opacity: 0.92;
+  }
+}
+
+/* Intro (homepage preloader) */
+
+.site-intro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+
+  width: 100%;
+  height: 100%;
+
+  background:
+    radial-gradient(90% 70% at 50% 115%, rgba(107, 33, 168, 0.1) 0%, transparent 62%),
+    linear-gradient(180deg, color(primary) 0%, color(primary) 72%, rgba(107, 33, 168, 0.06) 100%);
+
+  &__status {
+    position: absolute;
+    bottom: 2.25rem;
+    left: 50%;
+    z-index: 1;
+
+    margin: 0;
+
+    color: color(accent);
+    font: 400 10px / 1 font-family(fraktion);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    transform: translate3d(-50%, 0, 0);
+    opacity: 0;
+
+    @include mq(phone) {
+      bottom: 1.5rem;
+
+      font-size: 9px;
+      letter-spacing: 0.22em;
+    }
+  }
+
+  .sb-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    width: 3rem;
+    height: 3rem;
+
+    transform: translate3d(-50%, -50%, 0);
+
+    @include mq(phone) {
+      width: 1.875rem;
+      height: 1.875rem;
+    }
+
+    .sb__path {
+      position: absolute;
+
+      background: color(secondary);
+
+      &--v {
+        top: 0;
+
+        width: 14.2857%;
+        height: 100%;
+
+        transform-origin: 50% 100%;
+
+        &-1 {
+          left: 0;
+        }
+
+        &-2 {
+          left: 21.3214%;
+        }
+
+        &-3 {
+          left: 43.2143%;
+        }
+
+        &-4 {
+          left: 64.7857%;
+        }
+
+        &-5 {
+          right: 0;
+        }
+      }
+
+      &--h {
+        width: 7.5%;
+        height: 6%;
+
+        &-1 {
+          top: 0;
+          left: 14.2857%;
+
+          transform-origin: 100% 0;
+        }
+
+        &-2 {
+          left: 57.5%;
+          bottom: 0;
+
+          transform-origin: 0 0;
+        }
+
+        &-3 {
+          right: 14.2857%;
+          bottom: 0;
+
+          transform-origin: 0% 0;
+        }
+      }
+    }
+  }
+
+  &__border {
+    --width: 1rem;
+
+    position: absolute;
+
+    background: color(secondary);
+
+    @include mq(phone) {
+      --width: 0.5rem;
+    }
+
+    &--top {
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: var(--width);
+
+      transform-origin: 50% 0;
+    }
+
+    &--left,
+    &--right {
+      top: 0;
+      left: 0;
+
+      width: var(--width);
+      height: 100%;
+    }
+
+    &--left {
+      transform-origin: 0 50%;
+    }
+
+    &--right {
+      left: auto;
+      right: 0;
+
+      transform-origin: 100% 50%;
+    }
+  }
+}
+
+/* Scroll reveal (subpage [data-reveal] elements) */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(1.1rem);
+
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+
+  &.is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

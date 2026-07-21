@@ -1,0 +1,52 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+import ContactForm from '@/islands/ContactForm'
+---
+
+<BaseLayout
+  title="Contact · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="content"
+    title="Contact"
+    summary="联系页用于合作、交流和反馈，信息清楚、克制，不暴露无关隐私。"
+  />
+
+  <main class="p-page p-page--wide">
+    <div class="p-detail-meta p-detail-meta--bar" data-reveal>
+      <span>3992237161@qq.com</span>
+      <span>通常 48 小时内回复</span>
+    </div>
+    <div class="p-stack p-stack--2col" data-reveal>
+      <PageCard kicker="fit" title="Collaboration">
+        <p>适合交流的方向：</p>
+        <ul>
+          <li>Web Development</li>
+          <li>Open Source</li>
+        </ul>
+        <div class="p-card__actions">
+          <a class="p-card__link" href="mailto:3992237161@qq.com"
+            >邮件 3992237161@qq.com</a
+          >
+          <a
+            class="p-card__link p-card__link--ghost"
+            href="https://github.com/SSC-STUDIO"
+            target="_blank"
+            rel="noopener"
+          >
+            GitHub
+          </a>
+        </div>
+      </PageCard>
+      <PageCard kicker="message" title="Send a Message">
+        <ContactForm client:load />
+      </PageCard>
+    </div>
+  </main>
+
+  <PageFoot current="/contact" />
+</BaseLayout>

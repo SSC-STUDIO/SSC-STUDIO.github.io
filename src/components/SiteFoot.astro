@@ -1,0 +1,93 @@
+<footer class="site-foot">
+  <div class="site-foot__logo">
+    <a href="/">
+      <svg
+        width="280"
+        height="280"
+        viewBox="0 0 280 280"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M240.245 0v263.2h-19.894V0h-39.756v263.2h-19.861V0h-39.755v280H280V0h-39.755Z"
+          fill="currentColor"
+        >
+        </path>
+        <path d="M0 0v280h39.755V16.8H59.65V280h39.756V0H0Z" fill="currentColor">
+        </path>
+      </svg>
+
+      <span class="u-sr-only">陈润森</span>
+    </a>
+  </div><!-- .site-foot__logo -->
+
+  <p class="site-foot__credit">
+    © 2026 陈润森 · Chen Runsen<br />
+    Motion system inspired by Antoine Wodniack / wodniack.dev (CC BY-NC 4.0).
+    Adapted with original content.
+    <a href="https://github.com/SSC-STUDIO" target="_blank" rel="noopener noreferrer"
+      >@SSC-STUDIO</a
+    >
+    ·
+    <a href="mailto:3992237161@qq.com">3992237161@qq.com</a>
+    ·
+    <a href="https://wodniack.dev/" target="_blank" rel="noopener noreferrer"
+      >wodniack.dev</a
+    >
+  </p>
+</footer>
+
+<style lang="scss">
+  .site-foot {
+    @include flex(column, center, center);
+
+    position: relative;
+    z-index: 3;
+
+    padding: 1.5rem;
+    gap: 1rem;
+
+    border-top: 1px solid color(secondary);
+
+    @include mq(phone) {
+      padding: 1rem;
+    }
+
+    &__logo {
+      svg {
+        display: block;
+        width: 3rem;
+        height: 3rem;
+
+        color: color(secondary);
+
+        @include mq(phone) {
+          width: 1.875rem;
+          height: 1.875rem;
+        }
+      }
+    }
+
+    &__credit {
+      margin: 0;
+      max-width: 36rem;
+
+      font-size: 0.75rem;
+      line-height: 1.6;
+      text-align: center;
+
+      opacity: 0.85;
+
+      a {
+        color: inherit;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+          text-decoration-color: color(accent);
+          text-underline-offset: 0.2em;
+        }
+      }
+    }
+  }
+</style>

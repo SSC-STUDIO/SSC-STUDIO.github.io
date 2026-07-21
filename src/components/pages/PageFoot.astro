@@ -1,0 +1,42 @@
+---
+import ASeparator from '../ASeparator.astro'
+
+interface Props {
+  /** href of the current section, marks the matching eco link */
+  current?: string
+}
+
+const { current } = Astro.props
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/articles', label: 'Articles' },
+  { href: '/about', label: 'About' },
+  { href: '/honors', label: 'Honors & Growth' },
+  { href: '/sponsor', label: 'Sponsor' },
+  { href: '/games', label: 'Games' },
+  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/benchmarks', label: 'Benchmarks' },
+  { href: '/class', label: 'Class Space' },
+  { href: '/contact', label: 'Contact' },
+]
+---
+
+<ASeparator style="secondary" />
+
+<nav class="p-eco" aria-label="站点导航">
+  <p class="p-eco__label">Explore · 继续逛</p>
+  <div class="p-eco__grid">
+    {
+      links.map((link) => (
+        <a
+          class:list={['p-eco__link', { 'is-current': link.href === current }]}
+          href={link.href}
+        >
+          {link.label}
+        </a>
+      ))
+    }
+  </div>
+</nav>

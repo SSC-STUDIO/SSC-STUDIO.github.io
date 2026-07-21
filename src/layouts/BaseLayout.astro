@@ -1,0 +1,724 @@
+---
+import SiteHead from '../components/SiteHead.astro'
+import SiteFoot from '../components/SiteFoot.astro'
+import SiteScrollbar from '../components/SiteScrollbar.astro'
+import SiteIntro from '../components/SiteIntro.astro'
+
+import '../styles/global.scss'
+
+interface Props {
+  title: string
+  description?: string
+  bodyClass?: string
+}
+
+const {
+  title,
+  description = '个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。',
+  bodyClass,
+} = Astro.props
+
+const isSubpage = Astro.url.pathname !== '/'
+const ogImage = '/images/about-cover.svg'
+const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
+---
+
+<!doctype html>
+<html
+  lang="zh-CN"
+  class:list={[
+    !isSubpage && 'is-scroll-blocked',
+    !isSubpage && 'is-intro-active',
+  ]}
+>
+  <head>
+    <meta charset="utf-8" />
+
+    <title>{title}</title>
+
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+
+    <meta name="robots" content="index, follow" />
+
+    <link rel="manifest" href="/icons/site.webmanifest" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icons/favicon-48x48.png"
+      sizes="48x48"
+    />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <link rel="shortcut icon" href="/icons/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/icons/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="陈润森" />
+
+    <meta name="theme-color" content="#6b21a8" />
+    <meta name="msapplication-navbutton-color" content="#6b21a8" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="#6b21a8" />
+
+    <!-- Apply theme before first paint to avoid flash -->
+    <script is:inline>
+      (function () {
+        const storageKey = 'site-theme'
+
+        ;(function () {
+          var stored = null
+          try {
+            stored = localStorage.getItem(storageKey)
+          } catch (e) {}
+
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+          var root = document.documentElement
+          if (dark) root.classList.add('theme-contrasted')
+          root.dataset.theme = stored || (dark ? 'dark' : 'light')
+
+          var color = dark ? '#0c0616' : '#6b21a8'
+          var metas = document.querySelectorAll(
+            'meta[name="theme-color"], meta[name="msapplication-navbutton-color"], meta[name="apple-mobile-web-app-status-bar-style"]'
+          )
+          for (var i = 0; i < metas.length; i++) {
+            metas[i].setAttribute('content', color)
+          }
+        })()
+      })()
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={ogUrl} />
+    <meta property="og:site_name" content="陈润森" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+
+    <link
+      rel="preload"
+      href="/fonts/PPEditorialNew-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/PPEditorialNew-Ultralight.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/PPFraktionMono-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/PPFraktionMono-Bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      href="/fonts/Bigger-Display.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin="anonymous"
+    />
+  </head>
+
+  <body class:list={[isSubpage && 'is-subpage', bodyClass]}>
+    <div
+      class:list={[
+        'site-wrapper js-site-wrapper',
+        !isSubpage && 'is-preparing',
+      ]}
+    >
+      <SiteHead />
+
+      <slot />
+
+      <SiteFoot />
+    </div><!-- .site-wrapper -->
+
+    {!isSubpage && <SiteIntro />}
+
+    <div class="site-mount js-mount"></div>
+    <div class="site-contrast-mask js-contrast-mask"></div>
+
+    <SiteScrollbar />
+  </body>
+
+  <script>
+    import Emitter from '../utils/Emitter'
+    import Ticker from '../utils/Ticker'
+
+    import Lenis from 'lenis'
+
+    import { gsap } from 'gsap'
+    import { ScrollTrigger } from 'gsap/ScrollTrigger'
+    gsap.registerPlugin(ScrollTrigger)
+
+    declare global {
+      interface Window {
+        safeWidth: number
+        safeHeight: number
+        maxScrollTop: number
+        scrollProgress: number
+        lenis: any
+      }
+    }
+
+    const INTRO_SEEN_KEY = 'site-intro-seen'
+
+    class Site {
+      timeouts: any = {
+        resizeThrottle: null,
+      }
+
+      windowWidth: number
+      windowHeight: number
+      clientWidth: number
+      clientHeight: number
+
+      isScrolling: boolean = false
+
+      lenis: any
+
+      /**
+       * Constructor
+       */
+      constructor() {
+        // OS class
+        let os = 'unknown'
+        if (navigator.userAgent.indexOf('Win') !== -1) {
+          os = 'windows'
+        } else if (navigator.userAgent.indexOf('Android') !== -1) {
+          os = 'android'
+        } else if (navigator.userAgent.indexOf('Mac') !== -1) {
+          os = 'mac'
+        } else if (navigator.userAgent.indexOf('Linux') !== -1) {
+          os = 'linux'
+        }
+        document.documentElement.classList.add(`is-${os}`)
+
+        // Browser class
+        let browser = 'unknown'
+        if (navigator.userAgent.indexOf('Firefox') !== -1) {
+          browser = 'firefox'
+        } else if (navigator.userAgent.indexOf('Chrome') !== -1) {
+          browser = 'chrome'
+        } else if (navigator.userAgent.indexOf('Safari') !== -1) {
+          browser = 'safari'
+        }
+        document.documentElement.classList.add(`is-${browser}`)
+
+        // Subpages are visible as soon as the shell script runs
+        if (document.body.classList.contains('is-subpage')) {
+          document.documentElement.classList.add('is-subpage-ready')
+        }
+
+        this.bindEvents()
+      }
+
+      /**
+       * Initialization
+       */
+      init() {
+        this.initLenis()
+
+        Ticker.init()
+
+        this.onResize()
+
+        const reducedMotion = window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+        const introSeen = sessionStorage.getItem(INTRO_SEEN_KEY) === '1'
+        const hasIntro = !!document.querySelector('.js-intro')
+
+        if (reducedMotion || introSeen || !hasIntro) {
+          Ticker.nextTick(this.forceReveal, this)
+          return
+        }
+
+        Ticker.nextTick(this.intro, this)
+
+        // Safety net: never leave the site hidden behind a stuck intro
+        setTimeout(() => this.forceReveal(), 3000)
+      }
+
+      /**
+       * Bind events
+       */
+      bindEvents() {
+        window.addEventListener('resize', this.resizeThrottle.bind(this))
+        window.addEventListener('scroll', this.onScroll.bind(this), {
+          passive: true,
+        })
+        window.addEventListener('mousemove', this.onMouseMove.bind(this), {
+          passive: true,
+        })
+
+        Emitter.on('updateViewport', this.onResize, this, true)
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              entry.target.dispatchEvent(
+                new CustomEvent('intersect', {
+                  detail: { isIntersecting: entry.isIntersecting },
+                })
+              )
+
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-in-view')
+                entry.target.classList.remove(
+                  'is-out-of-view',
+                  'is-out-of-view-top',
+                  'is-out-of-view-bottom'
+                )
+              } else {
+                entry.target.classList.remove('is-in-view')
+                entry.target.classList.add('is-out-of-view')
+
+                entry.target.classList.toggle(
+                  'is-out-of-view-top',
+                  entry.boundingClientRect.top < 0
+                )
+                entry.target.classList.toggle(
+                  'is-out-of-view-bottom',
+                  entry.boundingClientRect.top > 0
+                )
+              }
+            })
+          },
+          {
+            threshold: 0,
+          }
+        )
+
+        document.querySelectorAll('[data-intersect]').forEach((el) => {
+          observer.observe(el)
+        })
+
+        // Site loaded event
+        if (document.readyState === 'complete') {
+          this.siteLoaded()
+        } else {
+          window.addEventListener('load', this.siteLoaded.bind(this), {
+            once: true,
+          })
+        }
+
+        this.onScroll()
+      }
+
+      /**
+       * Init lenis
+       */
+      initLenis() {
+        const lenis = new Lenis()
+
+        lenis.on('scroll', ScrollTrigger.update)
+
+        gsap.ticker.add((time) => {
+          lenis.raf(time * 1000)
+        })
+
+        gsap.ticker.lagSmoothing(0)
+
+        window.lenis = lenis
+        this.lenis = lenis
+      }
+
+      /**
+       * Set loaded class
+       */
+      siteLoaded() {
+        document.documentElement.classList.add('is-loaded')
+
+        Emitter.emit('siteLoaded')
+        Emitter.emit('updateViewport')
+
+        this.initReveal()
+      }
+
+      /**
+       * Reveal [data-reveal] elements on scroll
+       */
+      initReveal() {
+        const elements = document.querySelectorAll('[data-reveal]')
+        if (!elements.length) return
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          elements.forEach((el) => el.classList.add('is-revealed'))
+          return
+        }
+
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-revealed')
+                observer.unobserve(entry.target)
+              }
+            })
+          },
+          {
+            threshold: 0.06,
+            rootMargin: '0px 0px -6% 0px',
+          }
+        )
+
+        elements.forEach((el, index) => {
+          if (el instanceof HTMLElement) {
+            el.style.setProperty(
+              '--reveal-delay',
+              `${Math.min(index % 6, 5) * 70}ms`
+            )
+          }
+          observer.observe(el)
+        })
+
+        // Immediately reveal whatever is already in view
+        requestAnimationFrame(() => {
+          elements.forEach((el) => {
+            if (el.getBoundingClientRect().top < window.innerHeight * 0.94) {
+              el.classList.add('is-revealed')
+              observer.unobserve(el)
+            }
+          })
+        })
+      }
+
+      /**
+       * Resize throttle
+       */
+      resizeThrottle() {
+        clearTimeout(this.timeouts.resizeThrottle)
+
+        this.timeouts.resizeThrottle = setTimeout(() => {
+          Ticker.nextTick(this.onResize, this)
+        }, 200)
+      }
+
+      /**
+       * Resize handler
+       */
+      onResize() {
+        const newWidth = window.innerWidth
+        let widthChanged = false
+        if (this.windowWidth !== newWidth) {
+          if (this.windowWidth !== undefined) {
+            widthChanged = true
+          }
+
+          this.windowWidth = newWidth
+          this.clientWidth = document.body.clientWidth
+        }
+
+        const newHeight = window.innerHeight
+        let heightChanged = false
+        if (this.windowHeight !== newHeight) {
+          if (this.windowHeight !== undefined) {
+            heightChanged = true
+          }
+
+          this.windowHeight = newHeight
+          this.clientHeight = document.body.clientHeight
+        }
+
+        window.safeWidth = newWidth
+        window.safeHeight = newHeight
+
+        window.maxScrollTop = Math.max(
+          0,
+          document.body.scrollHeight - window.safeHeight
+        )
+
+        this.setScrollProgress()
+
+        Emitter.emit('resize', widthChanged, heightChanged)
+      }
+
+      /**
+       * Scroll handler
+       */
+      onScroll() {
+        this.setScrollProgress()
+
+        Ticker.nextTick(() => {
+          Emitter.emit('scroll', window.scrollY)
+        })
+      }
+
+      /**
+       * Set scroll progress
+       */
+      setScrollProgress() {
+        window.scrollProgress = window.scrollY / window.maxScrollTop
+      }
+
+      /**
+       * Mouse move handler
+       */
+      onMouseMove(e) {
+        Emitter.emit('mousemove', e.clientX, e.clientY)
+      }
+
+      /**
+       * Force reveal (skip intro)
+       */
+      forceReveal() {
+        const wrapper: HTMLElement = document.querySelector('.js-site-wrapper')
+        const intro: HTMLElement = document.querySelector('.js-intro')
+        const mount: HTMLElement = document.querySelector('.js-mount')
+        const hero: HTMLElement = document.querySelector('.s-hero')
+        const head: HTMLElement = document.querySelector('.site-head')
+
+        document.documentElement.classList.add('is-site-ready')
+        document.documentElement.classList.remove(
+          'is-scroll-blocked',
+          'is-intro-active'
+        )
+
+        if (wrapper) {
+          wrapper.style.opacity = '1'
+          wrapper.classList.remove('is-preparing')
+        }
+        if (head) {
+          head.style.opacity = '1'
+        }
+        if (hero) {
+          hero.style.opacity = '1'
+        }
+        if (mount) {
+          mount.style.opacity = '1'
+        }
+        intro?.remove()
+
+        document.dispatchEvent(new CustomEvent('intro'))
+        Emitter.emit('updateViewport')
+      }
+
+      /**
+       * Intro
+       */
+      intro() {
+        // Selectors
+        const wrapper: HTMLElement = document.querySelector('.js-site-wrapper')
+        const intro: HTMLElement = document.querySelector('.js-intro')
+
+        if (!wrapper || !intro) {
+          this.forceReveal()
+          return
+        }
+
+        if (sessionStorage.getItem(INTRO_SEEN_KEY) === '1') {
+          this.forceReveal()
+          return
+        }
+
+        try {
+          const mount: HTMLElement = document.querySelector('.js-mount')
+          const status: HTMLElement = intro.querySelector('.js-intro-status')
+          const logoLinesV: NodeList =
+            intro.querySelectorAll('.js-logo-line-v')
+          const logoLinesH: NodeList =
+            intro.querySelectorAll('.js-logo-line-h')
+          const borderTop: HTMLElement = intro.querySelector('.js-border-top')
+          const borderLeft: HTMLElement =
+            intro.querySelector('.js-border-left')
+          const borderRight: HTMLElement =
+            intro.querySelector('.js-border-right')
+          const head: HTMLElement = document.querySelector('.site-head')
+          const hero: HTMLElement = document.querySelector('.s-hero')
+
+          const revealAt = 0.92
+
+          // Timeline
+          const tl = gsap.timeline()
+
+          if (status) {
+            tl.fromTo(
+              status,
+              { autoAlpha: 0, y: 6 },
+              { autoAlpha: 1, y: 0, duration: 0.28, ease: 'power2.out' },
+              0.06
+            )
+            tl.to(
+              status,
+              { autoAlpha: 0, y: -4, duration: 0.22, ease: 'power2.in' },
+              0.58
+            )
+          }
+
+          tl.fromTo(
+            logoLinesV,
+            {
+              scaleY: 0,
+            },
+            {
+              scaleY: 1,
+              duration: 0.48,
+              ease: 'power4.inOut',
+              stagger: 0.06,
+            },
+            0
+          )
+
+          tl.fromTo(
+            logoLinesH,
+            {
+              scaleX: 0,
+            },
+            {
+              scaleX: 1,
+              duration: 0.26,
+              ease: 'power4.inOut',
+            },
+            0.3
+          )
+
+          tl.set(logoLinesV, {
+            transformOrigin: '50% 0',
+          })
+
+          tl.fromTo(
+            logoLinesV,
+            {
+              scaleY: 1,
+            },
+            {
+              scaleY: 0,
+              duration: 0.34,
+              ease: 'power4.in',
+              immediateRender: false,
+              stagger: 0.05,
+            },
+            0.62
+          )
+
+          tl.fromTo(
+            logoLinesH,
+            {
+              scaleY: 1,
+            },
+            {
+              scaleY: 0,
+              duration: 0.24,
+              ease: 'power4.in',
+              immediateRender: false,
+              stagger: 0.05,
+            },
+            0.68
+          )
+
+          tl.call(
+            () => {
+              document.documentElement.classList.add('is-site-ready')
+
+              gsap.set(wrapper, { opacity: 1 })
+              wrapper.classList.remove('is-preparing')
+
+              gsap.to(intro, {
+                autoAlpha: 0,
+                duration: 0.45,
+                ease: 'power2.inOut',
+              })
+
+              const targets = [head, hero, mount].filter(Boolean)
+              if (targets.length) {
+                gsap.fromTo(
+                  targets,
+                  { opacity: 0 },
+                  { opacity: 1, duration: 0.52, ease: 'power2.out' }
+                )
+              }
+
+              document.dispatchEvent(new CustomEvent('intro'))
+            },
+            null,
+            revealAt
+          )
+
+          tl.from(
+            borderTop,
+            {
+              scaleY: 0,
+              duration: 0.62,
+              ease: 'power3.inOut',
+            },
+            revealAt
+          )
+
+          tl.from(
+            [borderLeft, borderRight],
+            {
+              scaleX: 0,
+              duration: 0.62,
+              ease: 'power3.inOut',
+            },
+            revealAt
+          )
+
+          tl.call(
+            () => {
+              sessionStorage.setItem(INTRO_SEEN_KEY, '1')
+
+              intro.remove()
+
+              document.documentElement.classList.remove(
+                'is-scroll-blocked',
+                'is-intro-active'
+              )
+
+              Ticker.nextTick(() => {
+                Emitter.emit('updateViewport')
+              })
+            },
+            null,
+            revealAt + 0.78
+          )
+        } catch (error) {
+          console.error('Site intro failed:', error)
+          this.forceReveal()
+        }
+      }
+    }
+
+    const site = new Site()
+
+    // Site init on DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', site.init.bind(site), {
+        once: true,
+      })
+    } else {
+      site.init()
+    }
+  </script>
+</html>

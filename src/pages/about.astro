@@ -1,0 +1,73 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+---
+
+<BaseLayout
+  title="About · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="brand"
+    title="About"
+    summary="照片、方向和自我介绍，拼成一个正在变化的人。"
+  />
+
+  <main class="p-page p-page--wide">
+    <figure class="p-about-photo" data-reveal>
+      <img
+        src="/images/about-cover.svg"
+        alt="陈润森 — AI、游戏与交互实验"
+        width="1200"
+        height="675"
+        loading="lazy"
+      />
+      <figcaption>
+        <span class="p-about-photo__name">Chen Runsen</span>
+        <span class="p-about-photo__tag"
+          >AI · Games · Interaction · Long-form work</span
+        >
+      </figcaption>
+    </figure>
+
+    <div class="p-prose" data-reveal>
+      <p>
+        正在探索 AI、交互与游戏开发的初中生。把少年时的好奇，写进可运行的光里。
+      </p>
+      <p>
+        个人空间收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。
+      </p>
+      <p>
+        从 Python 到 TypeScript
+        全栈，从本地脚本到可部署的产品——每一步都追求能展示、能维护、能迭代。
+      </p>
+      <p>
+        这个站点是长期作品：作品集、文章、实验游戏与班级空间，全部跑在同一套
+        monorepo 里。
+      </p>
+      <h2>Now</h2>
+      <p>正在把 AI 实验、交互练习和班级记忆整理成一条更清晰的河流。</p>
+      <h2>Skills</h2>
+      <div class="p-chips">
+        <span class="p-chip p-chip--accent">AI</span>
+        <span class="p-chip p-chip--accent">TypeScript</span>
+        <span class="p-chip p-chip--accent">Games</span>
+        <span class="p-chip p-chip--accent">Python</span>
+        <span class="p-chip p-chip--accent">Web</span>
+      </div>
+    </div>
+
+    <div class="p-stack p-stack--2col p-stack--spaced">
+      <PageCard href="/contact" kicker="reach" title="联系">
+        <p>合作、交流或反馈 → 留言或邮件 3992237161@qq.com</p>
+      </PageCard>
+      <PageCard href="/honors" kicker="growth" title="荣誉">
+        <p>创客、竞赛与校级节点 — 努力被看见的那些瞬间。</p>
+      </PageCard>
+    </div>
+  </main>
+
+  <PageFoot current="/about" />
+</BaseLayout>

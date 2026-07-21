@@ -1,0 +1,56 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="为什么还在做个人网站 · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="article"
+    title="为什么还在做个人网站"
+    summary="在模板和社交平台之间，个人站仍然值得投入。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>发布于 2026年3月1日</span>
+      <span class="p-detail-meta__badge">Featured</span>
+    </div>
+    <div class="p-prose" data-reveal>
+      <h2>问题</h2>
+      <p>
+        当 GitHub README 和 Notion
+        页面已经能展示作品时，为什么还要维护一个独立的个人网站？
+      </p>
+      <h2>我的答案</h2>
+      <ol>
+        <li>
+          <strong>叙事控制权</strong> —
+          你可以决定第一帧看到什么，而不是被平台模板限制。
+        </li>
+        <li>
+          <strong>实验场</strong> —
+          网站本身就是作品，动效、交互、工程架构都可以被展示。
+        </li>
+        <li>
+          <strong>长期资产</strong> —
+          文章、项目、荣誉放在同一套系统里，形成可检索的个人历史。
+        </li>
+      </ol>
+      <h2>下一步</h2>
+      <p>继续把 AI 实验、班级记忆和工程复盘写进同一条时间线。</p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-chip">meta</span>
+      <span class="p-chip">writing</span>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/articles">← 全部文章</a>
+    </p>
+  </main>
+
+  <PageFoot current="/articles" />
+</BaseLayout>

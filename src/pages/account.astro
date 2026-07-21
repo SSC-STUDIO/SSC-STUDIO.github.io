@@ -1,0 +1,23 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import AccountConsole from '@/islands/AccountConsole'
+---
+
+<BaseLayout
+  title="Account · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="account"
+    title="Account"
+    summary="会话、邀请与个人访问状态 — 登录后解锁班级空间与分数提交。"
+  />
+
+  <main class="p-page p-page--wide">
+    <AccountConsole client:load />
+  </main>
+
+  <PageFoot />
+</BaseLayout>

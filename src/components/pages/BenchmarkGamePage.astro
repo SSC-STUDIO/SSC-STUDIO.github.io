@@ -1,0 +1,78 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import BenchmarkPlay from '@/islands/BenchmarkPlay'
+
+interface Props {
+  /** <title> of the page, e.g. "反应时间 · 陈润森" */
+  pageTitle: string
+  /** hero kicker, e.g. "benchmark · memory" */
+  heroKicker: string
+  /** hero title, e.g. "数字记忆" */
+  title: string
+  /** hero summary, reused as the first prose paragraph */
+  summary: string
+  /** reference metric, e.g. { value: '9', unit: 'digits' } */
+  refValue: string
+  refUnit: string
+  /** meta kind label: reaction / memory / attention */
+  kind: string
+  /** accent chips */
+  chips: string[]
+  /** BenchmarkPlay game slug */
+  game:
+    | 'reaction-test'
+    | 'number-memory'
+    | 'visual-memory'
+    | 'sequence-memory'
+    | 'chimp-test'
+    | 'word-memory'
+}
+
+const {
+  pageTitle,
+  heroKicker,
+  title,
+  summary,
+  refValue,
+  refUnit,
+  kind,
+  chips,
+  game,
+} = Astro.props
+---
+
+<BaseLayout
+  title={pageTitle}
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero kicker={heroKicker} title={title} summary={summary} />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>参考 {refValue} {refUnit}</span>
+      <span>{kind}</span>
+    </div>
+    <div class="p-prose" data-reveal>
+      <p>{summary}</p>
+      <p>
+        参考指标：<strong>{refValue}</strong> {refUnit}
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      {chips.map((chip) => <span class="p-chip p-chip--accent">{chip}</span>)}
+    </div>
+    <div style="margin-top: 2rem;" data-reveal>
+      <BenchmarkPlay client:load game={game} />
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/benchmarks"
+        >← 全部挑战</a
+      >
+      <a class="p-card__link" href="/leaderboard">查看排行榜 →</a>
+    </p>
+  </main>
+
+  <PageFoot current="/benchmarks" />
+</BaseLayout>

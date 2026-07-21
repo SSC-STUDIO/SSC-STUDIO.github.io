@@ -1,0 +1,29 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+
+import SHero from '@/components/SHero.astro'
+import SAbout from '@/components/SAbout.astro'
+import SWork from '@/components/SWork.astro'
+import SMyWay from '@/components/SMyWay.astro'
+import SCTA from '@/components/SCTA.astro'
+import ASeparator from '@/components/ASeparator.astro'
+---
+
+<BaseLayout
+  title="陈润森 | 个人作品与课堂空间"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <SHero />
+
+  <SAbout />
+
+  <ASeparator style="accent" />
+
+  <SWork />
+
+  <ASeparator style="secondary" />
+
+  <SMyWay />
+
+  <SCTA />
+</BaseLayout>

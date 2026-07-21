@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 636" role="img" aria-label="Benchmarks">
+  <rect width="1082" height="636" fill="#FFFFFF"/>
+  <g fill="#6B21A8" font-family="system-ui,sans-serif" font-weight="800">
+    <text x="120" y="280" font-size="180">128</text>
+    <text x="420" y="280" font-size="180" opacity="0.55">256</text>
+    <text x="720" y="280" font-size="180" opacity="0.3">512</text>
+  </g>
+  <rect x="120" y="340" width="840" height="12" fill="#FACC15"/>
+  <text x="120" y="520" fill="#6B21A8" font-family="system-ui,sans-serif" font-size="44" font-weight="700">BENCHMARKS</text>
+</svg>

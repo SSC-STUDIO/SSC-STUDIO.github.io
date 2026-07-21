@@ -1,0 +1,175 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+
+const counters = [
+  { label: '信息学', lines: ['CSP-J 贰等', 'NOC 一等奖'] },
+  { label: '创客', lines: ['智造三等奖', '车辆模型二等奖'] },
+  { label: '全国', lines: ['希望颂一等奖', 'NOC 三等奖'] },
+]
+
+const milestones = [
+  { id: '#HON-01', year: '2024', lines: ['2024', 'CSP-J 入门级贰等', '中国计算机学会'] },
+  { id: '#HON-02', year: '2024', lines: ['2024', 'AI 算法设计二等奖', 'Python 初中组'] },
+  { id: '#HON-03', year: '2025', lines: ['2025', '希望颂书画一等奖', '软笔书法初中组'] },
+  { id: '#HON-04', year: '2024', lines: ['2024', '创客新星', '三等奖', '趣味智造初中组'] },
+  { id: '#HON-05', year: '2024', lines: ['2024', '车辆模型二等奖', '四驱车拼装竞速中学组'] },
+]
+
+const certs = [
+  {
+    image: '/legacy-assets/prize/prize_4.jpg',
+    alt: 'CCF CSP-J/S 入门级贰等 奖状',
+    year: '2024',
+    name: 'CCF CSP-J/S 入门级贰等',
+    issuer: '中国计算机学会',
+  },
+  {
+    image: '/legacy-assets/prize/prize_3.jpg',
+    alt: '人工智能算法设计二等奖 奖状',
+    year: '2024',
+    name: '人工智能算法设计二等奖',
+    issuer: '上海市中小学生人工智能算法设计活动 · Python 初中组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_1.jpg',
+    alt: '希望颂书画艺术大展一等奖 奖状',
+    year: '2025',
+    name: '希望颂书画艺术大展一等奖',
+    issuer: '中国国际书画艺术研究会 · 软笔书法初中组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_0.jpg',
+    alt: '创客新星大赛三等奖 奖状',
+    year: '2024',
+    name: '创客新星大赛三等奖',
+    issuer: '第十届上海创客新星大赛浦东区赛 · 趣味智造初中组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_6.jpg',
+    alt: '车辆模型竞赛二等奖 奖状',
+    year: '2024',
+    name: '车辆模型竞赛二等奖',
+    issuer: '驾驭未来全国青少年车辆模型教育竞赛 · 四驱车拼装竞速中学组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_12.jpg',
+    alt: 'NOC 全向思维智趣编程一等奖 奖状',
+    year: '2023',
+    name: 'NOC 全向思维智趣编程一等奖',
+    issuer: '全国中小学信息技术创新与实践大赛 · 复赛初中组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_9.jpg',
+    alt: 'NOC 全向思维智趣编程三等奖 奖状',
+    year: '2023',
+    name: 'NOC 全向思维智趣编程三等奖',
+    issuer: '全国中小学信息技术创新与实践大赛 · 决赛初中组',
+  },
+  {
+    image: '/legacy-assets/prize/prize_8.jpg',
+    alt: 'AI+程序算法竞赛二等奖 奖状',
+    year: '2024',
+    name: 'AI+程序算法竞赛二等奖',
+    issuer: '第四届全国青少年科技教育成果展示大赛 · 省级区域赛',
+  },
+  {
+    image: '/legacy-assets/prize/prize_11.jpg',
+    alt: '信息素养大赛三等奖 奖状',
+    year: '2024',
+    name: '信息素养大赛三等奖',
+    issuer: '2024 全国青少年信息素养大赛华东赛区（上海）· 算法创意实践挑战赛',
+  },
+  {
+    image: '/legacy-assets/prize/prize_10.jpg',
+    alt: '信息素养大赛二等奖 奖状',
+    year: '2023',
+    name: '信息素养大赛二等奖',
+    issuer: '2023 全国青少年信息素养大赛华东赛区（上海）· Python 编程挑战赛',
+  },
+  {
+    image: '/legacy-assets/prize/prize_7.jpg',
+    alt: '航天创新大赛二等奖 奖状',
+    year: '2023',
+    name: '航天创新大赛二等奖',
+    issuer: '全国青少年航天创新大赛区域赛（上海）· 航天创意比赛',
+  },
+]
+---
+
+<BaseLayout
+  title="Honors · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="growth"
+    title="Honors"
+    summary="奖项与节点像路标，记录努力被看见的那些瞬间。"
+  />
+
+  <main class="p-page p-page--wide">
+    <div class="p-detail-meta" data-reveal>
+      <span>5 个成长节点</span>
+      <span>11 条奖项记录</span>
+    </div>
+
+    <div class="p-honor-counters" data-reveal>
+      {
+        counters.map((counter) => (
+          <div class="p-honor-counter">
+            <p class="p-honor-counter__label">{counter.label}</p>
+            {counter.lines.map((line) => (
+              <p class="p-honor-counter__line">{line}</p>
+            ))}
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="p-grid">
+      {
+        milestones.map((milestone) => (
+          <PageCard kicker="honor" id={milestone.id} title={milestone.year}>
+            <p>
+              {milestone.lines.map((line, index) => (
+                <>
+                  {line}
+                  {index < milestone.lines.length - 1 && <br />}
+                </>
+              ))}
+            </p>
+          </PageCard>
+        ))
+      }
+    </div>
+
+    <section class="p-honor-certs" data-reveal>
+      <h2 class="p-honor-certs__title">奖状存档</h2>
+      <div class="p-honor-certs__grid">
+        {
+          certs.map((cert) => (
+            <article class="p-honor-cert">
+              <img
+                class="p-honor-cert__image"
+                src={cert.image}
+                alt={cert.alt}
+                loading="lazy"
+                width="640"
+                height="480"
+              />
+              <div class="p-honor-cert__body">
+                <span class="p-honor-cert__year">{cert.year}</span>
+                <strong class="p-honor-cert__name">{cert.name}</strong>
+                <p class="p-honor-cert__issuer">{cert.issuer}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+  </main>
+
+  <PageFoot current="/honors" />
+</BaseLayout>

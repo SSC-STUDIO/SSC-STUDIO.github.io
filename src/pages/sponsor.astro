@@ -1,0 +1,71 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+---
+
+<BaseLayout
+  title="Sponsor · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="support"
+    title="Sponsor"
+    summary="如果这个站点对你有启发，欢迎用合适的方式支持长期创作与实验。"
+  />
+
+  <main class="p-page p-page--wide">
+    <div class="p-stack p-stack--cards">
+      <PageCard kicker="why" title="为什么支持">
+        <p>
+          个人站是长期作品：动效、交互、工程与内容都在同一套系统里迭代。
+          你的支持能帮助我继续投入 AI 实验、游戏原型和班级记忆整理。
+        </p>
+      </PageCard>
+      <PageCard kicker="how" title="如何支持">
+        <p>目前可通过以下方式表达支持：</p>
+        <ul>
+          <li>GitHub Star 与关注 — @SSC-STUDIO</li>
+          <li>邮件交流优质合作机会 — 3992237161@qq.com</li>
+          <li>把站点分享给同样需要灵感的朋友</li>
+        </ul>
+        <div class="p-card__actions">
+          <a
+            class="p-card__link"
+            href="https://github.com/SSC-STUDIO"
+            target="_blank"
+            rel="noopener"
+          >
+            GitHub
+          </a>
+          <a
+            class="p-card__link p-card__link--ghost"
+            href="mailto:3992237161@qq.com"
+          >
+            邮件联系
+          </a>
+        </div>
+      </PageCard>
+      <PageCard kicker="trust" title="边界说明">
+        <p>
+          支持不代表定制开发承诺，也不绑定任何排他合作。所有实验与内容保持开源友好的节奏，
+          重要决策仍通过邮件或联系页沟通确认。
+        </p>
+      </PageCard>
+      <div class="p-sponsor-qr" data-reveal>
+        <img
+          src="/images/qr-code.svg"
+          alt="网站二维码"
+          width="120"
+          height="120"
+        />
+        <p>
+          扫码或邮件 <a href="mailto:3992237161@qq.com">3992237161@qq.com</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <PageFoot current="/sponsor" />
+</BaseLayout>

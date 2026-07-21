@@ -1,0 +1,31 @@
+/**
+ * Colors variables — chenrunsen.cn purple identity
+ * (default = light paper + purple ink, contrasted = dark studio)
+ */
+@use 'sass:map';
+
+$theme-colors: (
+  default: (
+    primary: #ffffff,
+    secondary: #6b21a8,
+    shadow: #4c1d95,
+    accent: #facc15,
+    accent-muted: #fef9c3,
+    accent-strong: #eab308,
+    white: #ffffff,
+    surface: #6b21a8,
+    on-surface: #ffffff,
+  ),
+
+  contrasted: (
+    primary: #0c0616,
+    secondary: #ddd6fe,
+    shadow: #2e1065,
+    accent: #facc15,
+    accent-muted: #1a1028,
+    accent-strong: #eab308,
+    white: #ffffff,
+    surface: #1e1033,
+    on-surface: #ede9fe,
+  ),
+);

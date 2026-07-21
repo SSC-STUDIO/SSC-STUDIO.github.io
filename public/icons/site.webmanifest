@@ -1,0 +1,29 @@
+{
+  "name": "陈润森 | Chen Runsen",
+  "short_name": "Runsen",
+  "description": "AI experiments, web & game projects — Chen Runsen portfolio.",
+  "icons": [
+    {
+      "src": "/icons/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#6B21A8",
+  "background_color": "#FFFFFF",
+  "display": "standalone",
+  "lang": "zh-CN"
+}

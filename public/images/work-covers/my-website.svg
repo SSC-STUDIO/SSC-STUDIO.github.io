@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 636" role="img" aria-label="MyWebsite">
+  <rect width="1082" height="636" fill="#6B21A8"/>
+  <g fill="none" stroke="#FACC15" stroke-width="2" opacity="0.35">
+    <path d="M0 80h1082M0 160h1082M0 240h1082M0 320h1082M0 400h1082M0 480h1082M0 560h1082"/>
+    <path d="M90 0v636M180 0v636M270 0v636M360 0v636M450 0v636M540 0v636M630 0v636M720 0v636M810 0v636M900 0v636M990 0v636"/>
+  </g>
+  <text x="80" y="360" fill="#FFFFFF" font-family="system-ui,sans-serif" font-size="120" font-weight="700">MW</text>
+  <text x="80" y="430" fill="#FACC15" font-family="system-ui,sans-serif" font-size="36" letter-spacing="0.2em">MONOREPO � 2026</text>
+</svg>

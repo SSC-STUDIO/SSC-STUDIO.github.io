@@ -1,0 +1,50 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+---
+
+<BaseLayout
+  title="Articles · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="content"
+    title="Articles"
+    summary="把灵感写慢，把问题写透，让笔记成为下一次出发的地图。"
+  />
+
+  <main class="p-page p-page--wide">
+    <div class="p-stack">
+      <PageCard
+        href="/articles/why-build-personal-site"
+        kicker="featured"
+        id="#ART-01/02"
+        title="为什么还在做个人网站"
+      >
+        <p>在模板和社交平台之间，个人站仍然值得投入。</p>
+        <p class="p-card__meta">2026年3月1日</p>
+        <div class="p-card__tags">
+          <span class="p-card__tag">meta</span>
+          <span class="p-card__tag">writing</span>
+        </div>
+      </PageCard>
+      <PageCard
+        href="/articles/ai-prototype-loop"
+        kicker="note"
+        id="#ART-02/02"
+        title="AI 原型的快速迭代循环"
+      >
+        <p>从想法到可点击 demo，我使用的四步循环。</p>
+        <p class="p-card__meta">2026年2月15日</p>
+        <div class="p-card__tags">
+          <span class="p-card__tag">ai</span>
+          <span class="p-card__tag">engineering</span>
+        </div>
+      </PageCard>
+    </div>
+  </main>
+
+  <PageFoot current="/articles" />
+</BaseLayout>

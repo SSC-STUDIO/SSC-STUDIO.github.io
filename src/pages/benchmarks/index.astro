@@ -1,0 +1,114 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+
+const games = [
+  {
+    href: '/benchmarks/reaction-test',
+    kicker: 'reaction',
+    id: '#BMK-01/06',
+    title: '反应时间',
+    summary: '等待方块变绿立即点击，记录毫秒级的视觉反应延迟。',
+    ref: '250',
+    unit: 'avg ms',
+    tags: ['视觉', '毫秒级', '5 次取平均'],
+  },
+  {
+    href: '/benchmarks/number-memory',
+    kicker: 'memory',
+    id: '#BMK-02/06',
+    title: '数字记忆',
+    summary: '逐位闪过的数字越来越长，看你能复述到几位。',
+    ref: '9',
+    unit: 'digits',
+    tags: ['短时记忆', '递增', '键盘输入'],
+  },
+  {
+    href: '/benchmarks/visual-memory',
+    kicker: 'memory',
+    id: '#BMK-03/06',
+    title: '视觉记忆',
+    summary: '记住同时闪烁的方块位置，按出现顺序逐一复现。',
+    ref: '7',
+    unit: 'tiles',
+    tags: ['空间', '同时闪烁', '复现'],
+  },
+  {
+    href: '/benchmarks/sequence-memory',
+    kicker: 'memory',
+    id: '#BMK-04/06',
+    title: '顺序记忆',
+    summary: '方块按顺序亮起，按相同顺序点击复现整条序列。',
+    ref: '11',
+    unit: 'steps',
+    tags: ['序列', '顺序复现', '可听'],
+  },
+  {
+    href: '/benchmarks/chimp-test',
+    kicker: 'memory',
+    id: '#BMK-05/06',
+    title: '黑猩猩测试',
+    summary: '数字在网格中一闪消失，按从小到大顺序点击。',
+    ref: '8',
+    unit: 'digits',
+    tags: ['工作记忆', '数字', '5×5'],
+  },
+  {
+    href: '/benchmarks/word-memory',
+    kicker: 'attention',
+    id: '#BMK-06/06',
+    title: '词语记忆',
+    summary: '记住屏幕上闪过的词语，判断下一个词是否出现过。',
+    ref: '12',
+    unit: 'words',
+    tags: ['词语', '再认', '递增'],
+  },
+]
+---
+
+<BaseLayout
+  title="Benchmarks · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="experiment"
+    title="Benchmarks"
+    summary="Human Benchmark 式认知小实验：反应、记忆、注意力 — 分数可提交、可排行。"
+  />
+
+  <main class="p-page p-page--wide">
+    <div class="p-detail-meta" data-reveal>
+      <span>6 项挑战</span>
+      <span>分数同步排行榜</span>
+    </div>
+    <div class="p-grid">
+      {
+        games.map((game) => (
+          <PageCard
+            href={game.href}
+            kicker={game.kicker}
+            id={game.id}
+            title={game.title}
+          >
+            <p>{game.summary}</p>
+            <p>
+              <strong>{game.ref}</strong> {game.unit}
+            </p>
+            <div class="p-card__tags">
+              {game.tags.map((tag) => (
+                <span class="p-card__tag">{tag}</span>
+              ))}
+            </div>
+          </PageCard>
+        ))
+      }
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link" href="/leaderboard">查看排行榜 →</a>
+    </p>
+  </main>
+
+  <PageFoot current="/benchmarks" />
+</BaseLayout>

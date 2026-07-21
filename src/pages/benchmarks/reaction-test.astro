@@ -1,0 +1,15 @@
+---
+import BenchmarkGamePage from '@/components/pages/BenchmarkGamePage.astro'
+---
+
+<BenchmarkGamePage
+  pageTitle="反应时间 · 陈润森"
+  heroKicker="benchmark · reaction"
+  title="反应时间"
+  summary="等待方块变绿立即点击，记录毫秒级的视觉反应延迟。"
+  refValue="250"
+  refUnit="avg ms"
+  kind="reaction"
+  chips={['视觉', '毫秒级', '5 次取平均']}
+  game="reaction-test"
+/>

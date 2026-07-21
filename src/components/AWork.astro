@@ -1,0 +1,189 @@
+---
+const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
+---
+
+<a-work class={cssClass}>
+  <div class="a__inner">
+    <a href={href}>
+      <img
+        class="a__image js-image"
+        src={img}
+        alt={title}
+        width="1082"
+        height="636"
+        loading="lazy"
+        decoding="async"
+      />
+
+      <div class="a__caption">
+        <div class="a__caption__text">
+          <span class="a__caption__title">{title}</span>
+          <span class="a__caption__summary">{summary}</span>
+          <span class="a__caption__stack">
+            {stack.map((tag) => <span class="a__caption__tag">{tag}</span>)}
+          </span>
+        </div><!-- .a__caption__text -->
+
+        <div class="a__caption__key">
+          #{key}
+        </div><!-- .a__caption__key -->
+      </div><!-- .a__caption -->
+    </a>
+  </div><!-- .a__inner -->
+</a-work>
+
+<script>
+  class AWork extends HTMLElement {
+    static observedAttributes = ['progress']
+
+    link: HTMLAnchorElement
+
+    /**
+     * Init
+     */
+    connectedCallback() {
+      // Elements
+      this.link = this.querySelector('a')
+
+      // Events
+      this.link.addEventListener('click', this.onClick.bind(this))
+    }
+
+    /**
+     * Attribute changed
+     */
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === 'progress') {
+        this.style.setProperty('--progress', newValue)
+
+        if (newValue === '1' || newValue === '-1') {
+          this.classList.remove('is-inview')
+        } else {
+          this.classList.add('is-inview')
+        }
+      }
+    }
+
+    /**
+     * On click
+     */
+    onClick(event: MouseEvent) {
+      if (this.link.href.includes('#')) {
+        event.preventDefault()
+        return false
+      }
+    }
+  }
+
+  customElements.define('a-work', AWork)
+</script>
+
+<style lang="scss">
+  a-work {
+    position: relative;
+    top: 0;
+    left: 0;
+
+    display: block;
+    margin: 0;
+    padding: 0.5rem 0.5rem 0;
+
+    background: color(surface);
+    content-visibility: hidden;
+
+    transform-style: preserve-3d;
+
+    will-change: transform;
+
+    @include mq(phone) {
+      padding: 0.25rem;
+    }
+
+    a {
+      display: block;
+
+      text-decoration: none;
+    }
+
+    .a__inner {
+      display: block;
+      margin: 0;
+      padding: 0;
+    }
+
+    .a__image {
+      display: block;
+
+      width: auto;
+      max-width: min(50vw, 42rem);
+      height: auto;
+      max-height: 50vh;
+
+      object-fit: cover;
+
+      @include mq(phone) {
+        max-width: 80vw;
+        max-height: 80vh;
+      }
+    }
+
+    .a__caption {
+      @include flex(row, flex-start, space-between);
+
+      gap: 1rem;
+      padding: 0.65rem 0.5rem 0.5rem;
+
+      color: color(on-surface);
+      font: 700 11px / 1 font-family(fraktion);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .a__caption__text {
+      @include flex(column, flex-start, flex-start);
+
+      gap: 0.35rem;
+      max-width: 28rem;
+    }
+
+    .a__caption__summary {
+      color: color-mix(in srgb, var(--color-on-surface) 82%, transparent);
+      font: 400 10px / 1.45 font-family(editorial);
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .a__caption__stack {
+      @include flex(row, center, flex-start);
+
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .a__caption__tag {
+      padding: 0.2rem 0.4rem;
+
+      background: color(accent);
+
+      color: color(secondary);
+      font-size: 9px;
+      letter-spacing: 0.05em;
+    }
+
+    .a__caption__key {
+      flex-shrink: 0;
+      padding: 0.2rem 0.45rem;
+
+      background: color(accent);
+      border-radius: 999px;
+
+      color: color(secondary);
+
+      white-space: nowrap;
+    }
+
+    &.is-inview {
+      content-visibility: visible;
+    }
+  }
+</style>

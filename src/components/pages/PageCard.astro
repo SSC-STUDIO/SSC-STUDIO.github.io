@@ -1,0 +1,29 @@
+---
+interface Props {
+  /** when set the card renders as a link */
+  href?: string
+  kicker?: string
+  id?: string
+  title: string
+  class?: string
+}
+
+const { href, kicker, id, title, class: className } = Astro.props
+
+const Tag = href ? 'a' : 'article'
+---
+
+<Tag
+  class:list={['p-card', className]}
+  data-reveal="true"
+  {...(href ? { href } : {})}
+>
+  <div class="p-card__head">
+    {kicker && <span class="p-card__kicker">{kicker}</span>}
+    {id && <span class="p-card__id">{id}</span>}
+  </div>
+  <h2 class="p-card__title">{title}</h2>
+  <div class="p-card__body">
+    <slot />
+  </div>
+</Tag>
