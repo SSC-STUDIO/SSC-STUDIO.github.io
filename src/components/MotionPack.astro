@@ -1,0 +1,147 @@
+---
+/**
+ * MotionPack — 首页动效增强包
+ * 光标拖尾 / 磁吸按钮 / 卡片倾斜 / 滚动视差。
+ * 全部仅 pointer:fine 生效，prefers-reduced-motion 下一律关闭。
+ */
+---
+
+<canvas class="cursor-trail" aria-hidden="true"></canvas>
+
+<script>
+  (function () {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var fine = window.matchMedia('(pointer: fine)').matches;
+    if (reduced || !fine) return;
+
+    /* ── 光标拖尾：灯色微粒，随指针起落 ─────────────────── */
+    var canvas = document.querySelector('.cursor-trail');
+    var ctx = canvas.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var particles = [];
+    var raf = 0;
+    var running = false;
+
+    function resize() {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    function spawn(x, y, boost) {
+      if (particles.length > 90) particles.shift();
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * (0.6 + boost * 0.02),
+        vy: -(0.4 + Math.random() * 0.9) - boost * 0.01,
+        size: 1.2 + Math.random() * 2.6,
+        life: 0,
+        max: 40 + Math.random() * 30,
+      });
+    }
+
+    var last = 0;
+    function tick(t) {
+      raf = requestAnimationFrame(tick);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      var color = getComputedStyle(document.documentElement).getPropertyValue('--daypart-lamp') || '#6b21a8';
+      for (var i = particles.length - 1; i >= 0; i--) {
+        var p = particles[i];
+        p.life++;
+        if (p.life > p.max) {
+          particles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx + Math.sin((p.life + i) * 0.08) * 0.2;
+        p.y += p.vy;
+        var fade = 1 - p.life / p.max;
+        ctx.globalAlpha = fade * 0.5;
+        ctx.fillStyle = color.trim();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    var lastX = 0, lastY = 0;
+    window.addEventListener('pointermove', function (e) {
+      var d = Math.hypot(e.clientX - lastX, e.clientY - lastY);
+      lastX = e.clientX;
+      lastY = e.clientY;
+      if (d < 6) return;
+      var boost = Math.min(40, d);
+      spawn(e.clientX, e.clientY, boost);
+      if (boost > 24) spawn(e.clientX, e.clientY, boost * 0.6);
+      if (!running) {
+        running = true;
+        raf = requestAnimationFrame(tick);
+      }
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        running = false;
+      } else if (particles.length) {
+        running = true;
+        raf = requestAnimationFrame(tick);
+      }
+    });
+
+    /* ── 磁吸：CTA 按钮与名片 ──────────────────────────── */
+    var magnets = Array.from(
+      document.querySelectorAll('.s-cta .s__button, .studio-card, .sb-menu a')
+    );
+    magnets.forEach(function (el) {
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        var dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
+        var dy = (e.clientY - (r.top + r.height / 2)) * 0.16;
+        el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px');
+        el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px');
+      });
+      el.addEventListener('pointerleave', function () {
+        el.style.removeProperty('--magnet-x');
+        el.style.removeProperty('--magnet-y');
+      });
+    });
+
+    /* ── 倾斜视差：作品卡 ──────────────────────────────── */
+    var tilts = Array.from(document.querySelectorAll('.a-work, .p-card'));
+    tilts.forEach(function (el) {
+      el.addEventListener('pointermove', function (e) {
+        var r = el.getBoundingClientRect();
+        var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4;
+        var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5;
+        el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg');
+        el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg');
+      });
+      el.addEventListener('pointerleave', function () {
+        el.style.removeProperty('--tilt-x');
+        el.style.removeProperty('--tilt-y');
+      });
+    });
+
+    /* ── 滚动视差：hero 内容与波浪分层 ─────────────────── */
+    var heroContent = document.querySelector('.s-hero .s__content');
+    var heroWaves = document.querySelector('.s-hero .s__waves');
+    var parallaxTick = false;
+    window.addEventListener('scroll', function () {
+      if (parallaxTick) return;
+      parallaxTick = true;
+      requestAnimationFrame(function () {
+        parallaxTick = false;
+        var y = window.scrollY;
+        if (y < window.innerHeight) {
+          if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)';
+          if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
+        }
+      });
+    }, { passive: true });
+  })();
+</script>
+
