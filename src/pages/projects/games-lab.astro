@@ -1,0 +1,73 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="Games Lab · 陈润森"
+  description="Games Lab：把棋盘规则、弹幕生存与 Godot 竞技场做成可试玩的游戏集合。"
+>
+  <PageHero
+    kicker="project · 2025"
+    title="Games Lab"
+    summary="把棋盘规则、弹幕生存与 Godot 竞技场做成可试玩的游戏集合。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>2025</span>
+      <span>active</span>
+    </div>
+    <img
+      class="p-detail-cover"
+      data-reveal
+      src="/images/work-covers/games.svg"
+      alt="Games Lab"
+      width="1082"
+      height="636"
+      loading="lazy"
+    />
+    <div class="p-prose" data-reveal>
+      <p>
+        游戏是最喜欢的实验田：规则要硬，手感要软。Games Lab
+        把三类尝试收在一起——浏览器里的经典棋盘变体、Vampire
+        Survivors 式的弹幕生存 Roguelite，以及 Godot
+        引擎里的竞技场原型（升级、构筑、诅咒词条一应俱全）。
+      </p>
+      <p>
+        一部分作品直接内置在本站 /games 可以即点即玩；完整源码都在
+        GitHub 上开放，欢迎翻进仓库看实现细节。
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-card__tag">JavaScript</span>
+      <span class="p-card__tag">GDScript</span>
+      <span class="p-card__tag">Godot</span>
+    </div>
+    <div class="p-card__actions" data-reveal>
+      <a class="p-card__link" href="/games"> 站内试玩 </a>
+      <a
+        class="p-card__link"
+        href="https://github.com/SSC-STUDIO/Multi-Board-Game-Collection"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub 仓库
+      </a>
+      <a
+        class="p-card__link"
+        href="https://github.com/SSC-STUDIO/Greedy-Snake-2026"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Greedy-Snake-2026
+      </a>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
+    </p>
+  </main>
+
+  <PageFoot current="/projects" />
+</BaseLayout>

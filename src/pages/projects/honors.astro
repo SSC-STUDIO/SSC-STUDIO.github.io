@@ -1,0 +1,57 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="Honors & Growth · 陈润森"
+  description="Honors & Growth：创客、竞赛与成长节点——努力被看见的那些瞬间。"
+>
+  <PageHero
+    kicker="project · 2024"
+    title="Honors & Growth"
+    summary="创客、竞赛与成长节点 — 努力被看见的那些瞬间。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>2024</span>
+      <span>active</span>
+    </div>
+    <img
+      class="p-detail-cover"
+      data-reveal
+      src="/images/work-covers/honors.svg"
+      alt="Honors & Growth"
+      width="1082"
+      height="636"
+      loading="lazy"
+    />
+    <div class="p-prose" data-reveal>
+      <p>
+        奖项不是终点，是一些被照亮的路标：信息学竞赛（CSP-J、NOC）、
+        创客与车辆模型、书法与综合素养。每一张奖状背后都对应一段具体的
+        准备过程——它们都被扫描存档，收进同一面荣誉墙。
+      </p>
+      <p>
+        奖项之外，成长更像一条河：从小学毕业到初中毕业，再到如今这个
+        长期项目。荣誉页里的"成长河流"时间线，把这些节点连成了可以
+        顺流而下的形状。
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-card__tag">Scratch</span>
+      <span class="p-card__tag">创客</span>
+      <span class="p-card__tag">信息学</span>
+    </div>
+    <div class="p-card__actions" data-reveal>
+      <a class="p-card__link" href="/honors"> 荣誉墙与成长河流 </a>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
+    </p>
+  </main>
+
+  <PageFoot current="/projects" />
+</BaseLayout>

@@ -1,0 +1,57 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="Class Space · 陈润森"
+  description="Class Space：班级记忆现场——相册、同学档案与只属于我们这一班的片段。"
+>
+  <PageHero
+    kicker="project · 2025"
+    title="Class Space"
+    summary="班级记忆现场：相册、同学档案与只属于我们这一班的片段。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>2025</span>
+      <span>active</span>
+    </div>
+    <img
+      class="p-detail-cover"
+      data-reveal
+      src="/images/work-covers/class.svg"
+      alt="Class Space"
+      width="1082"
+      height="636"
+      loading="lazy"
+    />
+    <div class="p-prose" data-reveal>
+      <p>
+        这个站最柔软的一角。班级空间收藏我们这一班的现场：照片与视频组成的
+        画廊、同学与老师的档案卡、以及一面可以写字的班级留言墙。
+      </p>
+      <p>
+        画廊公开可读；档案与留言需要登录——它属于班上的人。到访计数会记住
+        每一次回来看看。
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-card__tag">Astro</span>
+      <span class="p-card__tag">TypeScript</span>
+      <span class="p-card__tag">Fastify</span>
+    </div>
+    <div class="p-card__actions" data-reveal>
+      <a class="p-card__link" href="/class"> 进入班级空间 </a>
+      <a class="p-card__link" href="/class/gallery"> 班级画廊 </a>
+      <a class="p-card__link" href="/account"> 登录账号 </a>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
+    </p>
+  </main>
+
+  <PageFoot current="/projects" />
+</BaseLayout>

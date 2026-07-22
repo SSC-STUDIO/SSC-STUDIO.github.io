@@ -1,0 +1,58 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+---
+
+<BaseLayout
+  title="Human Benchmarks · 陈润森"
+  description="Human Benchmarks：反应、记忆、序列与注意力挑战——分数可提交、可排行。"
+>
+  <PageHero
+    kicker="project · 2025"
+    title="Human Benchmarks"
+    summary="反应、记忆、序列挑战 — 内置在 MyWebsite，分数可提交、可排行。"
+  />
+
+  <main class="p-page">
+    <div class="p-detail-meta" data-reveal>
+      <span>2025</span>
+      <span>active</span>
+    </div>
+    <img
+      class="p-detail-cover"
+      data-reveal
+      src="/images/work-covers/benchmarks.svg"
+      alt="Human Benchmarks"
+      width="1082"
+      height="636"
+      loading="lazy"
+    />
+    <div class="p-prose" data-reveal>
+      <p>
+        一套给"眼、手、脑"做体检的小游戏合集：反应测试、数字记忆、视觉记忆、
+        序列记忆、黑猩猩测试、词语记忆，以及最新加入的自研项目——舒尔特表。
+        每一项都有明确的状态机与难度曲线，成绩可以匿名或登录后提交。
+      </p>
+      <p>
+        分数统一进入排行榜，和来过这个站的人比一比。React
+        孤岛渲染游戏本体，Fastify 提供分数 API，全部跑在同一套系统里。
+      </p>
+    </div>
+    <div class="p-chips" data-reveal>
+      <span class="p-card__tag">TypeScript</span>
+      <span class="p-card__tag">Fastify</span>
+      <span class="p-card__tag">Canvas</span>
+    </div>
+    <div class="p-card__actions" data-reveal>
+      <a class="p-card__link" href="/benchmarks"> 开始挑战 </a>
+      <a class="p-card__link" href="/leaderboard"> 查看排行榜 </a>
+      <a class="p-card__link" href="/reaction-test"> 反应测试 </a>
+    </div>
+    <p class="p-back" data-reveal>
+      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
+    </p>
+  </main>
+
+  <PageFoot current="/projects" />
+</BaseLayout>
