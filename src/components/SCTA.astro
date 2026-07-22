@@ -5,13 +5,14 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 <section class="s-cta" data-intersect>
   <div id="contact" class="s__inner js-container">
     <div class="s__hover js-hover">
-      <div class="s__button js-button">
+      <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
         <div class="s__button__inner">
           <div class="s__button__text js-button-text">
             Go
           </div><!-- .s__button__text -->
         </div><!-- .s__button__inner -->
-      </div><!-- .s__button -->
+        <span class="s__button__hint" aria-hidden="true">写信给我</span>
+      </a><!-- .s__button -->
 
       <div class="s__cta js-cta">
         {
@@ -226,10 +227,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     bindEvents() {
       Emitter.on('resize', this.onResize, this)
 
-      this.hover.addEventListener('mouseenter', this.onHover.bind(this))
-      this.hover.addEventListener('touchstart', this.onHover.bind(this))
+      // 整个 CTA 区域（含大圆）都可触发，而不是只有 96px 的按钮格
+      this.container.addEventListener('mouseenter', this.onHover.bind(this))
+      this.container.addEventListener('touchstart', this.onHover.bind(this))
 
-      this.hover.addEventListener('mouseleave', this.onOut.bind(this), {
+      this.container.addEventListener('mouseleave', this.onOut.bind(this), {
         passive: true,
       })
       this.el.addEventListener('touchstart', this.onOut.bind(this), {
@@ -636,8 +638,9 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
     .s__button {
       position: relative;
-      z-index: 1;
+      z-index: 5;
 
+      display: block;
       width: 6rem;
       height: 6rem;
 
@@ -647,8 +650,40 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       font: 700 3.75rem / 6.85rem font-family(bigger);
       letter-spacing: 0.05em;
       text-align: center;
+      text-decoration: none;
       text-indent: 0.075em;
       text-transform: uppercase;
+
+      /* 呼吸光环：时刻提醒「这是个按钮」 */
+      &::before {
+        position: absolute;
+        inset: -0.55rem;
+
+        border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+        border-radius: 999rem;
+        content: '';
+        pointer-events: none;
+
+        animation: s-button-ring 2.8s ease-in-out infinite;
+      }
+
+      @keyframes s-button-ring {
+        0%,
+        100% {
+          opacity: 0.35;
+          transform: scale(0.96);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.05);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &::before {
+          animation: none;
+        }
+      }
 
       &__inner {
         width: 100%;
@@ -667,6 +702,27 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
         will-change: scale;
       }
+
+      &__hint {
+        position: absolute;
+        top: calc(100% + 0.85rem);
+        left: 50%;
+
+        color: color(secondary);
+        font: 700 10px / 1 font-family(fraktion);
+        letter-spacing: 0.28em;
+        text-indent: 0.28em;
+        text-transform: uppercase;
+        white-space: nowrap;
+
+        opacity: 0.62;
+        transform: translateX(-50%);
+        transition: opacity 0.3s ease;
+      }
+
+      &:hover &__hint {
+        opacity: 1;
+      }
     }
 
     .s__hover.is-active .s__button {
@@ -676,11 +732,15 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         transition: scale 0.6s ease(in-quint) 0s;
       }
 
+      /* 「Go」不再放大消失——保持可读，联动感交给圆环与文字 */
       .s__button__text {
-        animation-play-state: paused;
-        scale: 2;
+        scale: 1.08;
 
         transition: scale 0.6s ease(in-cubic) 0s;
+      }
+
+      .s__button__hint {
+        opacity: 1;
       }
     }
 
