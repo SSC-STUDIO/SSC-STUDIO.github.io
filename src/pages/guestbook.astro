@@ -1,0 +1,26 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+import Guestbook from '@/islands/Guestbook'
+---
+
+<BaseLayout
+  title="Guestbook · 陈润森"
+  description="留言板：把脚印留在这条河边——问题、想法、路过的心情，都欢迎。"
+>
+  <PageHero
+    kicker="GUESTBOOK · 留言"
+    title="留言板"
+    summary="把脚印留在这条河边——问题、想法、路过的心情，都欢迎。"
+  />
+
+  <main class="p-page p-page--wide">
+    <PageCard kicker="riverbank" title="Footprints">
+      <Guestbook client:load />
+    </PageCard>
+  </main>
+
+  <PageFoot current="/guestbook" />
+</BaseLayout>

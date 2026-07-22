@@ -1,0 +1,917 @@
+/**
+ * Class space ("p-class*") — members-only area: space overview, media
+ * gallery + lightbox, member profile pages, comment walls.
+ * Scoped to the class islands; reuses global p-lock / p-form / p-card
+ * building blocks for the login gate and the comment composer.
+ * Dark scheme adapts automatically through the color() CSS variables.
+ */
+
+@use "../helpers/colors" as *;
+@use "../helpers/fonts" as *;
+@use "../helpers/responsive" as *;
+
+/* Shared state placeholders (loading / empty / error) */
+
+.p-class,
+.p-class-gallery,
+.p-class-profile {
+  &__state {
+    margin: 0;
+    padding: 2rem 1.5rem;
+
+    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 1rem / 1.6 font-family(editorial);
+    text-align: center;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__retry {
+    margin-top: 1rem;
+    padding: 0.65rem 1.25rem;
+
+    border: 1px solid color(secondary);
+    background: color(secondary);
+
+    color: color(primary);
+    font: 700 11px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: color(accent);
+
+      color: color(secondary);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Class space overview                                                */
+/* ------------------------------------------------------------------ */
+
+.p-class {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+
+  /* Stat cards */
+
+  &__metrics {
+    display: grid;
+    gap: 1.25rem;
+
+    margin: 0;
+
+    @include mq(tablet) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &__metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    margin: 0;
+    padding: 1.25rem 1.25rem 1rem;
+
+    border: 1px solid color(secondary);
+    background: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
+
+    dt {
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+
+      color: color(secondary);
+      font: 700 clamp(2rem, 5vw, 2.75rem) / 1 font-family(bigger);
+      letter-spacing: -0.02em;
+    }
+  }
+
+  &__metric dd#{&}__metric-sub {
+    color: color-mix(in srgb, #{color(secondary)} 70%, transparent);
+    font: 400 0.9rem / 1.5 font-family(editorial);
+    letter-spacing: normal;
+  }
+
+  &__metric-link {
+    margin-top: 0.5rem;
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-decoration: underline;
+    text-decoration-color: color(accent);
+    text-underline-offset: 0.25em;
+    text-transform: uppercase;
+
+    &:hover {
+      color: color(accent-strong);
+    }
+  }
+
+  /* Sections */
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  &__section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+
+    padding-bottom: 0.75rem;
+
+    border-bottom: 1px solid color(secondary);
+
+    .p-card__kicker {
+      margin: 0;
+    }
+  }
+
+  &__section-title {
+    margin: 0;
+
+    color: color(secondary);
+    font: 700 clamp(1.35rem, 3vw, 1.85rem) / 1.1 font-family(bigger);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  /* Member profile grid */
+
+  &__profiles {
+    display: grid;
+    gap: 1.25rem;
+
+    @include mq(tablet) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1080px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &__profile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    padding: 1.25rem 1.25rem 1rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+
+    color: inherit;
+    text-decoration: none;
+
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0.5rem 0 color(accent);
+
+      @media (prefers-reduced-motion: reduce) {
+        transform: none;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 3px;
+    }
+  }
+
+  &__profile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  &__profile-role {
+    padding: 0.2rem 0.45rem;
+
+    background: color(accent);
+    border-radius: 999px;
+
+    color: color(secondary);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+
+    &.is-teacher {
+      background: color(secondary);
+
+      color: color(primary);
+    }
+  }
+
+  &__profile-slug {
+    overflow: hidden;
+
+    color: color-mix(in srgb, #{color(secondary)} 50%, transparent);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.06em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-name {
+    color: color(secondary);
+    font: 700 1.35rem / 1.15 font-family(bigger);
+    letter-spacing: -0.01em;
+  }
+
+  &__profile-bio {
+    color: color-mix(in srgb, #{color(secondary)} 80%, transparent);
+    font: 400 0.95rem / 1.55 font-family(editorial);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Comment wall (class space + profile pages)                          */
+/* ------------------------------------------------------------------ */
+
+.p-class-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  &__form textarea {
+    min-height: 6.5rem;
+  }
+
+  &__notice {
+    margin: 0;
+
+    color: #b91c1c;
+    font: 400 0.9rem / 1.4 font-family(editorial);
+  }
+
+  &__state {
+    margin: 0;
+    padding: 2rem 1.5rem;
+
+    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 1rem / 1.6 font-family(editorial);
+    text-align: center;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__retry {
+    margin-top: 1rem;
+    padding: 0.65rem 1.25rem;
+
+    border: 1px solid color(secondary);
+    background: color(secondary);
+
+    color: color(primary);
+    font: 700 11px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: color(accent);
+
+      color: color(secondary);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+  }
+
+  &__item {
+    padding: 1.25rem 1.25rem 1rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+
+    margin-bottom: 0.5rem;
+  }
+
+  &__author {
+    color: color(secondary);
+    font: 700 0.95rem / 1.3 font-family(editorial);
+  }
+
+  &__time {
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &__content {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 88%, transparent);
+    font: 400 1rem / 1.65 font-family(editorial);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    margin-top: 0.85rem;
+  }
+
+  &__like,
+  &__action {
+    padding: 0.4rem 0.7rem;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+    background: transparent;
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      border-color: color(accent);
+      background: color(accent);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+  }
+
+  &__like.is-liked {
+    border-color: color(accent);
+    background: color(accent);
+  }
+
+  &__thread {
+    margin-top: 1rem;
+    padding-top: 1rem;
+
+    border-top: 1px dashed color-mix(in srgb, #{color(secondary)} 35%, transparent);
+  }
+
+  &__replies {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    margin: 0 0 1rem;
+    padding: 0;
+
+    list-style: none;
+  }
+
+  &__reply {
+    padding: 0.85rem 1rem;
+
+    border-left: 3px solid color(accent);
+    background: color-mix(in srgb, #{color(accent)} 8%, #{color(primary)});
+
+    .p-class-comments__content {
+      font-size: 0.95rem;
+    }
+  }
+
+  &__reply-form textarea {
+    min-height: 4.5rem;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Gallery                                                             */
+/* ------------------------------------------------------------------ */
+
+.p-class-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  &__notice {
+    margin: 0;
+    padding: 0.85rem 1rem;
+
+    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+    background: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
+
+    color: color-mix(in srgb, #{color(secondary)} 80%, transparent);
+    font: 400 0.95rem / 1.5 font-family(editorial);
+  }
+
+  &__count {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 700 10px / 1.5 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  &__grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+
+    @include mq(tablet) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (min-width: 1080px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  &__item {
+    position: relative;
+
+    display: block;
+
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+
+    border: 1px solid color(secondary);
+    background: color-mix(in srgb, #{color(secondary)} 8%, #{color(primary)});
+
+    aspect-ratio: 4 / 3;
+
+    cursor: pointer;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0.5rem 0 color(accent);
+
+      @media (prefers-reduced-motion: reduce) {
+        transform: none;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 3px;
+    }
+  }
+
+  &__thumb {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+  }
+
+  &__no {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+
+    padding: 0.2rem 0.4rem;
+
+    background: color-mix(in srgb, #{color(shadow)} 75%, transparent);
+
+    color: color(white);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.08em;
+  }
+
+  &__badge {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+
+    padding: 0.25rem 0.5rem;
+
+    background: color(accent);
+
+    color: color(secondary);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Lightbox (self-drawn, keyboard accessible)                          */
+/* ------------------------------------------------------------------ */
+
+.p-class-lightbox {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 1rem;
+
+  animation: p-class-lightbox-in 0.25s ease both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+
+    padding: 0;
+
+    border: 0;
+    background: color-mix(in srgb, #{color(shadow)} 88%, transparent);
+
+    cursor: zoom-out;
+  }
+
+  &__panel {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    width: min(64rem, 100%);
+    padding: 1rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+  }
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  &__counter {
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 700 11px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+  }
+
+  &__close {
+    padding: 0.45rem 0.75rem;
+
+    border: 1px solid color(secondary);
+    background: color(secondary);
+
+    color: color(primary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: color(accent);
+
+      color: color(secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 2px;
+    }
+  }
+
+  &__figure {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    margin: 0;
+  }
+
+  &__media {
+    display: block;
+
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 68vh;
+    width: auto;
+    height: auto;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
+    background: color-mix(in srgb, #{color(shadow)} 20%, #{color(primary)});
+
+    object-fit: contain;
+  }
+
+  video#{&}__media {
+    width: 100%;
+  }
+
+  &__caption {
+    color: color-mix(in srgb, #{color(secondary)} 75%, transparent);
+    font: 400 0.95rem / 1.4 font-family(editorial);
+    text-align: center;
+  }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+
+    padding: 0.75rem 0.9rem;
+
+    border: 1px solid color(secondary);
+    background: color(secondary);
+
+    color: color(primary);
+    font: 700 1rem / 1 font-family(fraktion);
+
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: color(accent);
+
+      color: color(secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 2px;
+    }
+
+    &--prev {
+      left: -0.5rem;
+    }
+
+    &--next {
+      right: -0.5rem;
+    }
+
+    @include mq(phone) {
+      top: auto;
+      bottom: -0.5rem;
+
+      transform: none;
+
+      &--prev {
+        left: 1rem;
+      }
+
+      &--next {
+        right: 1rem;
+      }
+    }
+  }
+}
+
+@keyframes p-class-lightbox-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Profile detail                                                      */
+/* ------------------------------------------------------------------ */
+
+.p-class-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &__back {
+    margin: 0;
+
+    a {
+      color: color(secondary);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.12em;
+      text-decoration: underline;
+      text-decoration-color: color(accent);
+      text-underline-offset: 0.25em;
+      text-transform: uppercase;
+
+      &:hover {
+        color: color(accent-strong);
+      }
+    }
+  }
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    padding-bottom: 1.25rem;
+
+    border-bottom: 1px solid color(secondary);
+  }
+
+  &__role {
+    padding: 0.25rem 0.55rem;
+
+    background: color(accent);
+    border-radius: 999px;
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+
+    &.is-teacher {
+      background: color(secondary);
+
+      color: color(primary);
+    }
+  }
+
+  &__name {
+    margin: 0;
+
+    color: color(secondary);
+    font: 700 clamp(2.25rem, 6vw, 3.5rem) / 1 font-family(bigger);
+    letter-spacing: -0.02em;
+  }
+
+  &__slug {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+
+    margin: 0.25rem 0 0;
+  }
+
+  &__tag {
+    padding: 0.2rem 0.45rem;
+
+    background: color-mix(in srgb, #{color(accent)} 85%, #{color(primary)});
+
+    color: color(secondary);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  &__layout {
+    display: grid;
+    gap: 1.25rem;
+
+    @media (min-width: 1080px) {
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr);
+      align-items: start;
+    }
+  }
+
+  &__panel {
+    padding: 1.25rem 1.25rem 1rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+
+    .p-card__kicker {
+      display: block;
+
+      margin: 0 0 0.5rem;
+    }
+
+    @media (min-width: 1080px) {
+      padding: 1.65rem 1.85rem 1.35rem;
+
+      &--side {
+        grid-row: span 2;
+      }
+    }
+  }
+
+  &__panel-title {
+    margin: 0 0 0.85rem;
+
+    color: color(secondary);
+    font: 700 clamp(1.15rem, 2.5vw, 1.5rem) / 1.1 font-family(bigger);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  &__copy {
+    color: color-mix(in srgb, #{color(secondary)} 88%, transparent);
+    font: 400 1rem / 1.7 font-family(editorial);
+
+    p {
+      margin: 0 0 0.85rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  &__facts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+
+    margin: 0;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    dt {
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+
+      color: color(secondary);
+      font: 400 1rem / 1.4 font-family(editorial);
+    }
+  }
+}

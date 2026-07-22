@@ -673,3 +673,97 @@
     box-shadow: none;
   }
 }
+
+/* --- Schulte grid -------------------------------------------------------- */
+
+.schulte-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.schulte-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid
+    color-mix(in srgb, var(--color-accent) 60%, var(--color-secondary));
+  background: var(--color-primary);
+  color: var(--color-secondary);
+  cursor: pointer;
+  font: 700 1.2rem/1 var(--font-family-fraktion);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0.6rem
+      color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.schulte-cell--cleared {
+  border-color: color-mix(in srgb, var(--color-secondary) 25%, transparent);
+  background: color-mix(in srgb, var(--color-secondary) 12%, var(--color-primary));
+  color: color-mix(in srgb, var(--color-secondary) 35%, transparent);
+}
+
+.schulte-cell--error {
+  border-color: #b91c1c;
+  color: #b91c1c;
+  animation: schulte-shake 0.35s ease;
+}
+
+@keyframes schulte-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.schulte-hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+
+  span {
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--color-secondary);
+    background: var(--color-primary);
+    font: 700 10px/1 var(--font-family-fraktion);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schulte-cell {
+    transition: none;
+  }
+
+  .schulte-cell--error {
+    animation: none;
+  }
+}

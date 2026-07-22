@@ -21,7 +21,8 @@ export type BenchmarkGame =
   | "visual-memory"
   | "sequence-memory"
   | "chimp-test"
-  | "word-memory";
+  | "word-memory"
+  | "schulte-grid";
 
 type Phase = "idle" | "showing" | "input" | "correct" | "gameover";
 
@@ -965,6 +966,222 @@ function WordMemoryGame() {
 }
 
 // ---------------------------------------------------------------------------
+// Schulte grid (5×5, original implementation — not from the dist bundle)
+// ---------------------------------------------------------------------------
+
+const SCHULTE_SIZE = 5;
+const SCHULTE_CELL_COUNT = SCHULTE_SIZE * SCHULTE_SIZE;
+
+type SchultePhase = "idle" | "countdown" | "playing" | "done";
+
+/** Random permutation of 1–25. */
+function generateSchulteNumbers(): number[] {
+  return shuffleArray(
+    Array.from({ length: SCHULTE_CELL_COUNT }, (_, i) => i + 1),
+  );
+}
+
+function SchulteGridGame() {
+  const [phase, setPhase] = useState<SchultePhase>("idle");
+  const [numbers, setNumbers] = useState<number[]>([]);
+  const [nextExpected, setNextExpected] = useState(1);
+  const [mistakes, setMistakes] = useState(0);
+  const [errorCell, setErrorCell] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(3);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [finalMs, setFinalMs] = useState<number | null>(null);
+  const [bestMs, setBestMs] = useState<number | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [submitState, setSubmitState] = useState<ScoreSubmitState>("idle");
+  const startTimeRef = useRef<number | null>(null);
+  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopClock = useCallback(() => {
+    if (clockRef.current) {
+      clearInterval(clockRef.current);
+      clockRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (clockRef.current) clearInterval(clockRef.current);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
+  const startGame = useCallback(() => {
+    stopClock();
+    startTimeRef.current = null;
+    setNumbers(generateSchulteNumbers());
+    setNextExpected(1);
+    setMistakes(0);
+    setErrorCell(null);
+    setElapsedMs(0);
+    setFinalMs(null);
+    setSubmitState("idle");
+    setAttempts((prev) => prev + 1);
+    setCountdown(3);
+    setPhase("countdown");
+  }, [stopClock]);
+
+  // 3-2-1 countdown before the grid becomes clickable.
+  useEffect(() => {
+    if (phase !== "countdown") return;
+    if (countdown <= 0) {
+      setPhase("playing");
+      return;
+    }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 800);
+    return () => clearTimeout(timer);
+  }, [phase, countdown]);
+
+  const handleCellClick = useCallback(
+    (index: number) => {
+      if (phase !== "playing") return;
+      const value = numbers[index];
+      if (value === undefined || value < nextExpected) return;
+
+      if (value !== nextExpected) {
+        setMistakes((prev) => prev + 1);
+        setErrorCell(index);
+        if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+        errorTimerRef.current = setTimeout(() => setErrorCell(null), 400);
+        return;
+      }
+
+      // The clock starts on hitting 1, not when the grid appears.
+      if (value === 1) {
+        startTimeRef.current = performance.now();
+        clockRef.current = setInterval(() => {
+          if (startTimeRef.current !== null) {
+            setElapsedMs(performance.now() - startTimeRef.current);
+          }
+        }, 31);
+      }
+
+      if (value === SCHULTE_CELL_COUNT) {
+        stopClock();
+        const elapsed =
+          startTimeRef.current !== null
+            ? performance.now() - startTimeRef.current
+            : 0;
+        startTimeRef.current = null;
+        setElapsedMs(elapsed);
+        setFinalMs(elapsed);
+        setBestMs((prev) => (prev === null ? elapsed : Math.min(prev, elapsed)));
+        setPhase("done");
+        return;
+      }
+
+      setNextExpected(value + 1);
+    },
+    [phase, numbers, nextExpected, stopClock],
+  );
+
+  async function submitScore() {
+    if (
+      finalMs === null ||
+      submitState === "submitting" ||
+      submitState === "submitted"
+    )
+      return;
+    setSubmitState("submitting");
+    const res = await postBenchmarkScore("schulte-grid", Math.round(finalMs), {
+      type: "schulte-grid",
+      mistakes,
+    });
+    if (res.ok) {
+      setSubmitState("submitted");
+      return;
+    }
+    setSubmitState(res.reason === "unauthorized" ? "auth_required" : "error");
+  }
+
+  return (
+    <div className="benchmark-game">
+      {phase === "idle" ? (
+        <StartTarget
+          gameover={false}
+          title="舒尔特表"
+          subtitle="按 1 → 25 顺序点亮全部格子，比的是眼与手的协同。"
+          onStart={startGame}
+        />
+      ) : null}
+
+      {phase === "countdown" ? (
+        <div className="benchmark-target" data-state="ready">
+          <div className="benchmark-target__inner">
+            <span className="benchmark-number">{countdown}</span>
+            <small>准备 — 倒数结束后找到数字 1</small>
+          </div>
+        </div>
+      ) : null}
+
+      {phase === "playing" ? (
+        <div>
+          <div className="schulte-grid">
+            {numbers.map((value, index) => {
+              const cleared = value < nextExpected;
+              const className = [
+                "schulte-cell",
+                cleared ? "schulte-cell--cleared" : "",
+                errorCell === index ? "schulte-cell--error" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={className}
+                  onClick={() => handleCellClick(index)}
+                  disabled={cleared}
+                >
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+          <div className="schulte-hud">
+            <span>下一个: {nextExpected}</span>
+            <span>用时: {(elapsedMs / 1000).toFixed(2)} s</span>
+            <span>失误: {mistakes}</span>
+          </div>
+        </div>
+      ) : null}
+
+      {phase === "done" && finalMs !== null ? (
+        <>
+          <div className="benchmark-target" data-state="result">
+            <div className="benchmark-target__inner">
+              <span>{(finalMs / 1000).toFixed(2)} s</span>
+              <small>点亮了全部 25 格，失误 {mistakes} 次</small>
+            </div>
+          </div>
+          <div className="p-card__actions">
+            <button type="button" className="p-card__link" onClick={startGame}>
+              再来一局
+            </button>
+          </div>
+          <SubmitSection state={submitState} onSubmit={submitScore} />
+        </>
+      ) : null}
+
+      {attempts > 0 ? (
+        <div className="benchmark-stats">
+          <span>游戏次数: {attempts}</span>
+          <span>
+            最佳: {bestMs !== null ? `${(bestMs / 1000).toFixed(2)} s` : "—"}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 
@@ -989,6 +1206,8 @@ export default function BenchmarkPlay({ game }: { game: BenchmarkGame }) {
       return <ChimpTestGame />;
     case "word-memory":
       return <WordMemoryGame />;
+    case "schulte-grid":
+      return <SchulteGridGame />;
     default:
       return (
         <div className="p-lock">

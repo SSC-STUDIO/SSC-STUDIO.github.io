@@ -14,6 +14,9 @@
 @use 'site/shell';
 @use 'site/pages';
 @use 'site/signature';
+@use 'site/guestbook';
+@use 'site/class';
+@use 'site/timeline';
 
 /* Utility classes */
 @use 'utilities/visibility';

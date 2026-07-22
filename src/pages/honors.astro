@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import Timeline from '@/islands/Timeline'
 
 const counters = [
   { label: '信息学', lines: ['CSP-J 贰等', 'NOC 一等奖'] },
@@ -144,6 +145,8 @@ const certs = [
         ))
       }
     </div>
+
+    <Timeline client:load />
 
     <section class="p-honor-certs" data-reveal>
       <h2 class="p-honor-certs__title">奖状存档</h2>

@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ClassGallery from '@/islands/ClassGallery'
 ---
 
 <BaseLayout
@@ -10,21 +11,12 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 >
   <PageHero
     kicker="class-space"
-    title="Class Gallery"
-    summary="受保护的班级相册与视频浏览 — 元数据、预览与筛选。"
+    title="班级画廊"
+    summary="这一班的照片与视频——登录后通过受保护接口浏览；未登录时展示公开预览清单。"
   />
 
-  <main class="p-page">
-    <div class="p-lock">
-      <p class="p-lock__badge">迁移中</p>
-      <p class="p-lock__message">
-        画廊浏览需要成员登录，交互式相册模块正在迁移中。
-      </p>
-      <div class="p-card__actions">
-        <a class="p-card__link" href="/account"> 前往账号 </a>
-        <a class="p-card__link p-card__link--ghost" href="/class"> 班级空间 </a>
-      </div>
-    </div>
+  <main class="p-page p-page--wide">
+    <ClassGallery client:load />
   </main>
 
   <PageFoot current="/class" />

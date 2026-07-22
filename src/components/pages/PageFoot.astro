@@ -1,5 +1,6 @@
 ---
 import ASeparator from '../ASeparator.astro'
+import SealMark from '../SealMark.astro'
 
 interface Props {
   /** href of the current section, marks the matching eco link */
@@ -19,6 +20,7 @@ const links = [
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/benchmarks', label: 'Benchmarks' },
   { href: '/class', label: 'Class Space' },
+  { href: '/guestbook', label: 'Guestbook' },
   { href: '/contact', label: 'Contact' },
 ]
 ---
@@ -34,6 +36,7 @@ const links = [
           class:list={['p-eco__link', { 'is-current': link.href === current }]}
           href={link.href}
         >
+          {link.href === current && <SealMark variant="dot" />}
           {link.label}
         </a>
       ))

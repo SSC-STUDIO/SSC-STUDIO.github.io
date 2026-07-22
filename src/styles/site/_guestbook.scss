@@ -1,0 +1,222 @@
+/**
+ * Guestbook page ("p-guestbook") — comment feed, composer, replies, likes.
+ * Scoped to the guestbook island; reuses global p-form / p-lock / p-card
+ * building blocks for the form and the login prompt.
+ */
+
+@use "../helpers/colors" as *;
+@use "../helpers/fonts" as *;
+@use "../helpers/responsive" as *;
+
+.p-guestbook {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &__hint {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 0.9rem / 1.5 font-family(editorial);
+
+    a {
+      color: color(secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  &__notice {
+    margin: 0;
+
+    color: #b91c1c;
+    font: 400 0.9rem / 1.4 font-family(editorial);
+  }
+
+  /* Loading / empty / error placeholder */
+
+  &__state {
+    margin: 0;
+    padding: 2rem 1.5rem;
+
+    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 1rem / 1.6 font-family(editorial);
+    text-align: center;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__retry {
+    margin-top: 1rem;
+    padding: 0.65rem 1.25rem;
+
+    border: 1px solid color(secondary);
+    background: color(secondary);
+
+    color: color(primary);
+    font: 700 11px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background: color(accent);
+
+      color: color(secondary);
+    }
+  }
+
+  /* Composer */
+
+  &__composer textarea {
+    min-height: 6.5rem;
+  }
+
+  /* Feed */
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+  }
+
+  &__item {
+    padding: 1.25rem 1.25rem 1rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 1rem;
+
+    margin-bottom: 0.6rem;
+  }
+
+  &__author {
+    padding: 0.2rem 0.5rem;
+
+    background: color(accent);
+
+    color: color(secondary);
+    font: 700 10px / 1.4 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  &__time {
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  &__content {
+    margin: 0;
+
+    color: color(secondary);
+    font: 400 1rem / 1.6 font-family(editorial);
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    margin-top: 0.85rem;
+  }
+
+  &__action,
+  &__like {
+    padding: 0.35rem 0.65rem;
+
+    border: 1px solid color(secondary);
+    background: transparent;
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: color(accent);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+  }
+
+  &__like.is-liked,
+  &__like.is-liked:hover:not(:disabled) {
+    background: color(accent);
+  }
+
+  /* Replies thread */
+
+  &__thread {
+    margin-top: 1rem;
+    padding-left: 1rem;
+
+    border-left: 2px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+  }
+
+  &__replies {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    margin: 0 0 1rem;
+    padding: 0;
+
+    list-style: none;
+  }
+
+  &__reply {
+    padding: 0.85rem 1rem;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+    background: color-mix(in srgb, #{color(accent)} 8%, #{color(primary)});
+
+    .p-guestbook__content {
+      font-size: 0.95rem;
+    }
+  }
+
+  &__reply-form textarea {
+    min-height: 4.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__retry,
+    &__action,
+    &__like {
+      transition: none;
+    }
+  }
+}

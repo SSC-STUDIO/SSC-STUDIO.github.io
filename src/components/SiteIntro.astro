@@ -4,6 +4,7 @@
  * Revealed/animated by the Site class in BaseLayout, removed after first visit
  * (sessionStorage "site-intro-seen").
  */
+import SenMark from './SenMark.astro'
 ---
 
 <div class="site-intro js-intro">
@@ -12,14 +13,7 @@
   </p>
 
   <div class="sb-logo js-intro-logo">
-    <div class="sb__path sb__path--v sb__path--v-1 js-logo-line-v"></div>
-    <div class="sb__path sb__path--h sb__path--h-1 js-logo-line-h"></div>
-    <div class="sb__path sb__path--v sb__path--v-2 js-logo-line-v"></div>
-    <div class="sb__path sb__path--v sb__path--v-3 js-logo-line-v"></div>
-    <div class="sb__path sb__path--h sb__path--h-2 js-logo-line-h"></div>
-    <div class="sb__path sb__path--v sb__path--v-4 js-logo-line-v"></div>
-    <div class="sb__path sb__path--h sb__path--h-3 js-logo-line-h"></div>
-    <div class="sb__path sb__path--v sb__path--v-5 js-logo-line-v"></div>
+    <SenMark size={56} variant="draw" />
   </div><!-- .sb-logo -->
 
   <div class="site-intro__border site-intro__border--top js-border-top"></div>

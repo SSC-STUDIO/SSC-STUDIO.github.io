@@ -1,0 +1,40 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import ClassProfile from '@/islands/ClassProfile'
+
+// Profile slugs live behind the authenticated class API, so they cannot be
+// enumerated at build time — getStaticPaths() emits the slugs known from
+// the API source (featured profiles in apps/api/src/routes/class.ts).
+// The page itself is fully generic: it only hands `Astro.params.slug` to
+// the island, which fetches `/api/class/profiles/:slug` client-side and
+// renders login / not-found states for anything else. New profiles need
+// their slug added here (or an SSR adapter) to get a reachable URL.
+export function getStaticPaths() {
+  return [
+    { params: { slug: '19-陈润森' } },
+    { params: { slug: 'T01-夏雅萍' } },
+    { params: { slug: 'T02-张箐' } },
+  ]
+}
+
+const { slug = '' } = Astro.params
+---
+
+<BaseLayout
+  title="Class Profile · 陈润森"
+  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+>
+  <PageHero
+    kicker="class-profile"
+    title="同学档案"
+    summary="班级空间里的个人档案——简介、留言与到访记录，登录后可见。"
+  />
+
+  <main class="p-page p-page--wide">
+    <ClassProfile client:load slug={slug} />
+  </main>
+
+  <PageFoot current="/class" />
+</BaseLayout>

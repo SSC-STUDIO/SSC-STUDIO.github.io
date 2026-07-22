@@ -8,7 +8,7 @@ const games = [
   {
     href: '/benchmarks/reaction-test',
     kicker: 'reaction',
-    id: '#BMK-01/06',
+    id: '#BMK-01/07',
     title: '反应时间',
     summary: '等待方块变绿立即点击，记录毫秒级的视觉反应延迟。',
     ref: '250',
@@ -18,7 +18,7 @@ const games = [
   {
     href: '/benchmarks/number-memory',
     kicker: 'memory',
-    id: '#BMK-02/06',
+    id: '#BMK-02/07',
     title: '数字记忆',
     summary: '逐位闪过的数字越来越长，看你能复述到几位。',
     ref: '9',
@@ -28,7 +28,7 @@ const games = [
   {
     href: '/benchmarks/visual-memory',
     kicker: 'memory',
-    id: '#BMK-03/06',
+    id: '#BMK-03/07',
     title: '视觉记忆',
     summary: '记住同时闪烁的方块位置，按出现顺序逐一复现。',
     ref: '7',
@@ -38,7 +38,7 @@ const games = [
   {
     href: '/benchmarks/sequence-memory',
     kicker: 'memory',
-    id: '#BMK-04/06',
+    id: '#BMK-04/07',
     title: '顺序记忆',
     summary: '方块按顺序亮起，按相同顺序点击复现整条序列。',
     ref: '11',
@@ -48,7 +48,7 @@ const games = [
   {
     href: '/benchmarks/chimp-test',
     kicker: 'memory',
-    id: '#BMK-05/06',
+    id: '#BMK-05/07',
     title: '黑猩猩测试',
     summary: '数字在网格中一闪消失，按从小到大顺序点击。',
     ref: '8',
@@ -58,12 +58,22 @@ const games = [
   {
     href: '/benchmarks/word-memory',
     kicker: 'attention',
-    id: '#BMK-06/06',
+    id: '#BMK-06/07',
     title: '词语记忆',
     summary: '记住屏幕上闪过的词语，判断下一个词是否出现过。',
     ref: '12',
     unit: 'words',
     tags: ['词语', '再认', '递增'],
+  },
+  {
+    href: '/benchmarks/schulte-grid',
+    kicker: 'attention',
+    id: '#BMK-07/07',
+    title: '舒尔特表',
+    summary: '按 1 → 25 顺序点亮全部格子，比的是眼与手的协同。',
+    ref: '20',
+    unit: 's',
+    tags: ['注意力', '5×5', '计时'],
   },
 ]
 ---
@@ -80,7 +90,7 @@ const games = [
 
   <main class="p-page p-page--wide">
     <div class="p-detail-meta" data-reveal>
-      <span>6 项挑战</span>
+      <span>7 项挑战</span>
       <span>分数同步排行榜</span>
     </div>
     <div class="p-grid">
