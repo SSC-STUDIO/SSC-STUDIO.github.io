@@ -1,3 +1,7 @@
+---
+import SealMark from './SealMark.astro'
+---
+
 <footer class="site-foot">
   <div class="site-foot__logo">
     <a href="/">
@@ -19,6 +23,7 @@
 
       <span class="u-sr-only">陈润森</span>
     </a>
+    <SealMark variant="footer" />
   </div><!-- .site-foot__logo -->
 
   <p class="site-foot__credit">
@@ -54,6 +59,10 @@
     }
 
     &__logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
       svg {
         display: block;
         width: 3rem;

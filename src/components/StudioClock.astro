@@ -1,0 +1,45 @@
+---
+/**
+ * StudioClock — 「工作室的灯」
+ * 显示来访者本地时间与时段（晨光/白昼/暮色/夜灯），
+ * 在 <html> 上设置 data-daypart，联动全站灯色。
+ */
+---
+
+<span class="studio-clock" role="status" aria-label="本地时间">
+  <span class="studio-clock__lamp" aria-hidden="true"></span>
+  <span class="studio-clock__time">--:--</span>
+  <span class="studio-clock__part">亮灯</span>
+</span>
+
+<script>
+  (function () {
+    var clock = document.querySelector('.studio-clock');
+    if (!clock) return;
+    var timeEl = clock.querySelector('.studio-clock__time');
+    var partEl = clock.querySelector('.studio-clock__part');
+
+    function daypart(hour) {
+      if (hour >= 5 && hour < 8) return { key: 'dawn', label: '晨光' };
+      if (hour >= 8 && hour < 17) return { key: 'day', label: '白昼' };
+      if (hour >= 17 && hour < 20) return { key: 'dusk', label: '暮色' };
+      return { key: 'night', label: '夜灯' };
+    }
+
+    function sync() {
+      var now = new Date();
+      var part = daypart(now.getHours());
+      timeEl.textContent =
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      partEl.textContent = part.label;
+      document.documentElement.setAttribute('data-daypart', part.key);
+    }
+
+    sync();
+    var delay = 60000 - (Date.now() % 60000);
+    setTimeout(function () {
+      sync();
+      setInterval(sync, 60000);
+    }, delay);
+  })();
+</script>

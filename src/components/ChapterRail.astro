@@ -1,0 +1,90 @@
+---
+/**
+ * ChapterRail — 首页右侧章节胶片导轨
+ * IntersectionObserver 追踪当前章节；进度复用 Site class 的 window.scrollProgress。
+ */
+const chapters = [
+  { selector: '.s-hero', index: '01', label: '序' },
+  { selector: '.s-about', index: '02', label: '关于' },
+  { selector: '.s-work', index: '03', label: '作品' },
+  { selector: '.s-my-way', index: '04', label: '路' },
+  { selector: '.s-cta', index: '05', label: '联系' },
+];
+---
+
+<nav class="chapter-rail" aria-label="章节导航">
+  <span class="chapter-rail__track" aria-hidden="true"></span>
+  <ol>
+    {
+      chapters.map((chapter) => (
+        <li>
+          <button type="button" class="chapter-rail__tick" data-target={chapter.selector}>
+            <span class="chapter-rail__index">{chapter.index}</span>
+            <span class="chapter-rail__label">{chapter.label}</span>
+            <span class="chapter-rail__sprocket" aria-hidden="true" />
+          </button>
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<script>
+  (function () {
+    var rail = document.querySelector('.chapter-rail');
+    if (!rail) return;
+
+    // 逃离任何可能的 transform 上下文，挂到 body 下
+    document.body.appendChild(rail);
+
+    var ticks = Array.from(rail.querySelectorAll('.chapter-rail__tick'));
+    var chapters = ticks
+      .map(function (tick) {
+        var el = document.querySelector(tick.getAttribute('data-target'));
+        return el ? { el: el, tick: tick } : null;
+      })
+      .filter(Boolean);
+    if (!chapters.length) return;
+
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    ticks[0] && ticks[0].setAttribute('data-active', 'true');
+
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          chapters.forEach(function (c) {
+            if (c.el === entry.target) c.tick.setAttribute('data-active', 'true');
+            else c.tick.removeAttribute('data-active');
+          });
+        });
+      },
+      { rootMargin: '-42% 0px -42% 0px', threshold: 0 }
+    );
+    chapters.forEach(function (c) {
+      observer.observe(c.el);
+      c.tick.addEventListener('click', function () {
+        c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      });
+    });
+
+    // 进度填充：优先复用 Site class 的 window.scrollProgress，缺失时自算
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var p =
+          typeof window.scrollProgress === 'number'
+            ? window.scrollProgress
+            : window.scrollY /
+              Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        rail.style.setProperty('--rail-progress', Math.min(1, Math.max(0, p)).toFixed(4));
+      });
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+</script>

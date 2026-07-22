@@ -1,0 +1,67 @@
+---
+/**
+ * SealMark — 朱砂印章（白文「润森」）
+ * 站点原创签名元素：朱砂红印章 + 油墨边缘（feTurbulence），纯 SVG。
+ */
+type Props = {
+  /** 边长 px，默认 56 */
+  size?: number;
+  variant?: 'hero' | 'footer';
+};
+
+const { size = 56, variant = 'hero' } = Astro.props;
+---
+
+<svg
+  class:list={['seal-mark', `seal-mark--${variant}`]}
+  width={size}
+  height={size}
+  viewBox="0 0 64 64"
+  role="img"
+  aria-label="润森印章"
+>
+  <defs>
+    <linearGradient id="seal-mark-red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d84a3a"></stop>
+      <stop offset="55%" stop-color="#c03528"></stop>
+      <stop offset="100%" stop-color="#a02a20"></stop>
+    </linearGradient>
+    <filter id="seal-mark-ink" x="-8%" y="-8%" width="116%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="7" result="n"
+      ></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.7"></feDisplacementMap>
+    </filter>
+  </defs>
+  <g filter="url(#seal-mark-ink)">
+    <rect x="3" y="3" width="58" height="58" rx="7" fill="url(#seal-mark-red)"></rect>
+    <rect
+      x="8"
+      y="8"
+      width="48"
+      height="48"
+      rx="4"
+      fill="none"
+      stroke="rgba(255,255,255,0.6)"
+      stroke-width="1.2"></rect>
+    <text
+      x="32"
+      y="27"
+      text-anchor="middle"
+      dominant-baseline="central"
+      fill="#fff"
+      font-size="21"
+      font-weight="700"
+      font-family="'Noto Serif SC','SimSun',serif">润</text
+    >
+    <text
+      x="32"
+      y="48"
+      text-anchor="middle"
+      dominant-baseline="central"
+      fill="#fff"
+      font-size="21"
+      font-weight="700"
+      font-family="'Noto Serif SC','SimSun',serif">森</text
+    >
+  </g>
+</svg>
