@@ -128,37 +128,39 @@ export default function Leaderboard() {
         <p>共 {scores.length} 条</p>
       </div>
 
-      <div className="lb-table">
-        {loading ? (
-          <p className="lb-empty">载入中…</p>
-        ) : scores.length === 0 ? (
-          <p className="lb-empty">暂无分数 — 虚位以待，去做一次挑战吧。</p>
-        ) : (
-          <>
-            {visibleScores.map((score, index) => (
-              <div className="lb-row" key={score.id}>
-                <span className={`lb-rank ${RANK_CLASSES[index + 1] ?? ""}`}>
-                  #{index + 1}
-                </span>
-                <span className="lb-name">{score.playerName}</span>
-                <span className="lb-score">
-                  {formatScore(score.score, activeMeta.unit)}
-                </span>
-              </div>
-            ))}
-            {hasMore ? (
-              <button
-                type="button"
-                className="p-card__link lb-more"
-                onClick={() =>
-                  setDisplayCount((c) => c + LOAD_MORE_INCREMENT)
-                }
-              >
-                显示更多 ({scores.length - displayCount} 条)
-              </button>
-            ) : null}
-          </>
-        )}
+      <div className="lb-table" key={activeTab}>
+        <div className="island-fade-in">
+          {loading ? (
+            <p className="lb-empty">载入中…</p>
+          ) : scores.length === 0 ? (
+            <p className="lb-empty">暂无分数 — 虚位以待，去做一次挑战吧。</p>
+          ) : (
+            <>
+              {visibleScores.map((score, index) => (
+                <div className="lb-row" key={score.id}>
+                  <span className={`lb-rank ${RANK_CLASSES[index + 1] ?? ""}`}>
+                    #{index + 1}
+                  </span>
+                  <span className="lb-name">{score.playerName}</span>
+                  <span className="lb-score">
+                    {formatScore(score.score, activeMeta.unit)}
+                  </span>
+                </div>
+              ))}
+              {hasMore ? (
+                <button
+                  type="button"
+                  className="p-card__link lb-more"
+                  onClick={() =>
+                    setDisplayCount((c) => c + LOAD_MORE_INCREMENT)
+                  }
+                >
+                  显示更多 ({scores.length - displayCount} 条)
+                </button>
+              ) : null}
+            </>
+          )}
+        </div>
         {!loading && scores.length === 0 ? (
           <div className="p-card__actions lb-empty-actions">
             <a className="p-card__link" href={`/benchmarks/${activeMeta.id}`}>

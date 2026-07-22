@@ -1,0 +1,254 @@
+/**
+ * Transitions — 页面切换（ClientRouter）与主题切换动画
+ * 仅视觉过渡；prefers-reduced-motion 下全部关闭
+ */
+
+@use '../helpers/colors' as *;
+@use '../helpers/responsive' as *;
+
+/* ── SPA 页面切换：退出下沉淡出，进入上浮淡入 ── */
+::view-transition-old(root) {
+  animation: vt-page-out 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-page-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+/* ── 主题切换：450ms 颜色过渡 ── */
+html.theme-animating,
+html.theme-animating body,
+html.theme-animating * {
+  transition-property:
+    background-color,
+    border-color,
+    color,
+    fill,
+    stroke,
+    box-shadow !important;
+  transition-duration: 450ms !important;
+  transition-timing-function: ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  html.theme-animating,
+  html.theme-animating body,
+  html.theme-animating * {
+    transition: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   阶段 2 — 子页面入场编排升级
+   ══════════════════════════════════════════════════════ */
+
+/* p-hero：整段淡入 → kicker/title/summary 三级错峰（后引入覆盖 _pages.scss） */
+.p-hero {
+  animation: none;
+}
+
+.p-hero__kicker {
+  animation: ph-kicker 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.p-hero__title {
+  animation: ph-rise 720ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.p-hero__summary {
+  animation: ph-fade 640ms 280ms ease both;
+}
+
+@keyframes ph-kicker {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+}
+
+@keyframes ph-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.4rem);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 -8% 0);
+  }
+}
+
+@keyframes ph-fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+}
+
+/* 页头印章水印：落章时刻 */
+.p-hero .seal-mark--watermark {
+  animation: sealStamp 720ms 520ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
+}
+
+/* data-reveal 升级：上移 + 模糊消退（覆盖 _shell.scss 原规则） */
+[data-reveal] {
+  transform: translateY(0.9rem);
+  filter: blur(3px);
+
+  transition:
+    opacity 0.65s ease,
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.65s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+
+  &.is-revealed {
+    filter: blur(0);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   阶段 3 — 交互动效细节
+   ══════════════════════════════════════════════════════ */
+
+/* p-eco 导航链接：下划线扫入 */
+.p-eco__link {
+  position: relative;
+  transition:
+    color 240ms ease,
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  &::after {
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: color(accent);
+    content: '';
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  &:hover {
+    transform: translateX(2px);
+  }
+
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* p-card：悬停时 accent 左边线扫入 + 轻微浮起 */
+.p-card {
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms ease;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background: linear-gradient(180deg, color(accent), color(accent-strong));
+    content: '';
+    transform: scaleY(0);
+    transform-origin: top center;
+    transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--color-shadow) 18%, transparent);
+  }
+
+  &:hover::before {
+    transform: scaleY(1);
+  }
+}
+
+/* p-card__link：下划线扫入 */
+.p-card__link {
+  position: relative;
+
+  &::after {
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    content: '';
+    opacity: 0.6;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  &:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* 孤岛过渡：tab/状态切换淡入 */
+.island-fade-in {
+  animation: islandFade 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* benchmark 游戏状态块（React 每次换态重新挂载，动画自然重播） */
+.benchmark-target {
+  animation: islandFade 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes islandFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ── 减弱动效降级 ── */
+@media (prefers-reduced-motion: reduce) {
+  .p-hero__kicker,
+  .p-hero__title,
+  .p-hero__summary,
+  .p-hero .seal-mark--watermark,
+  .island-fade-in,
+  .benchmark-target {
+    animation: none;
+  }
+
+  [data-reveal] {
+    filter: none;
+  }
+
+  .p-eco__link,
+  .p-card,
+  .p-card::before,
+  .p-eco__link::after,
+  .p-card__link::after {
+    transition: none;
+  }
+}
+

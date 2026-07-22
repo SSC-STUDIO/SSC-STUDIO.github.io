@@ -167,6 +167,13 @@ const consoleLines = [
     const root = document.documentElement
     const isDark = theme === 'dark'
 
+    // 主题切换动画：450ms 颜色过渡，结束后移除
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!reduced) {
+      root.classList.add('theme-animating')
+      window.setTimeout(() => root.classList.remove('theme-animating'), 500)
+    }
+
     root.classList.toggle('theme-contrasted', isDark)
     root.dataset.theme = theme
 

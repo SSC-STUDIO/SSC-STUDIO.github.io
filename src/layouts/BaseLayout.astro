@@ -3,6 +3,7 @@ import SiteHead from '../components/SiteHead.astro'
 import SiteFoot from '../components/SiteFoot.astro'
 import SiteScrollbar from '../components/SiteScrollbar.astro'
 import SiteIntro from '../components/SiteIntro.astro'
+import { ClientRouter } from 'astro:transitions'
 
 import '../styles/global.scss'
 
@@ -67,6 +68,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     <meta name="theme-color" content="#6b21a8" />
     <meta name="msapplication-navbutton-color" content="#6b21a8" />
     <meta name="apple-mobile-web-app-status-bar-style" content="#6b21a8" />
+
+    <ClientRouter />
 
     <!-- Apply theme before first paint to avoid flash -->
     <script is:inline>
@@ -194,6 +197,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         maxScrollTop: number
         scrollProgress: number
         lenis: any
+        __site: any
       }
     }
 
@@ -212,6 +216,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       isScrolling: boolean = false
 
       lenis: any
+
+      booted: boolean = false
 
       /**
        * Constructor
@@ -246,40 +252,63 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           document.documentElement.classList.add('is-subpage-ready')
         }
 
-        this.bindEvents()
+        this.booted = false
+
+        this.bindGlobalEvents()
       }
 
       /**
-       * Initialization
+       * Initialization — one-time boot (SPA 下重复触发会被门闩跳过)
        */
       init() {
+        if (this.booted) return
+        this.booted = true
+
         this.initLenis()
 
         Ticker.init()
 
         this.onResize()
 
+        this.pageSetup()
+      }
+
+      /**
+       * Per-page setup — 每次（含 SPA 换页后）都要执行
+       */
+      pageSetup() {
         const reducedMotion = window.matchMedia(
           '(prefers-reduced-motion: reduce)'
         ).matches
         const introSeen = sessionStorage.getItem(INTRO_SEEN_KEY) === '1'
         const hasIntro = !!document.querySelector('.js-intro')
+        const playIntro = !reducedMotion && !introSeen && hasIntro
 
-        if (reducedMotion || introSeen || !hasIntro) {
+        // SPA 换页时 <html> 的属性不会被替换，按页维护
+        document.documentElement.classList.toggle(
+          'is-scroll-blocked',
+          playIntro
+        )
+        document.documentElement.classList.toggle('is-intro-active', playIntro)
+
+        this.bindPageObservers()
+
+        if (!playIntro) {
           Ticker.nextTick(this.forceReveal, this)
-          return
+        } else {
+          Ticker.nextTick(this.intro, this)
+          // Safety net: never leave the site hidden behind a stuck intro
+          setTimeout(() => this.forceReveal(), 3000)
         }
 
-        Ticker.nextTick(this.intro, this)
-
-        // Safety net: never leave the site hidden behind a stuck intro
-        setTimeout(() => this.forceReveal(), 3000)
+        this.initReveal()
+        this.onScroll()
       }
 
       /**
-       * Bind events
+       * Bind global events — 只绑一次（构造时）
        */
-      bindEvents() {
+      bindGlobalEvents() {
         window.addEventListener('resize', this.resizeThrottle.bind(this))
         window.addEventListener('scroll', this.onScroll.bind(this), {
           passive: true,
@@ -290,6 +319,20 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         Emitter.on('updateViewport', this.onResize, this, true)
 
+        // Site loaded event
+        if (document.readyState === 'complete') {
+          this.siteLoaded()
+        } else {
+          window.addEventListener('load', this.siteLoaded.bind(this), {
+            once: true,
+          })
+        }
+      }
+
+      /**
+       * Bind per-page observers — 每次换页重绑（旧元素随 swap 销毁）
+       */
+      bindPageObservers() {
         const observer = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
@@ -329,17 +372,6 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.querySelectorAll('[data-intersect]').forEach((el) => {
           observer.observe(el)
         })
-
-        // Site loaded event
-        if (document.readyState === 'complete') {
-          this.siteLoaded()
-        } else {
-          window.addEventListener('load', this.siteLoaded.bind(this), {
-            once: true,
-          })
-        }
-
-        this.onScroll()
       }
 
       /**
@@ -716,15 +748,13 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
     }
 
-    const site = new Site()
+    // SPA 单例：模块脚本在 ClientRouter 下只执行一次
+    const site = (window.__site ||= new Site())
 
-    // Site init on DOM ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', site.init.bind(site), {
-        once: true,
-      })
-    } else {
+    // astro:page-load 在首次加载与每次 SPA 换页后都会触发
+    document.addEventListener('astro:page-load', () => {
       site.init()
-    }
+      site.pageSetup()
+    })
   </script>
 </html>
