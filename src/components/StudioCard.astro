@@ -1,0 +1,27 @@
+---
+/**
+ * StudioCard — 「工作室名片」浮卡
+ * hero 右侧的个人名片：照片 + 印章 + 值班状态，桌面端专属。
+ */
+import SealMark from './SealMark.astro'
+---
+
+<aside class="studio-card" aria-label="工作室名片">
+  <figure class="studio-card__photo">
+    <img
+      src="/legacy-assets/personal/chen-sm.webp"
+      alt="陈润森"
+      width="300"
+      height="300"
+      loading="lazy"
+      decoding="async"
+    />
+    <span class="studio-card__seal">
+      <SealMark variant="dot" />
+    </span>
+  </figure>
+  <figcaption class="studio-card__meta">
+    <strong>陈润森 · 值班中</strong>
+    <span>STUDIO / SHANGHAI</span>
+  </figcaption>
+</aside>

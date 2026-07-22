@@ -417,7 +417,7 @@ const { class: className } = Astro.props
 
           paths[lIndex].style.stroke =
             proximity > 0.55
-              ? 'var(--color-accent)'
+              ? 'var(--daypart-lamp, var(--color-accent))'
               : 'var(--color-secondary)'
           paths[lIndex].style.opacity = String(0.55 + proximity * 0.45)
         } else {
@@ -508,9 +508,9 @@ const { class: className } = Astro.props
       width: 0.65rem;
       height: 0.65rem;
 
-      background: color(accent);
+      background: var(--daypart-lamp, color(accent));
       box-shadow: 0 0 0 0.35rem
-        color-mix(in srgb, var(--color-accent) 35%, transparent);
+        color-mix(in srgb, var(--daypart-lamp, var(--color-accent)) 35%, transparent);
     }
 
     svg {
