@@ -158,6 +158,50 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
             </path>
           </svg>
         </li>
+
+        <!-- 空档利用：奖状实拍条（替代原本全空的两行斜纹带） -->
+        <li class="s__award s__award--photo s__award--photo-1 js-award">
+          <a href="/honors" aria-label="查看全部奖状">
+            <img
+              src="/legacy-assets/prize/prize_0.jpg"
+              alt="奖状实拍 · 创客新星"
+              loading="lazy"
+              decoding="async"
+            />
+            <span class="s__award__photo-cap">创客</span>
+          </a>
+        </li>
+        <li class="s__award s__award--photo s__award--photo-2 js-award">
+          <a href="/honors" aria-label="查看全部奖状">
+            <img
+              src="/legacy-assets/prize/prize_3.jpg"
+              alt="奖状实拍 · 信息学"
+              loading="lazy"
+              decoding="async"
+            />
+            <span class="s__award__photo-cap">信息学</span>
+          </a>
+        </li>
+        <li class="s__award s__award--photo s__award--photo-3 js-award">
+          <a href="/honors" aria-label="查看全部奖状">
+            <img
+              src="/legacy-assets/prize/prize_6.jpg"
+              alt="奖状实拍 · 车辆模型"
+              loading="lazy"
+              decoding="async"
+            />
+            <span class="s__award__photo-cap">车辆模型</span>
+          </a>
+        </li>
+        <li class="s__award s__award--more js-award">
+          <a href="/honors">
+            <span class="s__award__more-kicker">ARCHIVE</span>
+            <span class="s__award__more-text">
+              全部荣誉
+              <span class="s__award__more-arrow" aria-hidden="true">→</span>
+            </span>
+          </a>
+        </li>
       </ul><!-- .s__content -->
     </div><!-- .s__block -->
   </div><!-- .s__inner -->
@@ -1418,6 +1462,135 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       .s__grid,
       .s__canvas {
         display: none;
+      }
+    }
+
+    /* ── 奖状实拍条（填补原空档两行）── */
+    .s__award--photo {
+      z-index: 2;
+
+      grid-row: 7 / 9;
+      padding: 0;
+      overflow: hidden;
+
+      a {
+        position: relative;
+
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+
+        object-fit: cover;
+
+        filter: saturate(0.94) contrast(1.02);
+        transform: scale(1.01);
+        transition:
+          transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+          filter 0.3s ease;
+      }
+
+      &:hover img {
+        filter: saturate(1.05) contrast(1.02);
+        transform: scale(1.05);
+      }
+
+      @include mq(tablet-sm) {
+        grid-row: 9 / 11;
+      }
+    }
+
+    .s__award--photo-1 {
+      grid-column: 1 / 2;
+    }
+
+    .s__award--photo-2 {
+      grid-column: 2 / 3;
+    }
+
+    .s__award--photo-3 {
+      grid-column: 3 / 4;
+    }
+
+    .s__award__photo-cap {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0.5rem;
+
+      padding: 0.25rem 0.5rem;
+
+      background: color(accent);
+
+      color: color(secondary);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .s__award--more {
+      z-index: 2;
+
+      grid-column: 4 / 5;
+      grid-row: 7 / 9;
+
+      background: color(secondary);
+
+      @include mq(tablet-sm) {
+        grid-row: 9 / 11;
+      }
+
+      a {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.5rem;
+
+        width: 100%;
+        height: 100%;
+        padding: 0.75rem;
+
+        color: color(primary);
+        text-decoration: none;
+      }
+
+      .s__award__more-kicker {
+        color: color(accent);
+        font: 700 9px / 1 font-family(fraktion);
+        letter-spacing: 0.22em;
+      }
+
+      .s__award__more-text {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+
+        font: 700 clamp(1.1rem, 2.2vw, 1.8rem) / 1 font-family(bigger);
+        text-transform: uppercase;
+      }
+
+      .s__award__more-arrow {
+        color: color(accent);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      a:hover .s__award__more-arrow {
+        transform: translateX(4px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .s__award--photo img,
+      .s__award__more-arrow {
+        transition: none;
+      }
+
+      .s__award--photo:hover img {
+        transform: none;
       }
     }
   }
