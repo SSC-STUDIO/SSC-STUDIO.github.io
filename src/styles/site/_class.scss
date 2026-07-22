@@ -964,3 +964,276 @@
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Account console — class roster additions                            */
+/* (These style the AccountConsole island; they live in this partial   */
+/*  because every site partial is globally bundled and the account     */
+/*  additions belong to the class-roster feature.)                     */
+/* ------------------------------------------------------------------ */
+
+.p-account {
+  /* 「已认证为班级同学」 — accent chip shown atop the signed-in panel */
+
+  &__badge {
+    display: inline-block;
+
+    margin: 0 0 0.85rem;
+    padding: 0.4rem 0.7rem;
+
+    background: color(accent);
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Small print under the optional real-name field */
+
+  &__note {
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 400 0.85rem / 1.5 font-family(editorial);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  /* Login / register mode switch */
+
+  &__switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    margin: 0 0 1.25rem;
+  }
+
+  &__switch-btn {
+    padding: 0.45rem 0.9rem;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+    background: transparent;
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover:not(.is-active) {
+      border-color: color(accent);
+      background: color(accent);
+    }
+
+    &.is-active {
+      border-color: color(secondary);
+      background: color(secondary);
+
+      color: color(primary);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Student notice (logged in, but not matched to the class roster)     */
+/* ------------------------------------------------------------------ */
+
+.p-class {
+  &__student {
+    padding: 2.5rem 1.5rem;
+
+    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+
+    text-align: center;
+
+    .p-card__actions {
+      justify-content: center;
+    }
+  }
+
+  &__student-badge {
+    display: inline-block;
+
+    margin: 0 0 1rem;
+    padding: 0.35rem 0.65rem;
+
+    background: color-mix(in srgb, #{color(accent)} 85%, #{color(primary)});
+
+    color: color(secondary);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  &__student-title {
+    margin: 0 0 0.5rem;
+
+    color: color(secondary);
+    font: 700 clamp(1.25rem, 2.6vw, 1.6rem) / 1.2 font-family(bigger);
+    letter-spacing: -0.01em;
+  }
+
+  &__student-message {
+    margin: 0 auto 1.25rem;
+    max-width: 34rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 75%, transparent);
+    font: 400 1rem / 1.65 font-family(editorial);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dual message boards — 「我想对你说 · from-owner」(read-only) and      */
+/* 「写给我 · to-owner」(interactive). Ledger rows reuse the guestbook  */
+/* NO.-numbered hairline language.                                     */
+/* ------------------------------------------------------------------ */
+
+.p-class-boards {
+  display: grid;
+  gap: 1.25rem;
+
+  @media (min-width: 1080px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+
+    padding: 1.5rem 1.25rem 1.25rem;
+
+    border: 1px solid color(secondary);
+    background: color(primary);
+
+    @media (min-width: 1080px) {
+      padding: 1.65rem 1.5rem 1.35rem;
+    }
+  }
+
+  /* Owner's letters: accent crown + tinted paper for the pinned feel */
+
+  &__panel--owner {
+    border-top: 3px solid color(accent);
+    background: color-mix(in srgb, #{color(accent)} 7%, #{color(primary)});
+  }
+
+  &__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    padding-bottom: 0.85rem;
+
+    border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+  }
+
+  &__kicker {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    margin: 0;
+
+    color: color(secondary);
+    font: 700 clamp(1.2rem, 2.4vw, 1.5rem) / 1.1 font-family(bigger);
+    letter-spacing: -0.01em;
+  }
+
+  &__note {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 0.9rem / 1.5 font-family(editorial);
+  }
+
+  /* Ledger-style feed: hairline rows + NO. numbering (guestbook language) */
+
+  .p-class-comments__list {
+    gap: 0;
+
+    counter-reset: class-board-entry;
+  }
+
+  .p-class-comments__item {
+    position: relative;
+
+    padding: 1.15rem 0.25rem 1.05rem 3.75rem;
+
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, #{color(secondary)} 28%, transparent);
+    background: transparent;
+
+    counter-increment: class-board-entry;
+
+    transition: background 0.24s ease;
+
+    &::before {
+      position: absolute;
+      top: 1.25rem;
+      left: 0.25rem;
+
+      color: color-mix(in srgb, #{color(secondary)} 42%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      content: 'NO.' counter(class-board-entry, decimal-leading-zero);
+    }
+
+    &:hover {
+      background: color-mix(in srgb, #{color(accent)} 5%, transparent);
+    }
+  }
+
+  .p-class-comments__author {
+    padding: 0.2rem 0.5rem;
+
+    background: color(accent);
+
+    color: color(secondary);
+    font: 700 10px / 1.4 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* 「站长」 chip next to the owner's name */
+
+  .p-class-comments__badge {
+    align-self: center;
+
+    padding: 0.2rem 0.5rem;
+
+    border: 1px solid color(accent-strong);
+    background: color(accent-strong);
+
+    color: color(secondary);
+    font: 700 9px / 1.4 font-family(fraktion);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .p-class-comments__time {
+    margin-left: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-class-comments__item {
+      transition: none;
+    }
+  }
+}

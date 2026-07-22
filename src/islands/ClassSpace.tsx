@@ -4,20 +4,25 @@ import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
 /**
  * Class space island — members-only overview of the class archive.
  *
- * Flow: check `/api/auth/session` first. Logged-out visitors get a p-lock
- * login card; logged-in members get the space stats (media / members /
- * comments), the member profile grid and the class comment wall.
+ * Flow: check `/api/auth/session` first, then branch on `user.role`:
+ * - logged-out visitors get a p-lock login card;
+ * - `student` (logged in but not on the class roster) gets a notice card
+ *   explaining that a roster-matching `realName` unlocks the space;
+ * - `member` / `admin` get the space stats (media / members / comments),
+ *   the dual message boards (from-owner read-only + to-owner
+ *   interactive), the member profile grid and the class comment wall.
  *
  * Data: `GET /api/class/summary` + `GET /api/class/profiles` (both answer
  * 401 without a session). Comments hang off `/api/comments` with
- * targetKind `class-space` / target id `wall`, mirroring the guestbook
- * interaction model (list, post, reply threads, optimistic likes).
+ * targetKind `class-space` and target ids `from-owner` / `to-owner` /
+ * `wall`, mirroring the guestbook interaction model (list, post, reply
+ * threads, optimistic likes).
  *
  * `ClassComments` is exported as a named export so the profile island can
  * reuse the exact same thread logic with targetKind `profile`.
  */
 
-type SessionState = "loading" | "out" | "in";
+type SessionState = "loading" | "out" | "student" | "in";
 type LoadState = "loading" | "error" | "ready";
 
 type ClassSummary = {
@@ -114,6 +119,16 @@ type ClassCommentsProps = {
   targetKind: "class-space" | "profile";
   targetId: string;
   title: string;
+  /**
+   * Read-only feed: no composer, no likes, no reply form. Threads can
+   * still be expanded to read existing replies. Used for the owner's
+   * `from-owner` board.
+   */
+  readOnly?: boolean;
+  /** Badge chip rendered next to each top-level author (e.g. 「站长」). */
+  authorBadge?: string;
+  /** Empty-feed placeholder copy. */
+  emptyMessage?: string;
 };
 
 /**
@@ -122,7 +137,14 @@ type ClassCommentsProps = {
  * require the session the parent island already verified; a mid-session
  * 401 surfaces an expired-session notice with a login link.
  */
-export function ClassComments({ targetKind, targetId, title }: ClassCommentsProps) {
+export function ClassComments({
+  targetKind,
+  targetId,
+  title,
+  readOnly = false,
+  authorBadge,
+  emptyMessage,
+}: ClassCommentsProps) {
   const [feed, setFeed] = useState<LoadState>("loading");
   const [comments, setComments] = useState<ClassComment[]>([]);
   const [draft, setDraft] = useState("");
@@ -301,26 +323,28 @@ export function ClassComments({ targetKind, targetId, title }: ClassCommentsProp
 
   return (
     <div className="p-class-comments">
-      <form
-        className="p-form p-class-comments__form"
-        noValidate
-        onSubmit={handlePost}
-      >
-        <label>
-          {title}
-          <textarea
-            name="content"
-            required
-            maxLength={MAX_LENGTH}
-            placeholder="写点什么，留在这个房间里。"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={posting}>
-          {posting ? "发布中…" : "发布留言"}
-        </button>
-      </form>
+      {readOnly ? null : (
+        <form
+          className="p-form p-class-comments__form"
+          noValidate
+          onSubmit={handlePost}
+        >
+          <label>
+            {title}
+            <textarea
+              name="content"
+              required
+              maxLength={MAX_LENGTH}
+              placeholder="写点什么，留在这个房间里。"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+          </label>
+          <button type="submit" disabled={posting}>
+            {posting ? "发布中…" : "发布留言"}
+          </button>
+        </form>
+      )}
 
       <p className="p-class-comments__notice" role="alert" hidden={!notice}>
         {notice}
@@ -341,18 +365,24 @@ export function ClassComments({ targetKind, targetId, title }: ClassCommentsProp
         </div>
       ) : comments.length === 0 ? (
         <p className="p-class-comments__state">
-          还没有留言——做第一个写下回忆的人。
+          {emptyMessage ?? "还没有留言——做第一个写下回忆的人。"}
         </p>
       ) : (
         <ol className="p-class-comments__list">
           {comments.map((comment) => {
             const threadOpen = Boolean(openThreads[comment.id]);
+            const hasReplies = comment.replies.length > 0;
             return (
               <li className="p-class-comments__item" key={comment.id}>
                 <div className="p-class-comments__meta">
                   <span className="p-class-comments__author">
                     {comment.authorName}
                   </span>
+                  {authorBadge ? (
+                    <span className="p-class-comments__badge">
+                      {authorBadge}
+                    </span>
+                  ) : null}
                   <time
                     className="p-class-comments__time"
                     dateTime={comment.createdAt}
@@ -361,41 +391,45 @@ export function ClassComments({ targetKind, targetId, title }: ClassCommentsProp
                   </time>
                 </div>
                 <p className="p-class-comments__content">{comment.content}</p>
-                <div className="p-class-comments__actions">
-                  <button
-                    type="button"
-                    className={`p-class-comments__like${
-                      comment.liked ? " is-liked" : ""
-                    }`}
-                    aria-pressed={comment.liked}
-                    aria-label={`点赞，当前 ${comment.likesCount} 个赞`}
-                    disabled={likeBusyId === comment.id}
-                    onClick={() => void handleLike(comment)}
-                  >
-                    ♥ {comment.likesCount}
-                  </button>
-                  <button
-                    type="button"
-                    className="p-class-comments__action"
-                    aria-expanded={threadOpen}
-                    onClick={() =>
-                      setOpenThreads((current) => ({
-                        ...current,
-                        [comment.id]: !current[comment.id],
-                      }))
-                    }
-                  >
-                    {threadOpen
-                      ? "收起"
-                      : comment.replies.length > 0
-                        ? `回复 · ${comment.replies.length}`
-                        : "回复"}
-                  </button>
-                </div>
+                {!readOnly || hasReplies ? (
+                  <div className="p-class-comments__actions">
+                    {readOnly ? null : (
+                      <button
+                        type="button"
+                        className={`p-class-comments__like${
+                          comment.liked ? " is-liked" : ""
+                        }`}
+                        aria-pressed={comment.liked}
+                        aria-label={`点赞，当前 ${comment.likesCount} 个赞`}
+                        disabled={likeBusyId === comment.id}
+                        onClick={() => void handleLike(comment)}
+                      >
+                        ♥ {comment.likesCount}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="p-class-comments__action"
+                      aria-expanded={threadOpen}
+                      onClick={() =>
+                        setOpenThreads((current) => ({
+                          ...current,
+                          [comment.id]: !current[comment.id],
+                        }))
+                      }
+                    >
+                      {threadOpen
+                        ? "收起"
+                        : hasReplies
+                          ? `回复 · ${comment.replies.length}`
+                          : "回复"}
+                    </button>
+                  </div>
+                ) : null}
 
                 {threadOpen ? (
                   <div className="p-class-comments__thread">
-                    {comment.replies.length > 0 ? (
+                    {hasReplies ? (
                       <ol className="p-class-comments__replies">
                         {comment.replies.map((reply) => (
                           <li
@@ -420,32 +454,37 @@ export function ClassComments({ targetKind, targetId, title }: ClassCommentsProp
                         ))}
                       </ol>
                     ) : null}
-                    <form
-                      className="p-form p-class-comments__reply-form"
-                      noValidate
-                      onSubmit={(event) =>
-                        void handleReplySubmit(event, comment.id)
-                      }
-                    >
-                      <label>
-                        回复 {comment.authorName}
-                        <textarea
-                          name="reply"
-                          required
-                          maxLength={MAX_LENGTH}
-                          value={replyDrafts[comment.id] ?? ""}
-                          onChange={(event) =>
-                            setReplyDrafts((current) => ({
-                              ...current,
-                              [comment.id]: event.target.value,
-                            }))
-                          }
-                        />
-                      </label>
-                      <button type="submit" disabled={replyBusyId === comment.id}>
-                        {replyBusyId === comment.id ? "发送中…" : "发送回复"}
-                      </button>
-                    </form>
+                    {readOnly ? null : (
+                      <form
+                        className="p-form p-class-comments__reply-form"
+                        noValidate
+                        onSubmit={(event) =>
+                          void handleReplySubmit(event, comment.id)
+                        }
+                      >
+                        <label>
+                          回复 {comment.authorName}
+                          <textarea
+                            name="reply"
+                            required
+                            maxLength={MAX_LENGTH}
+                            value={replyDrafts[comment.id] ?? ""}
+                            onChange={(event) =>
+                              setReplyDrafts((current) => ({
+                                ...current,
+                                [comment.id]: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          disabled={replyBusyId === comment.id}
+                        >
+                          {replyBusyId === comment.id ? "发送中…" : "发送回复"}
+                        </button>
+                      </form>
+                    )}
                   </div>
                 ) : null}
               </li>
@@ -469,6 +508,34 @@ export function ClassLoginLock({ message }: { message: string }) {
       <div className="p-card__actions">
         <a className="p-card__link" href={LOGIN_PATH}>
           登录账号
+        </a>
+        <a className="p-card__link p-card__link--ghost" href="/class/gallery">
+          公开画廊预览
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Notice for logged-in `student` accounts: the session is valid but the
+ * registered real name has not matched the class roster, so the space
+ * stays locked until it does (or the owner is asked to check the roster).
+ */
+function ClassStudentNotice() {
+  return (
+    <div className="p-class__student">
+      <p className="p-class__student-badge">class roster</p>
+      <p className="p-class__student-title">
+        已登录，但还没有匹配到班级名单
+      </p>
+      <p className="p-class__student-message">
+        注册时填写的真实姓名与班级名单一致后自动解锁。
+        如果你是我们班的同学，可以联系站长核对名单。
+      </p>
+      <div className="p-card__actions">
+        <a className="p-card__link" href="/contact">
+          联系站长
         </a>
         <a className="p-card__link p-card__link--ghost" href="/class/gallery">
           公开画廊预览
@@ -529,8 +596,14 @@ export default function ClassSpace() {
         const data = (await response.json()) as AuthSession;
         if (cancelled) return;
         if (data.authenticated && data.user) {
-          setSession("in");
-          void loadSpace();
+          // Only roster-verified members (and the owner) open the space;
+          // a plain student account gets the roster notice instead.
+          if (data.user.role === "member" || data.user.role === "admin") {
+            setSession("in");
+            void loadSpace();
+          } else {
+            setSession("student");
+          }
         } else {
           setSession("out");
         }
@@ -555,6 +628,14 @@ export default function ClassSpace() {
     return (
       <div className="p-class">
         <ClassLoginLock message="班级空间为成员专属区域——相册、同学档案与班级留言，登录后完整开放。" />
+      </div>
+    );
+  }
+
+  if (session === "student") {
+    return (
+      <div className="p-class">
+        <ClassStudentNotice />
       </div>
     );
   }
@@ -601,6 +682,47 @@ export default function ClassSpace() {
               <dd className="p-class__metric-sub">班级空间的全部留言</dd>
             </div>
           </dl>
+
+          <section className="p-class__section">
+            <div className="p-class__section-head">
+              <p className="p-card__kicker">letters</p>
+              <h2 className="p-class__section-title">双向留言墙</h2>
+            </div>
+            <div className="p-class-boards">
+              <section className="p-class-boards__panel p-class-boards__panel--owner">
+                <header className="p-class-boards__head">
+                  <p className="p-class-boards__kicker">from-owner</p>
+                  <h3 className="p-class-boards__title">我想对你说</h3>
+                  <p className="p-class-boards__note">
+                    站长写给同学的话，只读陈列于此。
+                  </p>
+                </header>
+                <ClassComments
+                  targetKind="class-space"
+                  targetId="from-owner"
+                  title="站长的话"
+                  readOnly
+                  authorBadge="站长"
+                  emptyMessage="站长还没有写下什么——先去翻翻相册吧。"
+                />
+              </section>
+              <section className="p-class-boards__panel">
+                <header className="p-class-boards__head">
+                  <p className="p-class-boards__kicker">to-owner</p>
+                  <h3 className="p-class-boards__title">写给我</h3>
+                  <p className="p-class-boards__note">
+                    同学写给站长的留言，可以回复与点赞。
+                  </p>
+                </header>
+                <ClassComments
+                  targetKind="class-space"
+                  targetId="to-owner"
+                  title="写下想对站长说的话"
+                  emptyMessage="还没有人写信给我——做第一个提笔的人。"
+                />
+              </section>
+            </div>
+          </section>
 
           <section className="p-class__section">
             <div className="p-class__section-head">
