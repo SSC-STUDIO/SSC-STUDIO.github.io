@@ -915,3 +915,52 @@
     }
   }
 }
+
+/* ── 设计感升级：画廊缩放逐帧与角标 ── */
+
+.p-class-gallery__thumb {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.p-class-gallery__item:hover .p-class-gallery__thumb {
+  transform: scale(1.05);
+}
+
+.p-class-gallery__item::before,
+.p-class__profile::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+
+  width: 0.7rem;
+  height: 0.7rem;
+
+  border-top: 2px solid color(accent);
+  border-left: 2px solid color(accent);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+
+  transition: opacity 0.24s ease;
+}
+
+.p-class-gallery__item:hover::before,
+.p-class__profile:hover::before {
+  opacity: 1;
+}
+
+.p-class__profile {
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .p-class-gallery__thumb {
+    transition: none;
+  }
+
+  .p-class-gallery__item:hover .p-class-gallery__thumb {
+    transform: none;
+  }
+}

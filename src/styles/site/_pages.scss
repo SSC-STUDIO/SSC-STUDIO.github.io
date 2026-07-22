@@ -1201,3 +1201,88 @@ a-separator {
     }
   }
 }
+
+/* ── 设计感升级：项目详情页封面画框与图注 ── */
+
+.p-detail-figure {
+  position: relative;
+
+  margin: 0 0 1.5rem;
+  padding: 0.6rem 0.6rem 2.1rem;
+
+  border: 1px solid color(secondary);
+  background: color(primary);
+
+  &::before,
+  &::after {
+    position: absolute;
+
+    width: 0.85rem;
+    height: 0.85rem;
+
+    content: '';
+    pointer-events: none;
+  }
+
+  &::before {
+    top: -1px;
+    left: -1px;
+
+    border-top: 2px solid color(accent-strong);
+    border-left: 2px solid color(accent-strong);
+  }
+
+  &::after {
+    right: -1px;
+    bottom: -1px;
+
+    border-right: 2px solid color(accent-strong);
+    border-bottom: 2px solid color(accent-strong);
+  }
+
+  .p-detail-cover {
+    display: block;
+
+    width: 100%;
+    margin: 0;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+  }
+
+  figcaption {
+    position: absolute;
+    right: 0.85rem;
+    bottom: 0.55rem;
+    left: 0.85rem;
+
+    display: flex;
+    justify-content: space-between;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+
+    &::after {
+      content: 'CRS · ARCHIVE';
+      opacity: 0.65;
+    }
+  }
+}
+
+/* ── 设计感升级：spec 元信息行 ── */
+
+.p-detail-meta {
+  padding: 0.65rem 0.75rem;
+
+  border-top: 1px solid color(secondary);
+  border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 25%, transparent);
+
+  span + span::before {
+    margin-right: 1rem;
+
+    opacity: 0.4;
+
+    content: '·';
+  }
+}

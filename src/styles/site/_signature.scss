@@ -419,6 +419,15 @@ html.theme-contrasted[data-daypart='day'] {
   animation: titleShine 9s 2.6s ease-in-out infinite;
 }
 
+/* 大标题逐字悬浮：指针经过时字符轻轻跃起 */
+.s-hero .s__title .char {
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.s-hero .s__title .char:hover {
+  transform: translateY(-5%) scale(1.04);
+}
+
 @keyframes titleShine {
   0%,
   55% {

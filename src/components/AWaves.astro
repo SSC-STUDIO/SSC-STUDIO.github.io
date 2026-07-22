@@ -125,6 +125,10 @@ const { class: className } = Astro.props
         passive: false,
       })
 
+      this.addEventListener('pointerdown', this.onPointerDown.bind(this), {
+        passive: true,
+      })
+
       this.addEventListener('intersect', this.onIntersect.bind(this), {
         passive: true,
       })
@@ -145,6 +149,15 @@ const { class: className } = Astro.props
      */
     onPointerLeave() {
       this.isHovering = false
+    }
+
+    /**
+     * Pointer down handler — 点击激起一圈更强的涟漪
+     */
+    onPointerDown(e) {
+      this.updateMousePosition(e.clientX, e.clientY)
+      this.enableInteraction()
+      this.mouse.vs = Math.min(100, this.mouse.vs + 46)
     }
 
     /**
