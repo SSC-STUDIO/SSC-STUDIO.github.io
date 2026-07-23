@@ -723,6 +723,16 @@ const ecosystem = [
       object.isVanishing = true
       object.el.classList.add('is-vanishing')
 
+      // 甩出：松手瞬间继承甩动速度 + 加大旋转，形成抛物线飞出
+      const flick = Math.hypot(object.flickVx, object.flickVy)
+      if (flick > 1.5) {
+        const boost = Math.min(2.2, 24 / flick)
+        object.vx = object.flickVx * boost
+        object.vy = object.flickVy * boost - 2
+      }
+      object.vrx = 1.5 + Math.random() * 2.5
+      object.vry = 1.5 + Math.random() * 2.5
+
       object.vanishStart = performance.now()
     }
 
@@ -842,6 +852,10 @@ const ecosystem = [
       this.isVanishing = false
       this.dragStartX = 0
       this.dragStartY = 0
+      this.flickVx = 0
+      this.flickVy = 0
+      this.prevX = null
+      this.prevY = null
 
       this.el.classList.remove('is-waiting')
       this.el.classList.remove('is-dragging')
@@ -888,6 +902,14 @@ const ecosystem = [
         this.vx *= 0.9
         this.vy *= 0.9
         this.vz *= 0.75
+
+        // 记录甩动速度（松手时作为初速度飞出）
+        this.prevX ??= this.x
+        this.prevY ??= this.y
+        this.flickVx = this.flickVx * 0.6 + (this.x - this.prevX) * 0.4
+        this.flickVy = this.flickVy * 0.6 + (this.y - this.prevY) * 0.4
+        this.prevX = this.x
+        this.prevY = this.y
 
         this.x += this.vx * 0.5
         this.y += this.vy * 0.5
@@ -939,6 +961,10 @@ const ecosystem = [
       this.el.style.setProperty('--rz', String(this.rz))
 
       this.el.style.setProperty('--s', String(this.s))
+
+      // 深度投影：越靠近观察者阴影越实
+      const depth = Math.max(0, Math.min(1, (this.z + 20000) / 21000))
+      this.el.style.setProperty('--shadow-o', (0.04 + depth * 0.26).toFixed(3))
     }
   }
 
@@ -1075,6 +1101,8 @@ const ecosystem = [
       display: block;
 
       cursor: grab;
+
+      filter: drop-shadow(0 14px 22px rgba(30, 10, 60, var(--shadow-o, 0.08)));
 
       transform: translate3d(
           calc(var(--x) - 50%),
