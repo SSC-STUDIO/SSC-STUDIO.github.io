@@ -249,20 +249,14 @@ html.theme-contrasted[data-daypart='day'] {
       width: 100%;
       height: 100%;
       object-fit: cover;
-
-      /* 紫调单色：先融进页面，悬停时还原彩色 */
-      filter: grayscale(0.85) contrast(1.02) brightness(1.02);
-      opacity: 0.88;
-      transition:
-        filter 400ms ease,
-        opacity 400ms ease;
+      filter: saturate(1.02) contrast(1.02);
+      transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* 单色紫染层 */
     &::after {
       position: absolute;
       inset: 0;
-      background: color-mix(in srgb, var(--color-secondary) 26%, transparent);
+      background: color-mix(in srgb, var(--color-secondary) 10%, transparent);
       content: '';
       mix-blend-mode: screen;
       opacity: 1;
@@ -272,8 +266,7 @@ html.theme-contrasted[data-daypart='day'] {
   }
 
   &:hover &__photo img {
-    filter: grayscale(0) contrast(1.02);
-    opacity: 1;
+    transform: scale(1.04);
   }
 
   &:hover &__photo::after {
