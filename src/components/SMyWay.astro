@@ -826,13 +826,13 @@ const ecosystem = [
       this.ry = Math.random() * 2 - 1
       this.rz = 0
 
-      this.vz = 40 + Math.random() * 10
+      this.vz = 22 + Math.random() * 8
       this.vx =
         Math.random() * window.safeWidth * 0.0025 * (this.index % 2 ? -1 : 1)
       this.vy =
         Math.random() * window.safeHeight * 0.0025 * (this.index % 3 ? -1 : 1)
-      this.vrx = 0.25 + Math.random() * 1
-      this.vry = 0.25 + Math.random() * 1
+      this.vrx = 0.18 + Math.random() * 0.6
+      this.vry = 0.18 + Math.random() * 0.6
 
       // Ecosystem cards drift in a tighter, more readable formation
       if (this.el.classList.contains('a-object--ecosystem')) {
@@ -842,9 +842,9 @@ const ecosystem = [
         this.vy =
           window.safeHeight * 0.0015 +
           Math.random() * window.safeHeight * 0.001
-        this.vz = 34 + Math.random() * 8
-        this.vrx = 0.15 + Math.random() * 0.35
-        this.vry = 0.15 + Math.random() * 0.35
+        this.vz = 20 + Math.random() * 5
+        this.vrx = 0.12 + Math.random() * 0.25
+        this.vry = 0.12 + Math.random() * 0.25
       }
 
       this.isWaiting = false
