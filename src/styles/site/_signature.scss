@@ -547,3 +547,38 @@ html.theme-contrasted[data-daypart='day'] {
     animation: none;
   }
 }
+
+/* ── 邮箱复制提示 ── */
+.copy-toast {
+  position: fixed;
+  z-index: 90;
+
+  padding: 7px 12px;
+
+  background: var(--color-secondary);
+
+  color: var(--color-primary);
+  font-family: var(--font-family-fraktion);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -100%) translateY(4px);
+  transition:
+    opacity 220ms ease,
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.copy-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -100%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy-toast {
+    transition: none;
+  }
+}

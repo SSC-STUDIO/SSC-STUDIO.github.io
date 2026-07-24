@@ -3,6 +3,7 @@ import SiteHead from '../components/SiteHead.astro'
 import SiteFoot from '../components/SiteFoot.astro'
 import SiteScrollbar from '../components/SiteScrollbar.astro'
 import SiteIntro from '../components/SiteIntro.astro'
+import CopyEmail from '../components/CopyEmail.astro'
 import { ClientRouter } from 'astro:transitions'
 
 import '../styles/global.scss'
@@ -178,6 +179,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     <div class="site-contrast-mask js-contrast-mask"></div>
 
     <SiteScrollbar />
+
+    <CopyEmail />
   </body>
 
   <script>
