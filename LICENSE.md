@@ -2,6 +2,10 @@
 
 This work is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)**.
 
+The motion system and some layout structures are adapted from [Antoine Wodniack's open-source portfolio](https://wodniack.dev) (CC BY-NC 4.0). Attribution is retained in the site footer.
+
+**Original to this site** (Chen Runsen / 陈润森): identity (SenMark, SealMark, Chinese serif typesetting), copy, content, class space, guestbook, benchmarks, and subsequent visual redesign.
+
 You are free to:
 
 - **Share** — copy and redistribute the material in any medium or format
@@ -18,17 +22,6 @@ No additional restrictions — You may not apply legal terms or technological me
 
 ## Summary
 
-This project is shared to support learning, experimentation, and growth in the developer community. You are welcome to explore, study, and adapt it for your own personal or educational purposes.
+Study it. Adapt it. Do not paste it and call it yours.
 
-**Do not**:
-- Copy/paste it to create your own portfolio without significant modification.
-- Sell, repackage, or commercially exploit it.
-
-Let it inspire your own ideas, not replace them.
-
----
-
-## Full License Text
-
-For the full legal license, visit:
-[https://creativecommons.org/licenses/by-nc/4.0/legalcode](https://creativecommons.org/licenses/by-nc/4.0/legalcode)
+For the full legal license: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode)

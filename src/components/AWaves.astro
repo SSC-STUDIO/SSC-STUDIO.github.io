@@ -2,9 +2,9 @@
 const { class: className } = Astro.props
 ---
 
-<a-waves class:list={className} data-intersect>
+<sen-waves class:list={className} data-intersect>
   <svg class="js-svg"></svg>
-</a-waves><!-- .a-waves -->
+</sen-waves><!-- .sen-waves -->
 
 <script>
   import Emitter from '../utils/Emitter'
@@ -475,11 +475,13 @@ const { class: className } = Astro.props
     }
   }
 
-  customElements.define('a-waves', AWaves)
+  if (!customElements.get('sen-waves')) {
+    customElements.define('sen-waves', AWaves)
+  }
 </script>
 
 <style lang="scss">
-  a-waves {
+  sen-waves {
     --x: -0.5rem;
     --y: 50%;
 

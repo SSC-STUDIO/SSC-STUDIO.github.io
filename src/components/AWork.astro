@@ -2,7 +2,7 @@
 const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
 ---
 
-<a-work class={cssClass}>
+<sen-work class={cssClass}>
   <div class="a__inner">
     <a href={href}>
       <img
@@ -30,7 +30,7 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       </div><!-- .a__caption -->
     </a>
   </div><!-- .a__inner -->
-</a-work>
+</sen-work>
 
 <script>
   class AWork extends HTMLElement {
@@ -75,11 +75,13 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
   }
 
-  customElements.define('a-work', AWork)
+  if (!customElements.get('sen-work')) {
+    customElements.define('sen-work', AWork)
+  }
 </script>
 
 <style lang="scss">
-  a-work {
+  sen-work {
     position: relative;
     top: 0;
     left: 0;

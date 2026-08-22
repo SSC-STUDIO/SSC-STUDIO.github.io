@@ -5,15 +5,15 @@ const isSubpage = Astro.url.pathname !== '/'
 
 const menu = isSubpage
   ? [
-      { href: '/', text: 'Home' },
-      { href: '/#about', text: 'About' },
-      { href: '/#work', text: 'Work' },
-      { href: '/contact', text: 'Contact' },
+      { href: '/', text: '首页' },
+      { href: '/#about', text: '关于' },
+      { href: '/#work', text: '作品' },
+      { href: '/contact', text: '联系' },
     ]
   : [
-      { href: '#about', text: 'About' },
-      { href: '#work', text: 'Work' },
-      { href: '#contact', text: 'Contact' },
+      { href: '#about', text: '关于' },
+      { href: '#work', text: '作品' },
+      { href: '#contact', text: '联系' },
     ]
 
 const consoleLines = [
@@ -101,13 +101,13 @@ const consoleLines = [
     <aside class="sb-availability">
       <p>
         <span class="sb__line">
-          <span class="sb__text">Building experiments from China.</span>
+          <span class="sb__text">在中国做长期实验。</span>
         </span>
 
         <span class="sb__line">
-          <span class="sb__text">Open to collaborations →</span>
+          <span class="sb__text">欢迎合作 →</span>
 
-          <a href="mailto:3992237161@qq.com" class="sb__link" data-copy-email>Get in touch</a>
+          <a href="mailto:3992237161@qq.com" class="sb__link" data-copy-email>写信</a>
         </span>
       </p>
     </aside><!-- .sb-availability -->
@@ -694,10 +694,10 @@ const consoleLines = [
         padding: 2rem 3rem;
 
         color: color(secondary);
-        font: 400 14px / 1 font-family(fraktion);
-        letter-spacing: 0.05em;
+        font: 700 15px / 1 font-family(editorial);
+        letter-spacing: 0.22em;
         text-decoration: none;
-        text-transform: uppercase;
+        text-transform: none;
 
         @include mq(desktop-sm) {
           padding: 2rem;

@@ -2,6 +2,7 @@
 import AWaves from './AWaves.astro'
 import ASeparator from './ASeparator.astro'
 import SealMark from './SealMark.astro'
+import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
 import StudioClock from './StudioClock.astro'
 ---
@@ -17,7 +18,7 @@ import StudioClock from './StudioClock.astro'
     <ASeparator
       class="s__separator js-separator"
       style="primary"
-      strings={['陈', '润', '森']}
+      strings={['木', '林', '森']}
     />
 
     <p class="s__subtitle">
@@ -25,22 +26,18 @@ import StudioClock from './StudioClock.astro'
     </p>
 
     <h1 class="s__title">
-      <span class="s__title__word js-word">Curious</span>
-      <img
-        class="s__title__asset js-star"
-        src="/images/asset-star.svg"
-        alt=""
-        width="48"
-        height="48"
-      />
-      <span class="s__title__word js-word">Builder</span>
+      <span class="s__title__word js-word">润</span>
+      <span class="s__title__asset js-star" aria-hidden="true">
+        <SenMark size={72} />
+      </span>
+      <span class="s__title__word js-word">森</span>
       <SealMark variant="hero" />
     </h1>
 
     <ASeparator
       class="s__separator js-separator"
       style="accent"
-      strings={['AI', 'Games', 'Craft']}
+      strings={['好奇', '造物', '长期']}
     />
   </div>
 
@@ -250,7 +247,7 @@ import StudioClock from './StudioClock.astro'
         this.splitWords()
       }
 
-      const waves = this.el.querySelector('a-waves')
+      const waves = this.el.querySelector('sen-waves')
       const content = this.el.querySelector('.js-content')
 
       if (!waves || !content) {
@@ -507,23 +504,24 @@ import StudioClock from './StudioClock.astro'
 
       cursor: default;
 
-      font: 700 min(15vw, 18.5rem) / 0.8 font-family(bigger);
-      text-transform: uppercase;
+      font: 700 min(22vw, 12rem) / 1.12 font-family(bigger);
+      letter-spacing: 0.06em;
+      text-transform: none;
 
       @include mq(desktop-xs) {
-        font-size: 14vw;
+        font-size: 18vw;
       }
 
       @include mq(tablet) {
         padding: 1rem;
-        flex-wrap: wrap;
-        justify-content: flex-start;
+        flex-wrap: nowrap;
+        justify-content: center;
 
-        font-size: calc(31vw - 1rem);
+        font-size: min(28vw, 7.5rem);
       }
 
       @include mq(phone) {
-        font-size: calc(31vw - 0.75rem);
+        font-size: min(26vw, 5.5rem);
       }
 
       &__word {
@@ -540,13 +538,24 @@ import StudioClock from './StudioClock.astro'
       }
 
       &__asset {
-        display: block;
-        margin: 0 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 1.25rem;
+        width: 0.28em;
+        height: 0.28em;
+        color: color(secondary);
+
+        :global(svg) {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
 
         @include mq(tablet) {
-          margin: 0 0 0 auto;
-          width: 0.375em;
-          height: auto;
+          margin: 0 0.75rem;
+          width: 0.32em;
+          height: 0.32em;
         }
       }
 
@@ -616,7 +625,7 @@ import StudioClock from './StudioClock.astro'
       }
 
       :global(.char--t) {
-        margin-left: -0.035em;
+        margin-left: 0;
       }
 
       :global(.to-top .char__inner) {

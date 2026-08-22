@@ -4,16 +4,18 @@
 @use "sass:list";
 @use "sass:map";
 
-/* Families */
+/* Families — 中文宋体身份，告别模板的 Bigger / Editorial / Fraktion */
 $theme-font-families: (
-  fraktion: "'Fraktion Mono', monospace",
-  editorial: "'Editorial New', serif",
-  bigger: "'Bigger Display', sans-serif",
+  fraktion: "'IBM Plex Mono', 'Sarasa Mono SC', ui-monospace, monospace",
+  editorial:
+    "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
+  bigger:
+    "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
 );
 
 /* Sizes */
 $theme-font-styles: (
   default: (
-    base: (16px, 400, 1.48, editorial, -0.025em),
+    base: (16px, 400, 1.55, editorial, 0.02em),
   ),
 );

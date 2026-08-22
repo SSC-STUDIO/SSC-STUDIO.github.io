@@ -40,9 +40,9 @@
     max-width: min(18ch, 100%);
 
     color: color(secondary);
-    font: 700 clamp(3rem, 12vw, 7.5rem) / 0.9 font-family(bigger);
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
+    font: 700 clamp(3rem, 12vw, 7.5rem) / 1.08 font-family(bigger);
+    letter-spacing: 0.04em;
+    text-transform: none;
   }
 
   &__summary {
@@ -1185,7 +1185,7 @@ a.p-card {
 
 /* Accent separator variant (used right under every p-hero) */
 
-a-separator {
+sen-rail {
   &.style--accent {
     background: color(accent-muted);
 

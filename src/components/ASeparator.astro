@@ -2,7 +2,7 @@
 const {
   class: className,
   style = 'primary',
-  strings = ['Do', 'Things', 'Your', 'Way'],
+  strings = ['木', '林', '森', '光'],
 } = Astro.props
 
 const binaries = strings.map((string) => {
@@ -13,7 +13,7 @@ const binaries = strings.map((string) => {
 })
 ---
 
-<a-separator class:list={['style--' + style, className]} data-intersect>
+<sen-rail class:list={['style--' + style, className]} data-intersect>
   <span class="a__triangle"></span>
 
   <span class="a__binaries">
@@ -40,7 +40,7 @@ const binaries = strings.map((string) => {
   </span>
 
   <span class="a__triangle"></span>
-</a-separator>
+</sen-rail>
 
 <script>
   import Emitter from '../utils/Emitter'
@@ -103,11 +103,13 @@ const binaries = strings.map((string) => {
     }
   }
 
-  customElements.define('a-separator', ASeparator)
+  if (!customElements.get('sen-rail')) {
+    customElements.define('sen-rail', ASeparator)
+  }
 </script>
 
 <style lang="scss">
-  a-separator {
+  sen-rail {
     @include flex(row, center, space-between);
 
     position: relative;
@@ -247,7 +249,7 @@ const binaries = strings.map((string) => {
       }
     }
 
-    .style--secondary {
+    &.style--secondary {
       background: color(secondary);
 
       color: color(primary);
@@ -267,7 +269,7 @@ const binaries = strings.map((string) => {
       }
     }
 
-    .style--accent {
+    &.style--accent {
       background: color(accent-muted);
 
       color: color(secondary);

@@ -8,7 +8,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
         <div class="s__button__inner">
           <div class="s__button__text js-button-text">
-            Go
+            信
           </div><!-- .s__button__text -->
         </div><!-- .s__button__inner -->
         <span class="s__button__hint" aria-hidden="true">写信给我</span>
@@ -647,12 +647,12 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       cursor: pointer;
 
       color: color(primary);
-      font: 700 3.75rem / 6.85rem font-family(bigger);
-      letter-spacing: 0.05em;
+      font: 700 2.55rem / 6rem font-family(bigger);
+      letter-spacing: 0;
       text-align: center;
       text-decoration: none;
-      text-indent: 0.075em;
-      text-transform: uppercase;
+      text-indent: 0;
+      text-transform: none;
 
       /* 呼吸光环：时刻提醒「这是个按钮」 */
       &::before {
@@ -732,7 +732,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         transition: scale 0.6s ease(in-quint) 0s;
       }
 
-      /* 「Go」不再放大消失——保持可读，联动感交给圆环与文字 */
+      /* 「信」保持可读，联动感交给圆环与文字 */
       .s__button__text {
         scale: 1.08;
 
@@ -803,9 +803,9 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       overflow: hidden;
 
       color: color(primary);
-      font: 700 calc(var(--size) * 0.3743) / 1 font-family(bigger);
+      font: 700 calc(var(--size) * 0.42) / 1 font-family(bigger);
       text-align: center;
-      text-transform: uppercase;
+      text-transform: none;
 
       transition: clip-path 0.6s ease(in-out-quint);
       will-change: clip-path;
