@@ -8,6 +8,7 @@
 
 @use "../helpers/colors" as *;
 @use "../helpers/fonts" as *;
+@use "../helpers/ink" as *;
 @use "../helpers/responsive" as *;
 
 .tl {
@@ -33,7 +34,7 @@
     color: color(secondary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.2em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__title {
@@ -42,7 +43,7 @@
     color: color(secondary);
     font: 700 clamp(1.75rem, 5vw, 2.6rem) / 1.05 font-family(bigger);
     letter-spacing: -0.01em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__summary {
@@ -147,8 +148,8 @@
 
     padding: 1.25rem 1.25rem 1rem;
 
-    border: 1px solid color(secondary);
-    background: color(primary);
+    @include ink-frame;
+    background-color: color(primary);
   }
 
   &__date {
@@ -157,7 +158,7 @@
     padding: 0.2rem 0.45rem;
 
     background: color(accent);
-    border-radius: 999px;
+    @include ink-pill;
 
     color: color(secondary);
     font: 700 9px / 1 font-family(fraktion);
@@ -171,7 +172,7 @@
     color: color(secondary);
     font: 700 clamp(1.25rem, 3vw, 1.75rem) / 1.1 font-family(bigger);
     letter-spacing: -0.01em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__card-desc {
@@ -209,7 +210,7 @@
 
     color: color(secondary);
     font: 700 1.25rem / 1.2 font-family(bigger);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__fallback-text {
@@ -246,7 +247,7 @@
       width: 4.5rem;
       height: 1rem;
 
-      border-radius: 999px;
+      @include ink-pill;
     }
 
     &--title {

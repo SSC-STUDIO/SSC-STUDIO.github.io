@@ -76,8 +76,12 @@ const {
     width: 100%;
     height: 2.35rem;
 
-    border-top: 1px solid color(secondary);
-    border-bottom: 1px solid color(secondary);
+    @include ink-rule(top);
+    box-shadow:
+      inset 0 1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
+      inset 0 4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent),
+      inset 0 -1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
+      inset 0 -4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent);
 
     font: 700 13px / 1 font-family(editorial);
     letter-spacing: 0.28em;
@@ -85,11 +89,10 @@ const {
     .a__node {
       flex-shrink: 0;
 
-      width: 7px;
-      height: 14px;
+      width: 1.5px;
+      height: 0.85rem;
 
-      background: color(secondary);
-      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+      background: color-mix(in srgb, #{color(secondary)} 55%, transparent);
     }
 
     .a__glyphs {

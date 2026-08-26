@@ -7,6 +7,7 @@
 @use "../helpers/colors" as *;
 @use "../helpers/fonts" as *;
 @use "../helpers/responsive" as *;
+@use "../helpers/ink" as *;
 
 /* Page hero */
 
@@ -16,7 +17,7 @@
 
   padding: 8rem 1.5rem 3rem;
 
-  border-bottom: 1px solid color(secondary);
+  @include ink-rule(bottom);
   background: color(primary);
 
   animation: p-hero-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -28,6 +29,7 @@
     padding: 0.35rem 0.65rem;
 
     background: color(accent);
+    @include ink-pill;
 
     color: color(primary);
     font: 700 11px / 1 font-family(editorial);
@@ -151,21 +153,14 @@
 
   padding: 1.25rem 1.25rem 1rem;
 
-  border: 1px solid color(secondary);
-  background: color(primary);
+  @include ink-frame;
+  background-color: color(primary);
 
   transition:
     transform 0.25s ease,
     box-shadow 0.25s ease;
 
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 0 color(accent);
-
-    @media (prefers-reduced-motion: reduce) {
-      transform: none;
-    }
-  }
+  @include ink-frame-hover;
 
   &:focus-visible {
     outline: 2px solid color(accent);
@@ -193,7 +188,7 @@
     padding: 0.2rem 0.45rem;
 
     background: color(accent);
-    border-radius: 999px;
+    @include ink-pill;
 
     color: color(primary);
     font: 700 9px / 1 font-family(fraktion);
@@ -207,7 +202,7 @@
     color: color(secondary);
     font: 700 clamp(1.25rem, 3vw, 1.75rem) / 1.1 font-family(bigger);
     letter-spacing: -0.01em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__body {
@@ -249,14 +244,14 @@
     color: color(secondary);
     font: 700 9px / 1 font-family(fraktion);
     letter-spacing: 0.06em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__meta {
     color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
     font: 700 9px / 1 font-family(fraktion);
     letter-spacing: 0.1em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__actions {
@@ -273,14 +268,14 @@
 
     padding: 0.45rem 0.75rem;
 
-    border: 1px solid color(secondary);
-    background: color(secondary);
+    @include ink-frame;
+    background-color: color(secondary);
 
     color: color(primary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
     text-decoration: none;
-    text-transform: uppercase;
+    text-transform: none;
 
     transition:
       background 0.2s ease,
@@ -406,7 +401,7 @@ a.p-card {
 
     color: color(secondary);
     font: 700 clamp(1.75rem, 4vw, 2.25rem) / 1.1 font-family(bigger);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   h2 {
@@ -414,7 +409,7 @@ a.p-card {
 
     color: color(secondary);
     font: 700 1.5rem / 1.2 font-family(bigger);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   h3 {
@@ -422,7 +417,7 @@ a.p-card {
 
     color: color(secondary);
     font: 700 1.15rem / 1.25 font-family(bigger);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   p {
@@ -531,11 +526,11 @@ a.p-card {
 .p-chip {
   padding: 0.35rem 0.65rem;
 
-  border: 1px solid color(secondary);
+  @include ink-frame;
 
   font: 700 10px / 1 font-family(fraktion);
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-transform: none;
 
   &--accent {
     border-color: color(accent);
@@ -549,7 +544,7 @@ a.p-card {
 .p-eco {
   padding: 1.25rem 1.5rem 2rem;
 
-  border-top: 1px solid color(secondary);
+  @include ink-rule(top);
   background: color(primary);
 
   &__label {
@@ -558,7 +553,7 @@ a.p-card {
     color: color-mix(in srgb, #{color(secondary)} 70%, transparent);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.2em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__grid {
@@ -587,7 +582,7 @@ a.p-card {
     letter-spacing: 0.08em;
     text-align: center;
     text-decoration: none;
-    text-transform: uppercase;
+    text-transform: none;
 
     transition:
       background 0.2s ease,
@@ -616,7 +611,7 @@ a.p-card {
 
     color: color(secondary);
     font: 700 1.25rem / 1.2 font-family(bigger);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__message {
@@ -642,15 +637,15 @@ a.p-card {
     color: color(secondary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   input,
   textarea {
     padding: 0.65rem 0.75rem;
 
-    border: 1px solid color(secondary);
-    background: color(primary);
+    @include ink-frame;
+    background-color: color(primary);
 
     color: color(secondary);
     font: 400 1rem / 1.4 font-family(editorial);
@@ -671,13 +666,13 @@ a.p-card {
 
     padding: 0.65rem 1.25rem;
 
-    border: 1px solid color(secondary);
-    background: color(secondary);
+    @include ink-frame;
+    background-color: color(secondary);
 
     color: color(primary);
     font: 700 11px / 1 font-family(fraktion);
     letter-spacing: 0.14em;
-    text-transform: uppercase;
+    text-transform: none;
 
     cursor: pointer;
     transition: background 0.2s ease;
@@ -752,7 +747,7 @@ a.p-card {
     color: color(secondary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.16em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__message {
@@ -778,13 +773,13 @@ a.p-card {
   color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
   font: 700 10px / 1 font-family(fraktion);
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
 
   &__badge {
     padding: 0.2rem 0.5rem;
 
     background: color(accent);
-    border-radius: 999px;
+    @include ink-pill;
 
     color: color(primary);
   }
@@ -797,8 +792,8 @@ a.p-card {
       margin-bottom: 1.75rem;
       padding: 1rem 1.35rem;
 
-      border: 1px solid color(secondary);
-      background: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
+      @include ink-frame;
+      background-color: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
 
       font-size: 11px;
       letter-spacing: 0.16em;
@@ -817,7 +812,7 @@ a.p-card {
 .p-about-photo {
   margin: 0 0 2rem;
 
-  border: 1px solid color(secondary);
+  @include ink-frame;
   overflow: hidden;
 
   img {
@@ -835,14 +830,14 @@ a.p-card {
 
     padding: 0.85rem 1rem;
 
-    border-top: 1px solid color(secondary);
+    @include ink-hairline-top;
     background: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
   }
 
   &__name {
     font: 700 11px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__tag {
@@ -883,7 +878,7 @@ a.p-card {
       padding: 0.2rem 0.35rem;
 
       background: color(accent);
-      border-radius: 999px;
+      @include ink-pill;
 
       color: color(secondary);
     }
@@ -916,7 +911,7 @@ a.p-card {
 .p-sponsor-qr {
   padding: 1.5rem;
 
-  border: 1px solid color(secondary);
+  @include ink-frame;
 
   text-align: center;
 
@@ -956,15 +951,15 @@ a.p-card {
 .p-honor-counter {
   padding: 1rem;
 
-  border: 1px solid color(secondary);
-  background: color-mix(in srgb, #{color(accent)} 15%, #{color(primary)});
+  @include ink-frame;
+  background-color: color-mix(in srgb, #{color(accent)} 15%, #{color(primary)});
 
   &__label {
     margin: 0 0 0.5rem;
 
     font: 700 11px / 1 font-family(fraktion);
     letter-spacing: 0.14em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__line {
@@ -982,7 +977,7 @@ a.p-card {
 
     font: 700 12px / 1 font-family(fraktion);
     letter-spacing: 0.14em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__grid {
@@ -1006,8 +1001,8 @@ a.p-card {
 }
 
 .p-honor-cert {
-  border: 1px solid color(secondary);
-  background: color(primary);
+  @include ink-frame;
+  background-color: color(primary);
 
   &__image {
     display: block;
@@ -1018,7 +1013,7 @@ a.p-card {
     aspect-ratio: 4 / 3;
     object-fit: cover;
 
-    border-bottom: 1px solid color(secondary);
+    @include ink-hairline-bottom;
   }
 
   &__body {
@@ -1033,7 +1028,7 @@ a.p-card {
     color: color-mix(in srgb, #{color(secondary)} 70%, transparent);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__name {
@@ -1058,7 +1053,7 @@ a.p-card {
   width: 100%;
   margin-bottom: 1.5rem;
 
-  border: 1px solid color(secondary);
+  @include ink-frame;
 }
 
 /* Account console */
@@ -1067,8 +1062,8 @@ a.p-card {
   &__panel {
     padding: 1.5rem;
 
-    border: 1px solid color(secondary);
-    background: color-mix(in srgb, #{color(primary)} 92%, #{color(accent)});
+    @include ink-frame;
+    background-color: color-mix(in srgb, #{color(primary)} 92%, #{color(accent)});
 
     @media (min-width: 1080px) {
       padding: 2rem 2.25rem;
@@ -1080,7 +1075,7 @@ a.p-card {
       color: color-mix(in srgb, #{color(secondary)} 70%, transparent);
       font: 700 10px / 1 font-family(fraktion);
       letter-spacing: 0.14em;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     .p-card__title {
@@ -1119,7 +1114,7 @@ a.p-card {
       color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
       font: 700 10px / 1 font-family(fraktion);
       letter-spacing: 0.12em;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     dd {
@@ -1132,13 +1127,13 @@ a.p-card {
   &__logout {
     padding: 0.5rem 0.85rem;
 
-    border: 1px solid color(secondary);
-    background: transparent;
+    @include ink-frame;
+    background-color: transparent;
 
     color: color(secondary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
 
     cursor: pointer;
     transition:
@@ -1162,8 +1157,8 @@ a.p-card {
 .benchmark-game {
   .p-card__actions {
     button.p-card__link {
-      border: 1px solid color(secondary);
-      background: color(secondary);
+      @include ink-frame;
+      background-color: color(secondary);
 
       color: color(primary);
       font: inherit;
@@ -1214,8 +1209,8 @@ sen-rail {
   margin: 0 0 1.5rem;
   padding: 0.6rem 0.6rem 2.1rem;
 
-  border: 1px solid color(secondary);
-  background: color(primary);
+  @include ink-frame;
+  background-color: color(primary);
 
   &::before,
   &::after {
@@ -1265,7 +1260,7 @@ sen-rail {
     color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
     font: 700 9px / 1 font-family(fraktion);
     letter-spacing: 0.18em;
-    text-transform: uppercase;
+    text-transform: none;
 
     &::after {
       content: 'CRS · ARCHIVE';
@@ -1279,8 +1274,8 @@ sen-rail {
 .p-detail-meta {
   padding: 0.65rem 0.75rem;
 
-  border-top: 1px solid color(secondary);
-  border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 25%, transparent);
+  @include ink-rule(top);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-secondary) 35%, transparent);
 
   span + span::before {
     margin-right: 1rem;

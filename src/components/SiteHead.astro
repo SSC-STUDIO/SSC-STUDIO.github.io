@@ -470,7 +470,8 @@ const consoleLines = [
 
     width: 100%;
 
-    border-bottom: 1px solid color(secondary);
+    @include ink-rule(bottom);
+
     opacity: 0;
 
     &.is-ready {
@@ -493,7 +494,7 @@ const consoleLines = [
       width: 6rem;
       height: 6rem;
 
-      border-right: 1px solid color(secondary);
+      @include ink-stile(right);
 
       transition:
         background-color 0.28s ease,
@@ -629,7 +630,7 @@ const consoleLines = [
     }
 
     .sb-menu {
-      border-left: 1px solid color(secondary);
+      @include ink-stile(left);
 
       @include mq(desktop-xs) {
         padding: 0 1rem;
@@ -644,6 +645,10 @@ const consoleLines = [
 
         border-left: 0;
         overflow-x: auto;
+
+        &::after {
+          display: none;
+        }
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
 
@@ -765,11 +770,11 @@ const consoleLines = [
       background: linear-gradient(
         0deg,
         transparent calc(50% - 1px),
-        color(secondary) calc(50% - 1px),
-        color(secondary) 50%,
+        color-mix(in srgb, #{color(secondary)} 48%, transparent) calc(50% - 1px),
+        color-mix(in srgb, #{color(secondary)} 48%, transparent) 50%,
         transparent 50%
       );
-      border-left: 1px solid color(secondary);
+      @include ink-stile(left);
       list-style: none;
 
       @include mq(tablet) {
@@ -785,6 +790,10 @@ const consoleLines = [
 
         background: none;
         border-left: 0;
+
+        &::after {
+          display: none;
+        }
       }
 
       .sb__item {
@@ -796,7 +805,7 @@ const consoleLines = [
 
           height: 100%;
 
-          border-left: 1px solid color(secondary);
+          @include ink-stile(left);
         }
       }
 
@@ -905,7 +914,7 @@ const consoleLines = [
       appearance: none;
       background: none;
       border: 0;
-      border-left: 1px solid color(secondary);
+      @include ink-stile(left);
       border-radius: 0;
       cursor: pointer;
 
@@ -978,11 +987,11 @@ const consoleLines = [
       background: linear-gradient(
         0deg,
         transparent calc(50% - 1px),
-        color(secondary) calc(50% - 1px),
-        color(secondary) 50%,
+        color-mix(in srgb, #{color(secondary)} 48%, transparent) calc(50% - 1px),
+        color-mix(in srgb, #{color(secondary)} 48%, transparent) 50%,
         transparent 50%
       );
-      border-left: 1px solid color(secondary);
+      @include ink-stile(left);
 
       font: 200 1.25rem / 48px font-family(editorial);
 
@@ -994,6 +1003,10 @@ const consoleLines = [
         flex-grow: 1;
 
         border-left: 0;
+
+        &::after {
+          display: none;
+        }
       }
 
       @include mq(phone) {
@@ -1006,7 +1019,7 @@ const consoleLines = [
         max-height: 100%;
 
         background: none;
-        border-left: 1px solid color(secondary);
+        @include ink-stile(left);
 
         font: 400 0.625rem / 1 font-family(fraktion);
         letter-spacing: 0.02em;
@@ -1107,7 +1120,7 @@ const consoleLines = [
       display: block;
       padding: 0.75rem;
 
-      border-left: 1px solid color(secondary);
+      @include ink-stile(left);
 
       @include mq(desktop-sm) {
         display: none;

@@ -816,7 +816,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       margin: 0 auto;
       width: var(--width);
 
-      border: 1px solid color(secondary);
+      @include ink-frame;
 
       transform: translate3d(0, var(--offset-y), 0);
 
@@ -921,7 +921,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       color: color(secondary);
       font: 700 11px / 1 font-family(fraktion);
       letter-spacing: 0.08em;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     .s__awards {
@@ -981,7 +981,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           bottom: 0;
           left: -1px;
 
-          border: 1px solid color(secondary);
+          @include ink-hairline;
 
           content: '';
         }

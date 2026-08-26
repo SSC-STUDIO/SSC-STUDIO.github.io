@@ -5,6 +5,7 @@
 @use "../helpers/colors" as *;
 @use "../helpers/fonts" as *;
 @use "../helpers/responsive" as *;
+@use "../helpers/ink" as *;
 
 body {
   position: relative;
@@ -135,7 +136,7 @@ body.is-subpage {
     color: color(accent);
     font: 400 10px / 1 font-family(fraktion);
     letter-spacing: 0.28em;
-    text-transform: uppercase;
+    text-transform: none;
     white-space: nowrap;
 
     transform: translate3d(-50%, 0, 0);

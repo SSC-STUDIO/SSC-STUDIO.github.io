@@ -7,6 +7,7 @@
 @use "../helpers/colors" as *;
 @use "../helpers/fonts" as *;
 @use "../helpers/responsive" as *;
+@use "../helpers/ink" as *;
 
 .p-guestbook {
   display: flex;
@@ -54,13 +55,13 @@
     margin-top: 1rem;
     padding: 0.65rem 1.25rem;
 
-    border: 1px solid color(secondary);
-    background: color(secondary);
+    @include ink-frame;
+    background-color: color(secondary);
 
     color: color(primary);
     font: 700 11px / 1 font-family(fraktion);
     letter-spacing: 0.14em;
-    text-transform: uppercase;
+    text-transform: none;
 
     cursor: pointer;
     transition:
@@ -80,10 +81,8 @@
     position: relative;
     padding: 1.5rem 1.25rem 1.25rem;
 
-    border: 1px solid color(secondary);
-    background:
-      linear-gradient(color(primary), color(primary)) padding-box,
-      repeating-linear-gradient(135deg, color-mix(in srgb, #{color(accent)} 24%, transparent) 0 6px, transparent 6px 12px) border-box;
+    @include ink-hairline;
+    background: color(primary);
 
     &::before {
       position: absolute;
@@ -97,7 +96,7 @@
       color: color(secondary);
       font: 700 9px / 1.2 font-family(fraktion);
       letter-spacing: 0.18em;
-      text-transform: uppercase;
+      text-transform: none;
 
       content: 'NEW ENTRY · 新脚印';
     }
@@ -202,14 +201,14 @@
     color: color(secondary);
     font: 700 10px / 1.4 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__time {
     color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__content {
@@ -233,13 +232,13 @@
   &__like {
     padding: 0.35rem 0.65rem;
 
-    border: 1px solid color(secondary);
-    background: transparent;
+    @include ink-frame;
+    background-color: transparent;
 
     color: color(secondary);
     font: 700 10px / 1 font-family(fraktion);
     letter-spacing: 0.12em;
-    text-transform: uppercase;
+    text-transform: none;
 
     cursor: pointer;
     transition:

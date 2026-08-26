@@ -498,12 +498,12 @@ const { class: className } = Astro.props
       left: 0;
       z-index: 1;
 
-      width: 0.5rem;
-      height: 0.5rem;
+      width: 0.55rem;
+      height: 0.38rem;
 
-      background: color(secondary);
-      border-radius: 50%;
-      box-shadow: 0 0 0 0 color(accent);
+      background: color(accent);
+      border-radius: 50% 40% 50% 40%;
+      box-shadow: 0 0 0 0.2rem color-mix(in srgb, #{color(accent)} 28%, transparent);
 
       transform: translate3d(calc(var(--x) - 50%), calc(var(--y) - 50%), 0);
 
@@ -520,12 +520,12 @@ const { class: className } = Astro.props
     }
 
     &.is-interactive:before {
-      width: 0.65rem;
-      height: 0.65rem;
+      width: 0.72rem;
+      height: 0.48rem;
 
       background: var(--daypart-lamp, color(accent));
-      box-shadow: 0 0 0 0.35rem
-        color-mix(in srgb, var(--daypart-lamp, var(--color-accent)) 35%, transparent);
+      box-shadow: 0 0 0 0.28rem
+        color-mix(in srgb, var(--daypart-lamp, var(--color-accent)) 32%, transparent);
     }
 
     svg {
@@ -536,8 +536,10 @@ const { class: className } = Astro.props
 
       :global(.a__line) {
         fill: none;
-        stroke: color(secondary);
-        stroke-width: 1px;
+        stroke: color-mix(in srgb, #{color(secondary)} 72%, transparent);
+        stroke-width: 1.75px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
     }
   }

@@ -1,0 +1,117 @@
+/**
+ * Ink line language — 宣纸松墨
+ * Use CSS variables so this file can be forwarded without circular @use.
+ */
+
+@mixin ink-hairline {
+  border: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+
+@mixin ink-hairline-top {
+  border-top: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+
+@mixin ink-hairline-bottom {
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+
+@mixin ink-hairline-left {
+  border-left: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+
+@mixin ink-hairline-right {
+  border-right: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+}
+
+@mixin ink-hairline-dashed {
+  border: 1.5px dashed color-mix(in srgb, var(--color-secondary) 42%, transparent);
+}
+
+@mixin ink-rule($edge: top) {
+  @if $edge == top {
+    border-top: 0;
+    box-shadow:
+      inset 0 1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
+      inset 0 4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent);
+  } @else if $edge == bottom {
+    border-bottom: 0;
+    box-shadow:
+      inset 0 -1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
+      inset 0 -4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent);
+  }
+}
+
+@mixin ink-frame {
+  position: relative;
+
+  border: 1.5px solid color-mix(in srgb, var(--color-secondary) 42%, transparent);
+  background-color: var(--ink-fill, var(--color-primary));
+  background-image:
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent)),
+    linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size:
+    11px 2px,
+    2px 11px,
+    11px 2px,
+    2px 11px,
+    11px 2px,
+    2px 11px,
+    11px 2px,
+    2px 11px;
+  background-position:
+    top left,
+    top left,
+    top right,
+    top right,
+    bottom left,
+    bottom left,
+    bottom right,
+    bottom right;
+}
+
+@mixin ink-frame-hover {
+  &:hover {
+    border-color: color-mix(in srgb, var(--color-secondary) 68%, transparent);
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--color-accent) 72%, transparent);
+    transform: translateY(-2px);
+
+    @media (prefers-reduced-motion: reduce) {
+      transform: none;
+    }
+  }
+}
+
+@mixin ink-stile($edge: right) {
+  position: relative;
+
+  @if $edge == right {
+    border-right: 0;
+  } @else {
+    border-left: 0;
+  }
+
+  &::after {
+    position: absolute;
+    top: 22%;
+    bottom: 22%;
+    #{$edge}: 0;
+
+    width: 1.5px;
+
+    background: color-mix(in srgb, var(--color-secondary) 48%, transparent);
+
+    content: '';
+    pointer-events: none;
+  }
+}
+
+@mixin ink-pill {
+  border-radius: 0.12rem;
+}

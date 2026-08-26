@@ -166,8 +166,9 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       padding: 0.2rem 0.4rem;
 
       background: color(accent);
+      @include ink-pill;
 
-      color: color(secondary);
+      color: color(primary);
       font-size: 9px;
       letter-spacing: 0.05em;
     }
@@ -177,9 +178,9 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       padding: 0.2rem 0.45rem;
 
       background: color(accent);
-      border-radius: 999px;
+      @include ink-pill;
 
-      color: color(secondary);
+      color: color(primary);
 
       white-space: nowrap;
     }

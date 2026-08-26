@@ -5,6 +5,7 @@
 
 @use '../helpers/colors' as *;
 @use '../helpers/responsive' as *;
+@use '../helpers/ink' as *;
 
 /* 时段灯色（由 StudioClock 在 <html> 上设置 data-daypart） */
 :root {
@@ -138,8 +139,8 @@ html.theme-contrasted[data-daypart='day'] {
   align-items: center;
   gap: 8px;
   padding: 7px 12px;
-  border: 1px solid color-mix(in srgb, var(--color-secondary) 28%, transparent);
-  border-radius: 999px;
+  @include ink-hairline;
+  @include ink-pill;
   background: color-mix(in srgb, var(--color-primary) 62%, transparent);
   backdrop-filter: blur(8px);
   color: color(secondary);

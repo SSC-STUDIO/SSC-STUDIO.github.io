@@ -38,7 +38,7 @@ import SenMark from './SenMark.astro'
     padding: 1.5rem;
     gap: 1rem;
 
-    border-top: 1px solid color(secondary);
+    @include ink-rule(top);
 
     @include mq(phone) {
       padding: 1rem;

@@ -1155,7 +1155,7 @@ const ecosystem = [
           color: color(white);
           font: 400 12px / 1 font-family(fraktion);
           text-align: center;
-          text-transform: uppercase;
+          text-transform: none;
         }
 
         &:after {
@@ -1401,7 +1401,7 @@ const ecosystem = [
           padding: 1.1rem 1rem 1rem 2.75rem;
 
           background: color(primary);
-          border: 1px solid color(secondary);
+          @include ink-hairline;
 
           color: color(secondary);
           text-decoration: none;
@@ -1438,7 +1438,7 @@ const ecosystem = [
         .a__name {
           font: 700 0.95rem / 1.2 font-family(fraktion);
           letter-spacing: 0.08em;
-          text-transform: uppercase;
+          text-transform: none;
         }
 
         .a__summary {
@@ -1454,7 +1454,7 @@ const ecosystem = [
           height: 100%;
 
           background: color(primary);
-          border: 1px solid color(secondary);
+          @include ink-hairline;
           transform: translateZ(calc(var(--depth) * -1 + 1px)) rotateY(180deg);
 
           content: '';
@@ -1626,7 +1626,7 @@ const ecosystem = [
       color: color(secondary);
       font: 700 12px / 1 font-family(fraktion);
       letter-spacing: 0.12em;
-      text-transform: uppercase;
+      text-transform: none;
     }
 
     .s__catcher {
@@ -1647,7 +1647,7 @@ const ecosystem = [
       font: 700 calc(var(--padding) * 1.2) / 1 font-family(bigger);
       line-height: 0.82;
       text-align: center;
-      text-transform: uppercase;
+      text-transform: none;
       white-space: nowrap;
 
       @include mq(tablet) {
