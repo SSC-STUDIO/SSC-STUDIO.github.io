@@ -287,6 +287,11 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         Emitter.on('updateViewport', this.onResize, this, true)
 
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) gsap.ticker.sleep()
+          else gsap.ticker.wake()
+        })
+
         // Site loaded event
         if (document.readyState === 'complete') {
           this.siteLoaded()

@@ -31,7 +31,7 @@
     window.addEventListener('resize', resize, { passive: true });
 
     function spawn(x, y, boost) {
-      if (particles.length > 90) particles.shift();
+      if (particles.length > 56) particles.shift();
       particles.push({
         x: x,
         y: y,
@@ -43,11 +43,19 @@
       });
     }
 
-    var last = 0;
-    function tick(t) {
+    var lamp = '#c23a2b';
+    function refreshLamp() {
+      lamp = getComputedStyle(document.documentElement).getPropertyValue('--daypart-lamp') || '#c23a2b';
+    }
+    refreshLamp();
+
+    function tick() {
+      if (!particles.length) {
+        running = false;
+        return;
+      }
       raf = requestAnimationFrame(tick);
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      var color = getComputedStyle(document.documentElement).getPropertyValue('--daypart-lamp') || '#c23a2b';
       for (var i = particles.length - 1; i >= 0; i--) {
         var p = particles[i];
         p.life++;
@@ -59,7 +67,7 @@
         p.y += p.vy;
         var fade = 1 - p.life / p.max;
         ctx.globalAlpha = fade * 0.5;
-        ctx.fillStyle = color.trim();
+        ctx.fillStyle = lamp.trim();
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2);
         ctx.fill();

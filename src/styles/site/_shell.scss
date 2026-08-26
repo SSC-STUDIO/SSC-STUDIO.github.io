@@ -24,7 +24,12 @@ body {
   position: relative;
   z-index: 2;
 
-  background: color(primary);
+  isolation: isolate;
+  background-color: color(primary);
+  background-image:
+    radial-gradient(1.3px 1px at 22% 18%, color-mix(in srgb, #{color(secondary)} 16%, transparent), transparent 2px),
+    radial-gradient(1px 1.2px at 71% 54%, color-mix(in srgb, #{color(accent)} 22%, transparent), transparent 2px),
+    radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in srgb, #{color(secondary)} 6%, transparent), transparent 70%);
   clip-path: inset(0 -1rem);
 
   @include mq(phone) {
@@ -64,7 +69,6 @@ html.is-subpage-ready {
   opacity: 0;
 
   pointer-events: none;
-  will-change: border-width;
 
   @include mq(phone) {
     border-width: 0.5rem;
@@ -122,8 +126,8 @@ body.is-subpage {
   height: 100%;
 
   background:
-    radial-gradient(90% 70% at 50% 115%, rgba(107, 33, 168, 0.1) 0%, transparent 62%),
-    linear-gradient(180deg, color(primary) 0%, color(primary) 72%, rgba(107, 33, 168, 0.06) 100%);
+    radial-gradient(90% 70% at 50% 115%, color-mix(in srgb, #{color(accent)} 12%, transparent) 0%, transparent 62%),
+    linear-gradient(180deg, color(primary) 0%, color(primary) 72%, color-mix(in srgb, #{color(secondary)} 6%, transparent) 100%);
 
   &__status {
     position: absolute;

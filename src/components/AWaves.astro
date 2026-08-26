@@ -42,6 +42,7 @@ const { class: className } = Astro.props
     isPaused: boolean
     isHovering: boolean
     introFallbackTimer: number
+    frame: number
 
     /**
      * Init
@@ -72,6 +73,7 @@ const { class: className } = Astro.props
       this.isInteractive = false
       this.isPaused = true
       this.isHovering = false
+      this.frame = 0
 
       // Init
       this.setSize()
@@ -270,13 +272,13 @@ const { class: className } = Astro.props
         path.remove()
       })
       this.mossPaths.forEach((path) => {
-        path.remove()
+        path?.remove()
       })
       this.paths = []
       this.mossPaths = []
 
-      const xGap = 10
-      const yGap = 32
+      const xGap = width < 720 ? 26 : width < 1100 ? 18 : 16
+      const yGap = width < 720 ? 40 : 36
 
       const oWidth = width + 200
       const oHeight = height + 30
@@ -309,17 +311,21 @@ const { class: className } = Astro.props
         path.classList.add('a__line')
         path.classList.add('js-line')
 
-        const moss = document.createElementNS(
-          'http://www.w3.org/2000/svg',
-          'path'
-        )
-        moss.classList.add('a__line')
-        moss.classList.add('a__line--moss')
-
         this.svg.appendChild(path)
-        this.svg.appendChild(moss)
         this.paths.push(path)
-        this.mossPaths.push(moss)
+
+        if (i % 3 === 0) {
+          const moss = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'path'
+          )
+          moss.classList.add('a__line')
+          moss.classList.add('a__line--moss')
+          this.svg.appendChild(moss)
+          this.mossPaths.push(moss)
+        } else {
+          this.mossPaths.push(null)
+        }
 
         // Add points
         this.lines.push(points)
@@ -412,7 +418,7 @@ const { class: className } = Astro.props
     /**
      * Draw lines
      */
-    drawLines() {
+    drawLines(updateMoss = true) {
       const { lines, moved, paths, mouse } = this
 
       const highlightDistance = this.isHovering ? 150 : 110
@@ -438,7 +444,7 @@ const { class: className } = Astro.props
         })
 
         paths[lIndex].setAttribute('d', d)
-        if (this.mossPaths[lIndex]) {
+        if (updateMoss && this.mossPaths[lIndex]) {
           this.mossPaths[lIndex].setAttribute('d', d)
         }
 
@@ -462,7 +468,10 @@ const { class: className } = Astro.props
      * Tick
      */
     tick(time) {
+      if (document.hidden) return
+
       const { mouse } = this
+      this.frame += 1
 
       // Smooth mouse movement
       mouse.sx += (mouse.x - mouse.sx) * 0.1
@@ -484,12 +493,13 @@ const { class: className } = Astro.props
       // Mouse angle
       mouse.a = Math.atan2(dy, dx)
 
-      // Animation
-      this.style.setProperty('--x', `${mouse.sx}px`)
-      this.style.setProperty('--y', `${mouse.sy}px`)
+      if (this.isInteractive) {
+        this.style.setProperty('--x', `${mouse.sx}px`)
+        this.style.setProperty('--y', `${mouse.sy}px`)
+      }
 
       this.movePoints(time)
-      this.drawLines()
+      this.drawLines(this.frame % 2 === 0)
     }
   }
 

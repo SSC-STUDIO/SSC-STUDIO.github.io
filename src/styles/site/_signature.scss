@@ -37,6 +37,20 @@ html.theme-contrasted[data-daypart='day'] {
   --daypart-lamp: #8aa392;
 }
 
+.s-hero::before {
+  position: absolute;
+  inset: -8% -4% 18%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 42% at 48% 78%, color-mix(in srgb, var(--color-secondary) 16%, transparent), transparent 72%),
+    radial-gradient(ellipse 30% 28% at 8% 30%, color-mix(in srgb, var(--color-secondary) 10%, transparent), transparent 70%),
+    radial-gradient(ellipse 24% 22% at 92% 12%, color-mix(in srgb, var(--daypart-lamp) 18%, transparent), transparent 68%);
+  content: '';
+  opacity: 0.85;
+  mix-blend-mode: multiply;
+}
+
 /* 时段洗色：hero 上叠一层随时间流转的微光 */
 .s-hero::after {
   position: absolute;
