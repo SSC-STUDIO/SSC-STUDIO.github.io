@@ -5,9 +5,11 @@ import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
 import StudioClock from './StudioClock.astro'
+import InkMountains from './InkMountains.astro'
 ---
 
 <div class="s-hero" data-intersect>
+  <InkMountains />
   <AWaves class="s__waves" />
 
   <StudioClock />
@@ -201,6 +203,11 @@ import StudioClock from './StudioClock.astro'
       this.splitWords()
 
       this.bindEvents()
+    }
+
+    destroy() {
+      Emitter.off('resize', this.onResize, this)
+      Emitter.off('tick', this.tick, this)
     }
 
     /**
@@ -410,7 +417,14 @@ import StudioClock from './StudioClock.astro'
     }
   }
 
-  new Section()
+  const mountHero = () => {
+    if (!document.querySelector('.s-hero')) return
+    const prev = (window as any).__sHero
+    prev?.destroy?.()
+    ;(window as any).__sHero = new Section()
+  }
+
+  document.addEventListener('astro:page-load', mountHero)
 </script>
 
 <style lang="scss">

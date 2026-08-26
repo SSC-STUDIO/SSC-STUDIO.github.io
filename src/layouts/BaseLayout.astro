@@ -72,12 +72,13 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
     <ClientRouter />
 
-    <!-- Apply theme before first paint to avoid flash -->
+    <!-- Apply theme before first paint; persist across ClientRouter swaps -->
     <script is:inline>
       (function () {
-        const storageKey = 'site-theme'
+        var storageKey = 'site-theme'
 
-        ;(function () {
+        function apply(root) {
+          if (!root) return
           var stored = null
           try {
             stored = localStorage.getItem(storageKey)
@@ -88,18 +89,33 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
             (stored !== 'light' &&
               window.matchMedia('(prefers-color-scheme: dark)').matches)
 
-          var root = document.documentElement
-          if (dark) root.classList.add('theme-contrasted')
+          root.classList.toggle('theme-contrasted', dark)
           root.dataset.theme = stored || (dark ? 'dark' : 'light')
 
           var color = dark ? '#0e1412' : '#f4ead8'
-          var metas = document.querySelectorAll(
-            'meta[name="theme-color"], meta[name="msapplication-navbutton-color"], meta[name="apple-mobile-web-app-status-bar-style"]'
-          )
+          var metas = root.querySelectorAll
+            ? root.querySelectorAll(
+                'meta[name="theme-color"], meta[name="msapplication-navbutton-color"], meta[name="apple-mobile-web-app-status-bar-style"]'
+              )
+            : []
+          if (!metas.length && root === document.documentElement) {
+            metas = document.querySelectorAll(
+              'meta[name="theme-color"], meta[name="msapplication-navbutton-color"], meta[name="apple-mobile-web-app-status-bar-style"]'
+            )
+          }
           for (var i = 0; i < metas.length; i++) {
             metas[i].setAttribute('content', color)
           }
-        })()
+        }
+
+        apply(document.documentElement)
+
+        document.addEventListener('astro:before-swap', function (event) {
+          var next = event.newDocument.documentElement
+          apply(next)
+          // SPA 回首页不要带回 SSR 的开场锁；intro 只在首次硬加载播
+          next.classList.remove('is-scroll-blocked', 'is-intro-active')
+        })
       })()
     </script>
 
@@ -260,6 +276,17 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.documentElement.classList.toggle('is-intro-active', playIntro)
 
         this.bindPageObservers()
+
+        try {
+          const stored = localStorage.getItem('site-theme')
+          const dark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('theme-contrasted', dark)
+          document.documentElement.dataset.theme =
+            stored || (dark ? 'dark' : 'light')
+        } catch (e) {}
 
         if (!playIntro) {
           Ticker.nextTick(this.forceReveal, this)

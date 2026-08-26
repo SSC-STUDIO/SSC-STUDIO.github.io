@@ -220,17 +220,9 @@ const consoleLines = [
     /**
      * Constructor
      */
-    constructor() {
-      // Elements
-      this.el = document.querySelector('.site-head')
-      this.contrastButton = document.querySelector('.js-contrast')
-      this.console = document.querySelector('.js-console')
-      this.contrastMask = document.querySelector('.js-contrast-mask')
-      this.links = this.el.querySelectorAll('.js-menu-link')
+    abort: AbortController
 
-      // Properties
-      this.isSubPage = this.el?.dataset.subpage === 'true'
-      this.messages = JSON.parse(this.console?.dataset.lines ?? '[]')
+    constructor() {
       this.message = ''
       this.messageLineBreak = false
       this.lastMessage = ''
@@ -238,42 +230,57 @@ const consoleLines = [
       this.writeDelay = 0
       this.canWrite = false
       this.isPaused = true
-
-      // Init
-      Ticker.nextTick(this.init, this)
+      this.rebind()
     }
 
-    /**
-     * Init
-     */
-    init() {
+    rebind() {
+      this.abort?.abort()
+      this.abort = new AbortController()
+
+      this.el = document.querySelector('.site-head')
+      this.contrastButton = document.querySelector('.js-contrast')
+      this.console = document.querySelector('.js-console')
+      this.contrastMask = document.querySelector('.js-contrast-mask')
+      if (!this.el) return
+
+      this.links = this.el.querySelectorAll('.js-menu-link')
+      this.isSubPage = this.el.dataset.subpage === 'true'
+      this.messages = JSON.parse(this.console?.dataset.lines ?? '[]')
+
       this.bindEvents()
-    }
+      applyTheme(resolveTheme(), false)
 
-    /**
-     * Bind events
-     */
-    bindEvents() {
-      this.contrastButton.addEventListener(
-        'click',
-        this.toggleContrast.bind(this),
-        { passive: true }
-      )
-
-      this.links.forEach((link) => {
-        link.addEventListener('click', this.onNavClick.bind(this))
-      })
-
-      if (this.isSubPage) {
-        Emitter.once('siteLoaded', this.subpageReady, this)
+      const introSeen =
+        typeof sessionStorage !== 'undefined' &&
+        sessionStorage.getItem('site-intro-seen') === '1'
+      if (this.isSubPage || introSeen) {
+        this.canWrite = true
       } else {
         document.addEventListener('intro', this.intro.bind(this), {
           once: true,
+          signal: this.abort.signal,
         })
       }
+    }
+
+    bindEvents() {
+      const { signal } = this.abort
+
+      this.contrastButton?.addEventListener(
+        'click',
+        this.toggleContrast.bind(this),
+        { passive: true, signal }
+      )
+
+      this.links.forEach((link) => {
+        link.addEventListener('click', this.onNavClick.bind(this), {
+          signal,
+        })
+      })
 
       this.el.addEventListener('intersect', this.onIntersect.bind(this), {
         passive: true,
+        signal,
       })
     }
 
@@ -460,7 +467,10 @@ const consoleLines = [
     }
   }
 
-  new Section()
+  const head = ((window as any).__siteHead ||= new Section())
+  document.addEventListener('astro:page-load', () => {
+    head.rebind()
+  })
 </script>
 
 <style lang="scss">

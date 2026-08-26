@@ -14,13 +14,21 @@
 .p-hero {
   position: relative;
   z-index: 2;
+  overflow: hidden;
 
-  padding: 8rem 1.5rem 3rem;
+  padding: 8rem 1.5rem 3.5rem;
 
   @include ink-rule(bottom);
   background: color(primary);
 
   animation: p-hero-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  &__kicker,
+  &__title,
+  &__summary {
+    position: relative;
+    z-index: 2;
+  }
 
   &__kicker {
     display: inline-block;

@@ -1,6 +1,7 @@
 ---
 import ASeparator from '../ASeparator.astro'
 import SealMark from '../SealMark.astro'
+import InkMountains from '../InkMountains.astro'
 
 interface Props {
   kicker: string
@@ -12,6 +13,7 @@ const { kicker, title, summary } = Astro.props
 ---
 
 <header class="p-hero" data-intersect>
+  <InkMountains compact />
   <p class="p-hero__kicker">{kicker}</p>
   <h1 class="p-hero__title">{title}</h1>
   <p class="p-hero__summary">{summary}</p>
