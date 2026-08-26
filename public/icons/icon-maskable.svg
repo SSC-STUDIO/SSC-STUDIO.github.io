@@ -1,14 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="陈润森">
-  <rect width="512" height="512" fill="#6B21A8"/>
+  <rect width="512" height="512" fill="#1C2A22"/>
   <g transform="translate(256 248)">
-    <!-- Outer spark -->
     <path
-      fill="#FFFFFF"
+      fill="#F4EAD8"
       d="M0 -140 24 -24 140 0 24 24 0 140 -24 24 -140 0 -24 -24Z"
     />
-    <!-- Inner spark -->
     <path
-      fill="#FACC15"
+      fill="#C23A2B"
       d="M0 -52 9 -9 52 0 9 9 0 52 -9 9 -52 0 -9 -9Z"
     />
   </g>

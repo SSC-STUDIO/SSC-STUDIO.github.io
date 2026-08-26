@@ -1,31 +1,31 @@
 /**
- * Colors variables — chenrunsen.cn purple identity
- * (default = light paper + purple ink, contrasted = dark studio)
+ * Colors variables — 宣纸松墨 + 朱砂
+ * (default = rice paper + pine ink, contrasted = pine night)
  */
 @use 'sass:map';
 
 $theme-colors: (
   default: (
-    primary: #ffffff,
-    secondary: #6b21a8,
-    shadow: #4c1d95,
-    accent: #facc15,
-    accent-muted: #fef9c3,
-    accent-strong: #eab308,
-    white: #ffffff,
-    surface: #6b21a8,
-    on-surface: #ffffff,
+    primary: #f4ead8,
+    secondary: #1c2a22,
+    shadow: #0f1c18,
+    accent: #c23a2b,
+    accent-muted: #ead4c0,
+    accent-strong: #a42e22,
+    white: #f7f1e6,
+    surface: #1c2a22,
+    on-surface: #f4ead8,
   ),
 
   contrasted: (
-    primary: #0c0616,
-    secondary: #ddd6fe,
-    shadow: #2e1065,
-    accent: #facc15,
-    accent-muted: #1a1028,
-    accent-strong: #eab308,
-    white: #ffffff,
-    surface: #1e1033,
-    on-surface: #ede9fe,
+    primary: #0e1412,
+    secondary: #efe6d4,
+    shadow: #070b09,
+    accent: #c23a2b,
+    accent-muted: #1a1612,
+    accent-strong: #e04a38,
+    white: #efe6d4,
+    surface: #1a221c,
+    on-surface: #efe6d4,
   ),
 );

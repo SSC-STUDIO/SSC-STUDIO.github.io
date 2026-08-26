@@ -29,10 +29,10 @@
 
     background: color(accent);
 
-    color: color(secondary);
-    font: 700 10px / 1 font-family(fraktion);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
+    color: color(primary);
+    font: 700 11px / 1 font-family(editorial);
+    letter-spacing: 0.18em;
+    text-transform: none;
   }
 
   &__title {
@@ -184,9 +184,9 @@
 
   &__kicker {
     color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
-    font: 700 9px / 1 font-family(fraktion);
+    font: 700 9px / 1 font-family(editorial);
     letter-spacing: 0.16em;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   &__id {
@@ -195,7 +195,7 @@
     background: color(accent);
     border-radius: 999px;
 
-    color: color(secondary);
+    color: color(primary);
     font: 700 9px / 1 font-family(fraktion);
     letter-spacing: 0.08em;
     white-space: nowrap;
@@ -540,6 +540,7 @@ a.p-card {
   &--accent {
     border-color: color(accent);
     background: color(accent);
+    color: color(primary);
   }
 }
 
@@ -785,7 +786,7 @@ a.p-card {
     background: color(accent);
     border-radius: 999px;
 
-    color: color(secondary);
+    color: color(primary);
   }
 
   @media (min-width: 1080px) {
@@ -1191,18 +1192,16 @@ sen-rail {
 
     color: color(secondary);
 
-    .a__triangle {
-      &:first-child {
-        border-left-color: color(secondary);
-      }
-
-      &:last-child {
-        border-right-color: color(secondary);
-      }
+    .a__node {
+      background: color(secondary);
     }
 
-    .a__stripes {
-      text-shadow: 0 0 1px color(secondary);
+    .a__rule {
+      background-image: repeating-linear-gradient(
+        90deg,
+        color(secondary) 0 5px,
+        transparent 5px 9px
+      );
     }
   }
 }

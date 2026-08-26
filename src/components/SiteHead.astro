@@ -129,8 +129,8 @@ const consoleLines = [
 
   const STORAGE_KEY = 'site-theme'
   const THEME_COLORS = {
-    light: '#6b21a8',
-    dark: '#0c0616',
+    light: '#f4ead8',
+    dark: '#0e1412',
   }
 
   /**
@@ -589,11 +589,15 @@ const consoleLines = [
     .sb-console {
       @include flex(column, flex-start, flex-end);
 
-      margin: 0 auto 0 0;
-      padding: 1.5rem;
+      margin: 0.85rem auto 0.85rem 0.75rem;
+      padding: 0.45rem 0.85rem;
 
-      font: 400 8px / 1.4 font-family(fraktion);
-      text-transform: uppercase;
+      border-left: 3px solid color(accent);
+      background: color-mix(in srgb, color(primary) 82%, color(secondary) 6%);
+
+      font: 400 11px / 1.5 font-family(editorial);
+      letter-spacing: 0.04em;
+      text-transform: none;
       white-space: pre-line;
 
       @include mq(tablet) {
@@ -618,7 +622,7 @@ const consoleLines = [
       &__inner {
         @include flex(column, flex-start, flex-end);
 
-        height: 5.6em;
+        height: 4.2em;
 
         overflow: hidden;
       }

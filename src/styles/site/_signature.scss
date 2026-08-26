@@ -1,6 +1,6 @@
 /**
  * Signature — 独创视觉签名元素（印章 / 工作室的灯 / 章节导轨）
- * 配色接入主题系统：亮紫 + 黄色 accent，暗色主题自动适配
+ * 配色接入主题系统：宣纸松墨 + 朱砂 accent，暗色主题自动适配
  */
 
 @use '../helpers/colors' as *;
@@ -8,32 +8,32 @@
 
 /* 时段灯色（由 StudioClock 在 <html> 上设置 data-daypart） */
 :root {
-  --daypart-lamp: #a78bfa;
-  --daypart-wash: rgba(167, 139, 250, 0.1);
+  --daypart-lamp: #3f5c4a;
+  --daypart-wash: rgba(63, 92, 74, 0.1);
 }
 
 html[data-daypart='dawn'] {
-  --daypart-lamp: #eab308;
-  --daypart-wash: rgba(234, 179, 8, 0.12);
+  --daypart-lamp: #c23a2b;
+  --daypart-wash: rgba(194, 58, 43, 0.1);
 }
 
 html[data-daypart='day'] {
-  --daypart-lamp: #6b21a8;
-  --daypart-wash: rgba(107, 33, 168, 0.08);
+  --daypart-lamp: #2f4a3a;
+  --daypart-wash: rgba(47, 74, 58, 0.08);
 }
 
 html[data-daypart='dusk'] {
-  --daypart-lamp: #f97316;
-  --daypart-wash: rgba(249, 115, 22, 0.11);
+  --daypart-lamp: #c45a32;
+  --daypart-wash: rgba(196, 90, 50, 0.12);
 }
 
 html[data-daypart='night'] {
-  --daypart-lamp: #a78bfa;
-  --daypart-wash: rgba(167, 139, 250, 0.12);
+  --daypart-lamp: #8aa392;
+  --daypart-wash: rgba(138, 163, 146, 0.12);
 }
 
 html.theme-contrasted[data-daypart='day'] {
-  --daypart-lamp: #c4b5fd;
+  --daypart-lamp: #8aa392;
 }
 
 /* 时段洗色：hero 上叠一层随时间流转的微光 */
@@ -506,34 +506,13 @@ sen-work,
 }
 
 @media (min-width: 721px) and (max-width: 1100px) {
-  /* 大标题在平板下过宽被裁：一词一行、禁止词内折行（需压过组件 scoped 样式） */
   .s-hero .s__title {
-    display: block !important;
-    font-size: min(16vw, 10rem) !important;
+    font-size: min(22vw, 7.5rem) !important;
   }
 
-  .s-hero .s__title__word {
-    display: block !important;
-    white-space: nowrap !important;
-  }
-
-  .s-hero .s__title__asset {
-    display: inline-block !important;
-    margin: 0.1em 0 0 !important;
-    width: 0.5em !important;
-    height: auto !important;
-  }
-
-  /* 标题行的印章让位于完整文字 */
   .s-hero .seal-mark--hero {
-    display: none;
-  }
-
-  /* 平板下逐字入场动画与布局覆盖冲突：直接静态显示 */
-  .s-hero .s__title .char__inner {
-    animation: none !important;
-    transform: none !important;
-    opacity: 1 !important;
+    width: 52px;
+    right: 18%;
   }
 }
 

@@ -647,8 +647,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       cursor: pointer;
 
       color: color(primary);
-      font: 700 2.55rem / 6rem font-family(bigger);
-      letter-spacing: 0;
+      font: 700 2.4rem / 6rem font-family(bigger);
+      letter-spacing: 0.08em;
       text-align: center;
       text-decoration: none;
       text-indent: 0;
@@ -659,8 +659,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         position: absolute;
         inset: -0.55rem;
 
-        border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
-        border-radius: 999rem;
+        border: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+        border-radius: 0.45rem;
         content: '';
         pointer-events: none;
 
@@ -689,8 +689,9 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         width: 100%;
         height: 100%;
 
-        background: color(secondary);
-        border-radius: 999rem;
+        background: color(accent);
+        border-radius: 0.45rem;
+        box-shadow: inset 0 0 0 2px color-mix(in srgb, color(primary) 55%, transparent);
 
         transition: scale 1s ease(out-quint) 0.2s;
 
@@ -709,10 +710,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         left: 50%;
 
         color: color(secondary);
-        font: 700 10px / 1 font-family(fraktion);
-        letter-spacing: 0.28em;
-        text-indent: 0.28em;
-        text-transform: uppercase;
+        font: 700 11px / 1 font-family(editorial);
+        letter-spacing: 0.22em;
+        text-indent: 0.22em;
+        text-transform: none;
         white-space: nowrap;
 
         opacity: 0.62;
@@ -853,10 +854,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         transform: translate3d(-50%, 1em, 0);
 
         color: color(primary);
-        font: 700 14px / 1 font-family(fraktion);
-        letter-spacing: 0.1em;
+        font: 700 14px / 1 font-family(editorial);
+        letter-spacing: 0.12em;
         text-decoration: none;
-        text-transform: uppercase;
+        text-transform: none;
 
         transition:
           transform 0s linear 0.3s,

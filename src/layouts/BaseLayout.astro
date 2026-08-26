@@ -66,9 +66,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     />
     <meta name="apple-mobile-web-app-title" content="陈润森" />
 
-    <meta name="theme-color" content="#6b21a8" />
-    <meta name="msapplication-navbutton-color" content="#6b21a8" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="#6b21a8" />
+    <meta name="theme-color" content="#f4ead8" />
+    <meta name="msapplication-navbutton-color" content="#f4ead8" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="#f4ead8" />
 
     <ClientRouter />
 
@@ -92,7 +92,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           if (dark) root.classList.add('theme-contrasted')
           root.dataset.theme = stored || (dark ? 'dark' : 'light')
 
-          var color = dark ? '#0c0616' : '#6b21a8'
+          var color = dark ? '#0e1412' : '#f4ead8'
           var metas = document.querySelectorAll(
             'meta[name="theme-color"], meta[name="msapplication-navbutton-color"], meta[name="apple-mobile-web-app-status-bar-style"]'
           )

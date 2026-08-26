@@ -4,80 +4,44 @@ const {
   style = 'primary',
   strings = ['木', '林', '森', '光'],
 } = Astro.props
-
-const binaries = strings.map((string) => {
-  return string
-    .split('')
-    .map((char) => char.charCodeAt(0).toString(2))
-    .join(' ')
-})
 ---
 
 <sen-rail class:list={['style--' + style, className]} data-intersect>
-  <span class="a__triangle"></span>
+  <span class="a__node" aria-hidden="true"></span>
 
-  <span class="a__binaries">
+  <span class="a__glyphs">
     {
-      binaries.map((binary) => (
+      strings.map((glyph) => (
         <>
-          <span class="a__code js-code">
-            {binary.split('').map((char) => (
-              <span
-                class:list={[
-                  'a__char',
-                  'a__char--' + (char === ' ' ? 'blank' : char),
-                  'js-char',
-                ]}
-              >
-                {char}
-              </span>
-            ))}
-          </span>
-          <span class="a__stripes" />
+          <span class="a__glyph js-glyph">{glyph}</span>
+          <span class="a__rule" aria-hidden="true" />
         </>
       ))
     }
   </span>
 
-  <span class="a__triangle"></span>
+  <span class="a__node" aria-hidden="true"></span>
 </sen-rail>
 
 <script>
   import Emitter from '../utils/Emitter'
 
   class ASeparator extends HTMLElement {
-    chars: NodeListOf<HTMLElement>
-    codes: NodeListOf<HTMLElement>
-
+    glyphs: NodeListOf<HTMLElement>
     isPaused: boolean
 
-    /**
-     * Init
-     */
     connectedCallback() {
-      // Elements
-      this.codes = this.querySelectorAll('.js-code')
-      this.chars = this.querySelectorAll('.js-char')
-
-      // Properties
+      this.glyphs = this.querySelectorAll('.js-glyph')
       this.isPaused = true
-
-      // Init
       this.bindEvents()
     }
 
-    /**
-     * Bind events
-     */
     bindEvents() {
       this.addEventListener('intersect', this.onIntersect.bind(this), {
         passive: true,
       })
     }
 
-    /**
-     * Intersect handler
-     */
     onIntersect(e) {
       this.isPaused = !e.detail.isIntersecting
 
@@ -88,17 +52,11 @@ const binaries = strings.map((string) => {
       }
     }
 
-    /**
-     * Tick
-     */
     tick() {
-      this.chars.forEach((char) => {
-        if (char.classList.contains('a__char--blank') || Math.random() > 0.1)
-          return
-
-        char.classList.remove('a__char--0')
-        char.classList.remove('a__char--1')
-        char.classList.add('a__char--' + (Math.random() > 0.5 ? '0' : '1'))
+      this.glyphs.forEach((glyph) => {
+        if (Math.random() > 0.012) return
+        glyph.classList.add('is-ink')
+        window.setTimeout(() => glyph.classList.remove('is-ink'), 280)
       })
     }
   }
@@ -114,138 +72,74 @@ const binaries = strings.map((string) => {
 
     position: relative;
 
-    padding: 0 1rem;
+    padding: 0 1.15rem;
     width: 100%;
-    height: 2.25rem;
+    height: 2.35rem;
 
     border-top: 1px solid color(secondary);
     border-bottom: 1px solid color(secondary);
 
-    font: 400 8px / 16px font-family(fraktion);
+    font: 700 13px / 1 font-family(editorial);
+    letter-spacing: 0.28em;
 
-    .a__triangle {
-      position: absolute;
-      top: 50%;
-
-      border-top: 2px solid transparent;
-      border-bottom: 2px solid transparent;
-      transform: translate3d(0, -40%, 0);
-
-      &:first-child {
-        left: 1rem;
-
-        border-left: 4px solid color(secondary);
-      }
-
-      &:last-child {
-        right: 1rem;
-
-        border-right: 4px solid color(secondary);
-      }
-    }
-
-    .a__binaries {
-      @include flex(row, center, space-between);
-
-      padding: 0 0.7rem;
-    }
-
-    .a__code {
-      @include flex(row, flex-start, flex-start);
-
-      flex-grow: 0;
+    .a__node {
       flex-shrink: 0;
 
-      @include mq(tablet-sm) {
-        &:nth-child(4n + 3) {
-          display: none;
-        }
-      }
+      width: 7px;
+      height: 14px;
 
-      @include mq(phone) {
-        &:nth-child(1n) {
-          display: flex;
-        }
-
-        &:nth-child(6n + 3),
-        &:nth-child(6n + 5) {
-          display: none;
-        }
-      }
+      background: color(secondary);
+      clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     }
 
-    .a__char {
+    .a__glyphs {
+      @include flex(row, center, space-between);
+
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0 0.85rem;
+    }
+
+    .a__glyph {
       position: relative;
 
-      display: block;
-      overflow: hidden;
+      flex: 0 0 auto;
 
-      color: transparent;
+      color: color(secondary);
+      transition:
+        opacity 0.28s ease,
+        transform 0.28s ease,
+        color 0.28s ease;
 
-      &:before {
-        position: absolute;
-        top: 0;
-        left: 0;
-
-        width: 100%;
-        height: 2em;
-
-        color: color(secondary);
-        word-break: break-all;
-
-        will-change: translate;
-
-        content: '01';
-      }
-
-      &--1 {
-        &:before {
-          translate: 0 -100%;
-        }
-      }
-
-      &--blank {
-        &:before {
-          content: none;
-        }
+      &.is-ink {
+        color: color(accent);
+        transform: translateY(-1px);
       }
     }
 
-    .a__stripes {
-      margin: 0 8px;
-      height: 8px;
+    .a__rule {
+      flex: 1 1 auto;
 
-      overflow: hidden;
+      height: 1px;
+      margin: 0 0.65rem;
+      min-width: 1.25rem;
 
-      text-shadow: 0 0 1px color(secondary);
-      // -webkit-text-stroke: 1px color(secondary);
-
-      line-height: 8px;
-
-      @include mq(tablet-sm) {
-        &:nth-child(4n + 4) {
-          display: none;
-        }
-      }
-
-      @include mq(phone) {
-        &:nth-child(1n) {
-          display: block;
-        }
-
-        &:nth-child(6n + 4),
-        &:nth-child(6n + 6) {
-          display: none;
-        }
-      }
-
-      &:before {
-        content: '/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////';
-        word-break: break-word;
-      }
+      background-image: repeating-linear-gradient(
+        90deg,
+        color(secondary) 0 5px,
+        transparent 5px 9px
+      );
+      opacity: 0.45;
 
       &:last-child {
         display: none;
+      }
+
+      @include mq(phone) {
+        &:nth-child(2n) {
+          min-width: 0.5rem;
+          margin: 0 0.35rem;
+        }
       }
     }
 
@@ -254,38 +148,32 @@ const binaries = strings.map((string) => {
 
       color: color(primary);
 
-      .a__triangle {
-        &:first-child {
-          border-left-color: color(primary);
-        }
+      .a__node {
+        background: color(primary);
+      }
 
-        &:last-child {
-          border-right-color: color(primary);
+      .a__glyph {
+        color: color(primary);
+
+        &.is-ink {
+          color: color(accent);
         }
       }
 
-      .a__stripes {
-        text-shadow: 0 0 1px color(primary);
+      .a__rule {
+        background-image: repeating-linear-gradient(
+          90deg,
+          color(primary) 0 5px,
+          transparent 5px 9px
+        );
       }
     }
 
     &.style--accent {
       background: color(accent-muted);
 
-      color: color(secondary);
-
-      .a__triangle {
-        &:first-child {
-          border-left-color: color(secondary);
-        }
-
-        &:last-child {
-          border-right-color: color(secondary);
-        }
-      }
-
-      .a__stripes {
-        text-shadow: 0 0 1px color(secondary);
+      .a__glyph.is-ink {
+        color: color(accent-strong);
       }
     }
   }
