@@ -26,11 +26,11 @@ import StudioClock from './StudioClock.astro'
     </p>
 
     <h1 class="s__title">
-      <span class="s__title__word js-word">润</span>
+      <span class="s__title__word js-word">CHEN</span>
       <span class="s__title__asset js-star" aria-hidden="true">
-        <SenMark size={56} />
+        <SenMark size={72} />
       </span>
-      <span class="s__title__word s__title__word--seal js-word">森</span>
+      <span class="s__title__word s__title__word--seal js-word">RUNSEN</span>
       <SealMark variant="hero" />
     </h1>
 
@@ -504,32 +504,35 @@ import StudioClock from './StudioClock.astro'
     }
 
     .s__title {
-      @include flex(column, center, center);
+      @include flex(row, center, center);
 
       position: relative;
 
       margin: 0;
-      padding: 0.65rem 0 0.85rem;
+      padding: 0.2rem 0.5rem 0.45rem;
+      gap: 0.04em;
 
       cursor: default;
 
-      font: 700 min(28vw, 8.5rem) / 1.08 font-family(bigger);
-      letter-spacing: 0.08em;
+      font: 700 min(18vw, 12rem) / 0.82 font-family(bigger);
+      letter-spacing: 0.02em;
       text-transform: none;
 
       @include mq(tablet) {
-        padding: 0.5rem 1rem;
-        font-size: min(26vw, 6.5rem);
+        padding: 0.2rem 0.75rem 0.4rem;
+        flex-wrap: wrap;
+        font-size: min(22vw, 8rem);
       }
 
       @include mq(phone) {
-        font-size: min(32vw, 5.25rem);
+        font-size: min(16vw, 4.5rem);
+        letter-spacing: 0;
       }
 
       @include mq(sm-height) {
-        padding-top: 0.2rem;
-        padding-bottom: 0.35rem;
-        font-size: min(22vw, 5rem);
+        padding-top: 0.1rem;
+        padding-bottom: 0.25rem;
+        font-size: min(14vw, 5.5rem);
       }
 
       &__word {
@@ -544,9 +547,9 @@ import StudioClock from './StudioClock.astro'
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0.06em 0 0.08em;
-        width: 0.22em;
-        height: 0.22em;
+        margin: 0 0.12em 0.08em;
+        width: 0.18em;
+        height: 0.18em;
         color: color(secondary);
 
         :global(svg) {
@@ -558,11 +561,11 @@ import StudioClock from './StudioClock.astro'
 
       :global(.seal-mark--hero) {
         position: absolute;
-        right: 12%;
-        bottom: 6%;
+        right: 0.02em;
+        bottom: 0.08em;
         z-index: 2;
 
-        width: clamp(42px, 7vw, 72px);
+        width: clamp(36px, 6vw, 64px);
         height: auto;
         margin: 0;
       }

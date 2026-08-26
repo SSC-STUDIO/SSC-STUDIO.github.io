@@ -35,6 +35,7 @@ const { class: className } = Astro.props
 
     lines: any[]
     paths: any[]
+    mossPaths: any[]
     noise: any
 
     isInteractive: boolean
@@ -65,6 +66,7 @@ const { class: className } = Astro.props
 
       this.lines = []
       this.paths = []
+      this.mossPaths = []
       this.noise = new Noise(Math.random())
 
       this.isInteractive = false
@@ -267,7 +269,11 @@ const { class: className } = Astro.props
       this.paths.forEach((path) => {
         path.remove()
       })
+      this.mossPaths.forEach((path) => {
+        path.remove()
+      })
       this.paths = []
+      this.mossPaths = []
 
       const xGap = 10
       const yGap = 32
@@ -303,8 +309,17 @@ const { class: className } = Astro.props
         path.classList.add('a__line')
         path.classList.add('js-line')
 
+        const moss = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'path'
+        )
+        moss.classList.add('a__line')
+        moss.classList.add('a__line--moss')
+
         this.svg.appendChild(path)
+        this.svg.appendChild(moss)
         this.paths.push(path)
+        this.mossPaths.push(moss)
 
         // Add points
         this.lines.push(points)
@@ -423,6 +438,9 @@ const { class: className } = Astro.props
         })
 
         paths[lIndex].setAttribute('d', d)
+        if (this.mossPaths[lIndex]) {
+          this.mossPaths[lIndex].setAttribute('d', d)
+        }
 
         // Highlight the lines close to the cursor
         if (this.isInteractive && minDistance < highlightDistance) {
@@ -540,6 +558,14 @@ const { class: className } = Astro.props
         stroke-width: 1.75px;
         stroke-linecap: round;
         stroke-linejoin: round;
+      }
+
+      :global(.a__line--moss) {
+        stroke: color-mix(in srgb, #{color(secondary)} 38%, transparent);
+        stroke-width: 3.2px;
+        stroke-dasharray: 0.9 6.5;
+        stroke-linecap: round;
+        pointer-events: none;
       }
     }
   }

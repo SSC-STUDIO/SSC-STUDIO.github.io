@@ -1,26 +1,66 @@
 /**
- * Ink line language — 宣纸松墨
- * Use CSS variables so this file can be forwarded without circular @use.
+ * Ink line language — 宣纸松墨 + 点苔 / 飞白 / 朱丝栏
+ * CSS variables only, so this file can be forwarded without circular @use.
  */
 
+$ink-moss-image:
+  radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-secondary) 48%, transparent) 0.55px,
+    transparent 0.72px
+  ),
+  radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 38%, transparent) 0.4px,
+    transparent 0.58px
+  ),
+  radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-secondary) 28%, transparent) 0.38px,
+    transparent 0.52px
+  );
+
+$ink-moss-size: 28px 7px, 37px 8px, 23px 6px;
+$ink-moss-position: 0 0, 11px 4px, 8px 2px;
+
+@mixin ink-moss-x($edge: top) {
+  background-image: $ink-moss-image;
+  background-repeat: repeat-x;
+  background-size: $ink-moss-size;
+
+  @if $edge == top {
+    background-position: 0 0, 7px 3px, 4px 1px;
+  } @else {
+    background-position: 0 100%, 7px calc(100% - 2px), 4px calc(100% - 1px);
+  }
+}
+
 @mixin ink-hairline {
-  border: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
 }
 
 @mixin ink-hairline-top {
-  border-top: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+  border-top: 1.5px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
+  background-image: $ink-moss-image;
+  background-repeat: repeat-x;
+  background-size: $ink-moss-size;
+  background-position: 0 0, 7px 3px, 4px 1px;
 }
 
 @mixin ink-hairline-bottom {
-  border-bottom: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
+  background-image: $ink-moss-image;
+  background-repeat: repeat-x;
+  background-size: $ink-moss-size;
+  background-position: 0 100%, 7px calc(100% - 2px), 4px calc(100% - 1px);
 }
 
 @mixin ink-hairline-left {
-  border-left: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+  border-left: 1.5px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
 }
 
 @mixin ink-hairline-right {
-  border-right: 1.5px solid color-mix(in srgb, var(--color-secondary) 55%, transparent);
+  border-right: 1.5px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
 }
 
 @mixin ink-hairline-dashed {
@@ -33,11 +73,19 @@
     box-shadow:
       inset 0 1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
       inset 0 4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent);
+    background-image: $ink-moss-image;
+    background-repeat: repeat-x;
+    background-size: $ink-moss-size;
+    background-position: 0 0, 7px 3px, 4px 1px;
   } @else if $edge == bottom {
     border-bottom: 0;
     box-shadow:
       inset 0 -1.5px 0 color-mix(in srgb, var(--color-secondary) 48%, transparent),
       inset 0 -4px 0 color-mix(in srgb, var(--color-accent) 58%, transparent);
+    background-image: $ink-moss-image;
+    background-repeat: repeat-x;
+    background-size: $ink-moss-size;
+    background-position: 0 100%, 7px calc(100% - 2px), 4px calc(100% - 1px);
   }
 }
 
@@ -47,6 +95,7 @@
   border: 1.5px solid color-mix(in srgb, var(--color-secondary) 42%, transparent);
   background-color: var(--ink-fill, var(--color-primary));
   background-image:
+    $ink-moss-image,
     linear-gradient(var(--color-accent), var(--color-accent)),
     linear-gradient(var(--color-accent), var(--color-accent)),
     linear-gradient(var(--color-accent), var(--color-accent)),
@@ -55,8 +104,10 @@
     linear-gradient(var(--color-accent), var(--color-accent)),
     linear-gradient(var(--color-accent), var(--color-accent)),
     linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat,
+    no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-size:
+    $ink-moss-size,
     11px 2px,
     2px 11px,
     11px 2px,
@@ -66,6 +117,7 @@
     11px 2px,
     2px 11px;
   background-position:
+    $ink-moss-position,
     top left,
     top left,
     top right,
@@ -99,13 +151,30 @@
 
   &::after {
     position: absolute;
-    top: 22%;
-    bottom: 22%;
+    top: 18%;
+    bottom: 18%;
     #{$edge}: 0;
 
-    width: 1.5px;
+    width: 6px;
 
-    background: color-mix(in srgb, var(--color-secondary) 48%, transparent);
+    background-color: transparent;
+    background-image:
+      linear-gradient(
+        color-mix(in srgb, var(--color-secondary) 48%, transparent),
+        color-mix(in srgb, var(--color-secondary) 48%, transparent)
+      ),
+      $ink-moss-image;
+    background-repeat: no-repeat, repeat, repeat, repeat;
+    background-size:
+      1.5px 100%,
+      6px 11px,
+      7px 13px,
+      5px 9px;
+    background-position:
+      center,
+      0 0,
+      2px 6px,
+      1px 3px;
 
     content: '';
     pointer-events: none;

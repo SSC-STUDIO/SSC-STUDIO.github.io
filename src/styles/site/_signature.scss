@@ -508,12 +508,12 @@ sen-work,
 
 @media (min-width: 721px) and (max-width: 1100px) {
   .s-hero .s__title {
-    font-size: min(22vw, 7.5rem) !important;
+    font-size: min(16vw, 7.5rem) !important;
   }
 
   .s-hero .seal-mark--hero {
-    width: 52px;
-    right: 18%;
+    width: 48px;
+    right: 0.02em;
   }
 }
 

@@ -123,16 +123,29 @@ const {
     .a__rule {
       flex: 1 1 auto;
 
-      height: 1px;
+      height: 5px;
       margin: 0 0.65rem;
       min-width: 1.25rem;
 
-      background-image: repeating-linear-gradient(
-        90deg,
-        color(secondary) 0 5px,
-        transparent 5px 9px
-      );
-      opacity: 0.45;
+      background-image:
+        radial-gradient(
+          circle,
+          color-mix(in srgb, #{color(accent)} 70%, transparent) 0.7px,
+          transparent 0.85px
+        ),
+        radial-gradient(
+          circle,
+          color-mix(in srgb, #{color(secondary)} 45%, transparent) 0.45px,
+          transparent 0.6px
+        ),
+        linear-gradient(
+          color-mix(in srgb, #{color(accent)} 55%, transparent),
+          color-mix(in srgb, #{color(accent)} 55%, transparent)
+        );
+      background-repeat: repeat-x, repeat-x, repeat-x;
+      background-size: 7px 5px, 11px 5px, 100% 1.2px;
+      background-position: 0 50%, 4px 1px, 0 50%;
+      opacity: 0.9;
 
       &:last-child {
         display: none;
@@ -164,11 +177,10 @@ const {
       }
 
       .a__rule {
-        background-image: repeating-linear-gradient(
-          90deg,
-          color(primary) 0 5px,
-          transparent 5px 9px
-        );
+        background-image:
+          radial-gradient(circle, color-mix(in srgb, #{color(primary)} 70%, transparent) 0.7px, transparent 0.85px),
+          radial-gradient(circle, color-mix(in srgb, #{color(accent)} 50%, transparent) 0.45px, transparent 0.6px),
+          linear-gradient(color-mix(in srgb, #{color(primary)} 55%, transparent), color-mix(in srgb, #{color(primary)} 55%, transparent));
       }
     }
 
