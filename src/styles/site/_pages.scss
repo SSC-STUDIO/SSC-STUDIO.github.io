@@ -31,18 +31,28 @@
   }
 
   &__kicker {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 
     margin: 0 0 1rem;
-    padding: 0.35rem 0.65rem;
+    padding: 0.35rem 0.75rem;
 
-    background: color(accent);
+    border: 1px solid color-mix(in srgb, #{color(accent)} 65%, transparent);
+    background: color-mix(in srgb, #{color(accent)} 6%, transparent);
     @include ink-pill;
 
-    color: color(primary);
+    color: color(secondary);
     font: 700 11px / 1 font-family(editorial);
-    letter-spacing: 0.18em;
+    letter-spacing: 0.28em;
     text-transform: none;
+
+    &::before {
+      content: '•';
+      margin-right: 0.45em;
+      color: color(accent);
+      font-size: 0.9em;
+      line-height: 1;
+    }
   }
 
   &__title {
@@ -61,6 +71,44 @@
 
     color: color-mix(in srgb, #{color(secondary)} 80%, transparent);
     font: 400 clamp(1rem, 2.5vw, 1.25rem) / 1.55 font-family(editorial);
+  }
+
+  &__side {
+    position: absolute;
+    top: 50%;
+    right: clamp(1.5rem, 5vw, 4.5rem);
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none;
+
+    @include mq(tablet) {
+      display: none;
+    }
+  }
+
+  &__motto {
+    display: block;
+    padding: 1.25rem 0.65rem;
+
+    border-left: 1px dashed color-mix(in srgb, #{color(accent)} 55%, transparent);
+    border-right: 1px dashed color-mix(in srgb, #{color(accent)} 55%, transparent);
+
+    color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+    font: 400 0.85rem / 1 font-family(editorial);
+    letter-spacing: 0.45em;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  &__meander {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+
+    display: block;
+    pointer-events: none;
   }
 
   @include mq(phone) {
@@ -166,9 +214,20 @@
 
   transition:
     transform 0.25s ease,
-    box-shadow 0.25s ease;
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 
-  @include ink-frame-hover;
+  &:hover {
+    border-color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
+    box-shadow:
+      0 8px 20px -6px color-mix(in srgb, #{color(secondary)} 18%, transparent),
+      0 3px 0 color-mix(in srgb, #{color(accent)} 85%, transparent);
+    transform: translateY(-3px);
+
+    @media (prefers-reduced-motion: reduce) {
+      transform: none;
+    }
+  }
 
   &:focus-visible {
     outline: 2px solid color(accent);
@@ -193,14 +252,14 @@
   }
 
   &__id {
-    padding: 0.2rem 0.45rem;
+    padding: 0.2rem 0.55rem;
 
     background: color(accent);
     @include ink-pill;
 
     color: color(primary);
-    font: 700 9px / 1 font-family(fraktion);
-    letter-spacing: 0.08em;
+    font: 700 10px / 1 font-family(editorial);
+    letter-spacing: 0.16em;
     white-space: nowrap;
   }
 
@@ -404,6 +463,16 @@ a.p-card {
   color: color-mix(in srgb, #{color(secondary)} 88%, transparent);
   font: 400 1.05rem / 1.7 font-family(editorial);
 
+  > p:first-of-type::first-letter {
+    float: left;
+    margin: 0.08em 0.22em 0 0;
+    color: color(accent);
+    font-family: font-family(bigger);
+    font-size: 2.6em;
+    font-weight: 700;
+    line-height: 0.92;
+  }
+
   h1 {
     margin: 0 0 1rem;
 
@@ -413,11 +482,21 @@ a.p-card {
   }
 
   h2 {
+    position: relative;
     margin: 2rem 0 0.75rem;
 
     color: color(secondary);
     font: 700 1.5rem / 1.2 font-family(bigger);
     text-transform: none;
+
+    &::before {
+      content: '◆';
+      display: inline-block;
+      margin-right: 0.45em;
+      color: color(accent);
+      font-size: 0.72em;
+      vertical-align: 0.1em;
+    }
   }
 
   h3 {
@@ -443,13 +522,18 @@ a.p-card {
   }
 
   blockquote {
-    margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
+    margin: 1.25rem 0;
+    padding: 0.85rem 1.15rem;
 
-    border-left: 3px solid color(accent);
-    background: color-mix(in srgb, #{color(accent)} 12%, #{color(primary)});
+    border-left: 3.5px solid color(accent);
+    background: color-mix(in srgb, #{color(accent)} 8%, #{color(primary)});
 
-    font-style: italic;
+    font-style: normal;
+    color: color-mix(in srgb, #{color(secondary)} 90%, transparent);
+
+    p:last-child {
+      margin-bottom: 0;
+    }
   }
 
   code {
@@ -492,7 +576,7 @@ a.p-card {
     margin: 2rem 0;
 
     border: 0;
-    border-top: 1px solid color-mix(in srgb, #{color(secondary)} 25%, transparent);
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
   }
 
   strong {
@@ -532,18 +616,33 @@ a.p-card {
 }
 
 .p-chip {
+  display: inline-flex;
+  align-items: center;
+
   padding: 0.35rem 0.65rem;
 
   @include ink-frame;
 
-  font: 700 10px / 1 font-family(fraktion);
-  letter-spacing: 0.1em;
+  font: 700 10px / 1 font-family(editorial);
+  letter-spacing: 0.18em;
   text-transform: none;
+
+  &::before {
+    content: '•';
+    margin-right: 0.4em;
+    color: color(accent);
+    font-size: 0.85em;
+    line-height: 1;
+  }
 
   &--accent {
     border-color: color(accent);
     background: color(accent);
     color: color(primary);
+
+    &::before {
+      color: color(primary);
+    }
   }
 }
 
@@ -556,12 +655,29 @@ a.p-card {
   background: color(primary);
 
   &__label {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+
     margin: 0 0 0.85rem;
 
     color: color-mix(in srgb, #{color(secondary)} 70%, transparent);
-    font: 700 10px / 1 font-family(fraktion);
-    letter-spacing: 0.2em;
+    font: 700 10px / 1 font-family(editorial);
+    letter-spacing: 0.25em;
     text-transform: none;
+
+    &::before,
+    &::after {
+      content: '';
+      width: min(6vw, 48px);
+      height: 1.5px;
+      flex-shrink: 0;
+      background: linear-gradient(90deg, transparent, color(accent));
+    }
+
+    &::after {
+      background: linear-gradient(90deg, color(accent), transparent);
+    }
   }
 
   &__grid {
@@ -608,22 +724,54 @@ a.p-card {
 /* Empty state */
 
 .p-empty {
-  padding: 2.5rem 1.5rem;
+  position: relative;
+  overflow: hidden;
 
-  border: 1px dashed color-mix(in srgb, #{color(secondary)} 45%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 4.5rem 1.5rem;
+
+  border: 1.5px dashed color-mix(in srgb, #{color(secondary)} 40%, transparent);
+  background-color: color(primary);
 
   text-align: center;
 
-  &__title {
-    margin: 0 0 0.5rem;
+  &::before {
+    content: '空';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
 
     color: color(secondary);
-    font: 700 1.25rem / 1.2 font-family(bigger);
+    font: 700 9rem / 1 font-family(bigger);
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  &__title,
+  &__message,
+  .p-card__actions {
+    position: relative;
+    z-index: 2;
+  }
+
+  &__title {
+    margin: 0 0 0.65rem;
+
+    color: color(secondary);
+    font: 700 clamp(1.35rem, 3vw, 1.85rem) / 1.2 font-family(bigger);
     text-transform: none;
   }
 
   &__message {
-    margin: 0 0 1.25rem;
+    margin: 0 0 1.5rem;
+    max-width: 32rem;
 
     color: color-mix(in srgb, #{color(secondary)} 75%, transparent);
     font: 400 1rem / 1.6 font-family(editorial);
