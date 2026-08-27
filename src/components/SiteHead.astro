@@ -1123,7 +1123,9 @@ const consoleLines = [
     }
 
     .sb-qr-code {
-      --bg-p: 0%;
+      /* 默认全透明（二维码可见）；JS 揭幕动画会自 0% 播回 100%。
+         遇 reduced-motion 或脚本未触发时保持可见，避免遮罩盖住二维码 */
+      --bg-p: 100%;
 
       position: relative;
 
