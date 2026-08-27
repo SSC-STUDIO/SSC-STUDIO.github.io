@@ -1,9 +1,8 @@
 ---
 /**
  * StudioCard — 「工作室名片」浮卡
- * hero 右侧的个人名片：照片 + 印章 + 值班状态，桌面端专属。
+ * hero 右侧的个人名片：照片 + 值班状态，桌面端专属。
  */
-import SealMark from './SealMark.astro'
 ---
 
 <aside class="studio-card" aria-label="工作室名片">
@@ -16,9 +15,6 @@ import SealMark from './SealMark.astro'
       loading="lazy"
       decoding="async"
     />
-    <span class="studio-card__seal">
-      <SealMark variant="dot" />
-    </span>
   </figure>
   <figcaption class="studio-card__meta">
     <strong class="js-studio-duty">陈润森 · 值班中</strong>
