@@ -1213,8 +1213,10 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       align-items: flex-start;
       padding: 0.55rem 0.65rem 0.55rem 0.95rem;
 
-      background: color(primary);
-      @include ink-hairline;
+      /* 墨底浅字：条目为松墨小签，文字取对侧「墨上宣纸」色 */
+      background: color(surface);
+      border: 1px solid
+        color-mix(in srgb, var(--color-on-surface) 30%, transparent);
 
       overflow: hidden;
 
@@ -1245,12 +1247,16 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       &:focus-visible {
         background: color(accent-muted);
 
-        color: inherit;
+        color: color(secondary);
 
         transform: translateX(-4px);
 
         &::before {
           height: 70%;
+        }
+
+        .s__index__summary {
+          color: color-mix(in srgb, var(--color-secondary) 76%, transparent);
         }
       }
     }
