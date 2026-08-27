@@ -25,7 +25,7 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
         </div><!-- .a__caption__text -->
 
         <div class="a__caption__key">
-          #{key}
+          {key}
         </div><!-- .a__caption__key -->
       </div><!-- .a__caption -->
     </a>
@@ -93,6 +93,9 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     background: color(surface);
     content-visibility: hidden;
 
+    /* 四角朱砂碰头：册页装裱式的角饰 */
+    @include ink-corner-marks($len: 13px, $w: 1.5px, $inset: -2px, $softness: 0.9);
+
     transform-style: preserve-3d;
 
     will-change: transform;
@@ -123,10 +126,18 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
 
       object-fit: cover;
 
+      transition: filter 0.5s ease;
+
       @include mq(phone) {
         max-width: 80vw;
         max-height: 80vh;
       }
+    }
+
+    /* 悬停时泛起陈年宣纸的旧色 */
+    a:hover .a__image,
+    a:focus-visible .a__image {
+      filter: sepia(0.22) saturate(1.06) contrast(1.02) brightness(0.99);
     }
 
     .a__caption {
@@ -175,12 +186,15 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
 
     .a__caption__key {
       flex-shrink: 0;
-      padding: 0.2rem 0.45rem;
+      align-self: center;
+      padding: 0.28rem 0.55rem;
 
       background: color(accent);
       @include ink-pill;
 
       color: color(primary);
+      font-family: font-family(editorial);
+      letter-spacing: 0.16em;
 
       white-space: nowrap;
     }

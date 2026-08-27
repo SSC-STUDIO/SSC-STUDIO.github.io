@@ -1,4 +1,4 @@
-﻿---
+---
 /**
  * InkMeander — 原创「回纹」纹样条
  * 单元为一笔向内收拢的方形螺旋（回字），pattern 平铺成边饰带。
@@ -6,10 +6,11 @@
  */
 type Props = {
   height?: number
+  width?: string
   class?: string
 }
 
-const { height = 10, class: className } = Astro.props
+const { height = 10, width = '100%', class: className } = Astro.props
 
 let meanderUid = 0
 const patternId = `ink-meander-${++meanderUid}`
@@ -18,7 +19,7 @@ const scale = height / 24
 
 <svg
   class:list={['ink-meander', className]}
-  style={`height:${height}px`}
+  style={`height:${height}px;width:${width}`}
   aria-hidden="true"
 >
   <defs>

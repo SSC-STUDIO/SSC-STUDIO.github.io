@@ -1,6 +1,7 @@
 ---
 import AWork from './AWork.astro'
 import InkMountains from './InkMountains.astro'
+import InkMeander from './InkMeander.astro'
 
 // Yeah, this should probably be in a CMS or content file.
 // But it’s my site, and editing it in code is faster than setting up yet another headless something.
@@ -85,6 +86,9 @@ const works = [
 ]
 
 const total = String(works.length).padStart(2, '0')
+
+// 册页汉字编号：壹 贰 叁 …… 用于卡片卷号与索引
+const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 ---
 
 <section id="work" class="s-work" data-intersect>
@@ -108,19 +112,29 @@ const total = String(works.length).padStart(2, '0')
               title={work.title}
               summary={work.summary}
               stack={work.stack}
-              key={`${work.key}-${String(index).padStart(4, '0')}/${total}`}
+              key={`卷 · ${cnNumerals[index] ?? index + 1}`}
             />
           ))
         }
       </div><!-- .s__scene -->
 
       <aside class="s__index" aria-label="作品索引">
+        <div class="s__index__head" aria-hidden="true">
+          <span class="s__index__head-note">格物八件</span>
+          <span class="s__index__head-note s__index__head-note--sub">
+            册页选集
+          </span>
+          <InkMeander
+            height={9}
+            width="min(10.5rem, 15vw)"
+            class="s__index__head-band"
+          />
+        </div>
+
         {
           works.map((work, index) => (
             <a class="s__index__item" href={work.href}>
-              <span class="s__index__num">
-                {String(index + 1).padStart(2, '0')}
-              </span>
+              <span class="s__index__num">{cnNumerals[index]}</span>
               <span class="s__index__body">
                 <span class="s__index__title">{work.name}</span>
                 <span class="s__index__summary">{work.summary}</span>
@@ -1184,43 +1198,100 @@ const total = String(works.length).padStart(2, '0')
     }
 
     .s__index__item {
+      position: relative;
+
       display: flex;
       gap: 0.75rem;
       align-items: flex-start;
-      padding: 0.55rem 0.65rem;
+      padding: 0.55rem 0.65rem 0.55rem 0.95rem;
 
-      background: color-mix(
-        in srgb,
-        var(--color-on-surface) 10%,
-        var(--color-surface)
-      );
-      border: 1px solid
-        color-mix(in srgb, var(--color-on-surface) 35%, transparent);
+      background: color(primary);
+      @include ink-hairline;
+
+      overflow: hidden;
 
       color: color(on-surface);
       text-decoration: none;
 
       transition:
-        background 0.2s ease,
-        transform 0.2s ease;
+        background 0.25s ease(in-out-quint),
+        transform 0.25s ease(out-quint);
 
-      &:hover {
+      /* 朱砂索引条：悬停时左侧红痕自长 */
+      &::before {
+        position: absolute;
+        top: 50%;
+        left: 0;
+
+        width: 3px;
+        height: 0;
+
         background: color(accent);
 
-        color: color(secondary);
+        content: '';
+        transform: translateY(-50%);
+        transition: height 0.28s ease(out-quint);
+      }
 
-        transform: translate(-4px);
+      &:hover,
+      &:focus-visible {
+        background: color(accent-muted);
+
+        color: inherit;
+
+        transform: translateX(-4px);
+
+        &::before {
+          height: 70%;
+        }
       }
     }
 
     .s__index__num {
       flex-shrink: 0;
 
-      color: inherit;
-      font: 700 10px / 1 font-family(fraktion);
-      letter-spacing: 0.12em;
+      min-width: 1.35em;
 
-      opacity: 0.85;
+      color: color(accent);
+      font: 700 14px / 1.15 font-family(editorial);
+      letter-spacing: 0;
+
+      opacity: 0.92;
+    }
+
+    .s__index__head {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: center;
+      gap: 0.55rem;
+      margin-bottom: 1rem;
+
+      pointer-events: none;
+    }
+
+    .s__index__head-note {
+      writing-mode: vertical-rl;
+
+      color: color(secondary);
+      font: 600 clamp(0.74rem, 1vw, 0.88rem) / 1.05 font-family(editorial);
+      letter-spacing: 0.32em;
+      text-indent: 0;
+      text-transform: none;
+
+      &--sub {
+        opacity: 0.66;
+
+        font-size: 0.82em;
+        letter-spacing: 0.46em;
+      }
+    }
+
+    .s__index__head-band {
+      width: min(10.5rem, 15vw);
+
+      align-self: center;
+
+      opacity: 0.75;
     }
 
     .s__index__body {
