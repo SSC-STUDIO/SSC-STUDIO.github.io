@@ -430,6 +430,7 @@ import InkMountains from './InkMountains.astro'
 <style lang="scss">
   .s-hero {
     @include flex(column, stretch, stretch);
+    @include ink-cloud-ground;
 
     position: relative;
     z-index: 4;
@@ -506,6 +507,8 @@ import InkMountains from './InkMountains.astro'
     }
 
     .s__subtitle {
+      position: relative;
+
       margin: 0;
       padding: 0.75rem 1.5rem 0;
 
@@ -513,6 +516,13 @@ import InkMountains from './InkMountains.astro'
       font: 200 1.15rem / 1.45 font-family(editorial);
       text-align: center;
       text-wrap: balance;
+
+      /* 题签界栏：副题两侧悬臂朱丝，卷首题记之仪 */
+      @include ink-column-rule(
+        $color: color-mix(in srgb, var(--color-accent) 52%, transparent),
+        $width: 1.4em,
+        $offset: 0.5em
+      );
 
       @include mq(phone) {
         padding: 0.5rem 1rem 0;

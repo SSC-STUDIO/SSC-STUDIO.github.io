@@ -1,12 +1,16 @@
 ---
 import InkMountains from './InkMountains.astro'
 import SealMark from './SealMark.astro'
+import InkCloud from './InkCloud.astro'
+import InkLattice from './InkLattice.astro'
 
 const lines = [['一', '起', '做'], ['点', '东', '西']]
 ---
 
 <section class="s-cta" data-intersect>
   <InkMountains />
+  <InkCloud height={13} width="min(30rem, 72vw)" class="s__cloud" />
+  <InkLattice size={168} class="s__lattice" />
   <div id="contact" class="s__inner js-container">
     <div class="s__hover js-hover">
       <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
@@ -607,6 +611,30 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
     @include mq(phone) {
       padding-top: 21.6rem;
+    }
+
+    /* 信笺云头：区块上端一抹卷云，收「窗下写信」之意 */
+    .s__cloud {
+      position: absolute;
+      top: clamp(1.5rem, 4vw, 3.5rem);
+      left: 50%;
+      z-index: 2;
+
+      transform: translateX(-50%);
+    }
+
+    /* 冰裂窗棂水印：右下角隅 */
+    .s__lattice {
+      position: absolute;
+      right: clamp(0.75rem, 3vw, 2.5rem);
+      bottom: clamp(0.9rem, 2.6vh, 2.25rem);
+      z-index: 1;
+
+      opacity: 0.55;
+
+      @include mq(phone) {
+        display: none;
+      }
     }
 
     .s__inner {
