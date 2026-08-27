@@ -28,6 +28,10 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
           {key}
         </div><!-- .a__caption__key -->
       </div><!-- .a__caption -->
+
+      <span class="a__slip" aria-hidden="true">
+        <span class="a__slip__text">{key}</span>
+      </span>
     </a>
   </div><!-- .a__inner -->
 </sen-work>
@@ -174,12 +178,13 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
 
     .a__caption__tag {
-      padding: 0.2rem 0.4rem;
+      padding: 0.18rem 0.42rem;
 
-      background: color(accent);
+      border: 1px solid
+        color-mix(in srgb, var(--color-on-surface) 34%, transparent);
       @include ink-pill;
 
-      color: color(primary);
+      color: color-mix(in srgb, var(--color-on-surface) 86%, transparent);
       font-size: 9px;
       letter-spacing: 0.05em;
     }
@@ -187,16 +192,64 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     .a__caption__key {
       flex-shrink: 0;
       align-self: center;
-      padding: 0.28rem 0.55rem;
+      padding: 0.22rem 0.5rem;
 
-      background: color(accent);
+      background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 62%, transparent);
       @include ink-pill;
 
-      color: color(primary);
+      color: color(accent-strong);
       font-family: font-family(editorial);
       letter-spacing: 0.16em;
 
       white-space: nowrap;
+    }
+
+    /* 签条 —— 骑缝在册页右上角的绢色题签 */
+    .a__slip {
+      position: absolute;
+      top: -0.55rem;
+      right: 1.1rem;
+      z-index: 3;
+
+      display: block;
+
+      pointer-events: none;
+    }
+
+    .a__slip__text {
+      display: block;
+      padding: 0.7em 0.26em;
+
+      writing-mode: vertical-rl;
+
+      background: linear-gradient(
+        180deg,
+        color(paper-warm),
+        color-mix(in srgb, color(paper-warm) 88%, #000)
+      );
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, color(secondary) 55%, transparent),
+        inset 0 0 0 2.5px color(paper-warm),
+        1px 1.5px 4px rgba(12, 10, 8, 0.28);
+
+      color: color(secondary);
+      font: 600 10.5px / 1.15 font-family(editorial);
+      letter-spacing: 0.32em;
+
+      white-space: nowrap;
+    }
+
+    @include mq(phone) {
+      .a__slip {
+        top: -0.4rem;
+        right: 0.6rem;
+      }
+
+      .a__slip__text {
+        font-size: 9px;
+      }
     }
 
     &.is-inview {

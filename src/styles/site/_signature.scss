@@ -376,7 +376,6 @@ html.theme-contrasted[data-daypart='day'] {
   &__index,
   &__label {
     color: color-mix(in srgb, var(--color-secondary) 62%, transparent);
-    font-family: var(--font-family-fraktion);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -389,17 +388,34 @@ html.theme-contrasted[data-daypart='day'] {
     white-space: nowrap;
   }
 
+  &__index {
+    font-family: var(--font-family-editorial, inherit);
+    letter-spacing: 0.05em;
+  }
+
+  &__label {
+    font-family: var(--font-family-fraktion);
+  }
+
+  /* 竹节刻度：替换几何菱形，节间留缢痕 */
   &__sprocket {
-    width: 9px;
-    height: 9px;
-    border: 1px solid color-mix(in srgb, var(--color-secondary) 50%, transparent);
-    border-radius: 2px;
-    background: color(primary);
-    transform: rotate(45deg);
+    width: 5px;
+    height: 18px;
+    border: 1px solid color-mix(in srgb, var(--color-secondary) 52%, transparent);
+    border-radius: 2.5px;
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 0 7px,
+        color(primary) 7px 10px,
+        transparent 10px
+      ),
+      linear-gradient(color(secondary), color(secondary));
     transition:
       background 240ms ease,
       border-color 240ms ease,
-      box-shadow 240ms ease;
+      box-shadow 240ms ease,
+      height 240ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   &__tick:hover &__index,
@@ -415,9 +431,21 @@ html.theme-contrasted[data-daypart='day'] {
 
   &__tick:hover &__sprocket,
   &__tick:focus-visible &__sprocket {
-    background: color-mix(in srgb, var(--color-accent) 26%, transparent);
+    height: 24px;
 
     border-color: var(--color-accent);
+
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 0 9.5px,
+        color(primary) 9.5px 13px,
+        transparent 13px
+      ),
+      linear-gradient(
+        color-mix(in srgb, var(--color-accent) 72%, transparent),
+        color-mix(in srgb, var(--color-accent) 72%, transparent)
+      );
   }
 
   /* 悬停朱砂化：编号随点染红 */
@@ -427,7 +455,15 @@ html.theme-contrasted[data-daypart='day'] {
 
   &__tick[data-active='true'] &__sprocket {
     border-color: color(accent);
-    background: color(accent);
+
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 0 7px,
+        color(primary) 7px 10px,
+        transparent 10px
+      ),
+      linear-gradient(color(accent), color(accent));
     box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 55%, transparent);
   }
 

@@ -700,6 +700,40 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         }
       }
 
+      /* 封条绢带 —— 火漆左上斜贴的「亲启」小签 */
+      &::after {
+        position: absolute;
+        top: -0.9rem;
+        left: 50%;
+        z-index: 3;
+
+        padding: 0.62em 0.24em;
+
+        background: linear-gradient(
+          180deg,
+          color(paper-warm),
+          color-mix(in srgb, color(paper-warm) 86%, #000)
+        );
+        box-shadow:
+          inset 0 0 0 1px color-mix(in srgb, color(secondary) 50%, transparent),
+          inset 0 0 0 2.5px color(paper-warm),
+          1px 1.5px 4px rgba(12, 10, 8, 0.26);
+
+        color: color(secondary);
+        content: '亲启';
+        font: 600 10px / 1 font-family(editorial);
+        letter-spacing: 0.34em;
+        text-indent: 0.34em;
+        transform: translateX(-160%) rotate(-8deg);
+        writing-mode: vertical-rl;
+      }
+
+      @include mq(phone) {
+        &::after {
+          display: none;
+        }
+      }
+
       &__inner {
         width: 100%;
         height: 100%;

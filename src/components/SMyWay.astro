@@ -223,6 +223,29 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   <svg class="s__svg js-svg">
     <path class="s__svg__circular-path js-lines-circular-path" d=""></path>
   </svg>
+
+  <p class="s__colophon" aria-hidden="true">
+    <span class="s__colophon__text">润森 行脚至此 · 记</span>
+    <svg
+      class="s__colophon__seal"
+      width="26"
+      height="26"
+      viewBox="0 0 26 26"
+      aria-hidden="true"
+    >
+      <rect x="1" y="1" width="24" height="24" rx="3.5" fill="#c23a2b"></rect>
+      <text
+        x="13"
+        y="14.5"
+        text-anchor="middle"
+        dominant-baseline="central"
+        fill="#f4ead8"
+        font-size="12"
+        font-weight="700"
+        font-family="'Noto Serif SC','SimSun',serif">记</text
+      >
+    </svg>
+  </p>
 </section>
 
 <script>
@@ -1912,6 +1935,41 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       .s__catcher {
         display: none;
       }
+    }
+
+    /* 卷尾跋尾：小字落款 + 朱砂「记」印，钤于长卷末端 */
+    .s__colophon {
+      position: absolute;
+      right: clamp(1.25rem, 6vw, 5rem);
+      bottom: 3.2rem;
+      z-index: 4;
+      display: flex;
+      align-items: flex-end;
+      gap: 0.55rem;
+
+      margin: 0;
+
+      pointer-events: none;
+
+      @include mq(phone) {
+        right: 1rem;
+
+        font-size: 0.85em;
+      }
+    }
+
+    .s__colophon__text {
+      color: color-mix(in srgb, var(--color-secondary) 78%, transparent);
+      font: 500 13px / 1 font-family(editorial);
+      letter-spacing: 0.3em;
+      writing-mode: vertical-rl;
+    }
+
+    .s__colophon__seal {
+      display: block;
+
+      filter: drop-shadow(0.5px 0.8px 1px rgba(94, 12, 6, 0.35));
+      opacity: 0.92;
     }
   }
 </style>
