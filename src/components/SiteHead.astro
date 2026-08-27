@@ -779,6 +779,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
         &:hover {
           text-shadow: 0 0 1px currentcolor;
 
+          /* 淡紫浮晕：朱砂底上的一层云气 */
+          box-shadow: 0 1.4rem 2.6rem -1.2rem color-mix(in srgb, #{color(mist)} 60%, transparent);
+
           &:before {
             scale: 1 1;
           }

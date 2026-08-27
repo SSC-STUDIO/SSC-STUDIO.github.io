@@ -3,6 +3,8 @@ import ASeparator from '../ASeparator.astro'
 import SealMark from '../SealMark.astro'
 import InkMountains from '../InkMountains.astro'
 import InkMeander from '../InkMeander.astro'
+import InkBrush from '../InkBrush.astro'
+import InkGentlemen from '../InkGentlemen.astro'
 
 interface Props {
   kicker: string
@@ -20,7 +22,13 @@ const { kicker, title, summary } = Astro.props
   </div>
   <p class="p-hero__kicker">{kicker}</p>
   <h1 class="p-hero__title">{title}</h1>
+  <p class="p-hero__brush" aria-hidden="true">
+    <InkBrush height={10} width="min(14rem, 42%)" class="ink-brush--draw" />
+  </p>
   <p class="p-hero__summary">{summary}</p>
+  <p class="p-hero__gentlemen" aria-hidden="true">
+    <InkGentlemen height={20} width="min(15rem, 52vw)" />
+  </p>
   <SealMark variant="watermark" />
   <InkMeander height={8} width="46%" class="p-hero__meander" />
 </header>

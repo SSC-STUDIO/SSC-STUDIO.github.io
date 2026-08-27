@@ -6,26 +6,33 @@
 @use '../helpers/colors' as *;
 @use '../helpers/responsive' as *;
 
-/* ── SPA 页面切换：退出下沉淡出，进入上浮淡入 ── */
+/* ── SPA 页面切换：水墨晕开 ──
+   旧页如墨入水（模糊淡出微缩），新页如纸上显影（去模糊浮现） */
 ::view-transition-old(root) {
-  animation: vt-page-out 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: vt-ink-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 ::view-transition-new(root) {
-  animation: vt-page-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: vt-ink-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes vt-page-out {
+@keyframes vt-ink-out {
   to {
     opacity: 0;
-    transform: translateY(12px);
+    filter: blur(6px) saturate(0.65);
+    transform: scale(0.995);
   }
 }
 
-@keyframes vt-page-in {
+@keyframes vt-ink-in {
   from {
     opacity: 0;
-    transform: translateY(-16px);
+    filter: blur(8px);
+    transform: scale(1.005);
+  }
+
+  to {
+    filter: blur(0);
   }
 }
 

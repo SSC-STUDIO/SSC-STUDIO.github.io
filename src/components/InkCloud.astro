@@ -61,4 +61,25 @@ const scale = height / 28
     color: var(--color-indigo, var(--color-secondary));
     opacity: 0.55;
   }
+
+  /* 云雾漂移：缓起缓落，横移不过半朵云 */
+  .ink-cloud--drift {
+    animation: cloudDrift 16s ease-in-out infinite;
+  }
+
+  @keyframes cloudDrift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(-10px, -3px, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-cloud--drift {
+      animation: none;
+    }
+  }
 </style>

@@ -27,6 +27,8 @@ body {
   isolation: isolate;
   background-color: color(primary);
   background-image:
+    /* 淡紫云母点：纸上隐约的微纹理 */
+    radial-gradient(1.1px 0.9px at 46% 71%, color-mix(in srgb, #{color(mist)} 20%, transparent), transparent 2px),
     radial-gradient(1.3px 1px at 22% 18%, color-mix(in srgb, #{color(secondary)} 16%, transparent), transparent 2px),
     radial-gradient(1px 1.2px at 71% 54%, color-mix(in srgb, #{color(accent)} 22%, transparent), transparent 2px),
     radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in srgb, #{color(secondary)} 6%, transparent), transparent 70%);

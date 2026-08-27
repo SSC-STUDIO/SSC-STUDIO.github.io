@@ -1,0 +1,78 @@
+---
+/**
+ * InkBrush - 「飞白」笔触（书法枯笔效果）
+ * 走笔为横掠一划：双叠虚线 stroke 模拟枯墨丝缕，
+ * pathLength 归一后 dashoffset 可做「落笔运锋」入场动画。
+ */
+type Props = {
+  height?: number
+  width?: string
+  class?: string
+}
+
+const { height = 12, width = '40%', class: className } = Astro.props
+---
+
+<svg
+  class:list={['ink-brush', className]}
+  style={`height:${height}px;width:${width}`}
+  viewBox="0 0 120 14"
+  preserveAspectRatio="none"
+  aria-hidden="true"
+>
+  <g
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    pathLength="100"
+  >
+    <!-- 侧锋阔笔：枯墨断续 -->
+    <path
+      d="M5 9C34 3 86 3 115 7"
+      stroke-width="7"
+      stroke-dasharray="30 2.5 22 3.5 15 2.5 12 2 9 1.5"
+      opacity="0.34"></path>
+    <!-- 中锋提按：丝缕随行 -->
+    <path
+      d="M7 8.5C36 3.5 84 3.5 113 6.5"
+      stroke-width="3.2"
+      stroke-dasharray="36 2 26 3 20 2 10 1.5"
+      opacity="0.72"></path>
+  </g>
+</svg>
+
+<style>
+  .ink-brush {
+    display: block;
+
+    color: var(--color-accent);
+  }
+
+  /* 落笔运锋：虚线整体位移，如笔锋掠纸 */
+  .ink-brush--draw path {
+    animation: brushDraw 1.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .ink-brush--draw path:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+
+  @keyframes brushDraw {
+    from {
+      stroke-dashoffset: 100;
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-brush--draw path {
+      animation: none;
+    }
+  }
+</style>

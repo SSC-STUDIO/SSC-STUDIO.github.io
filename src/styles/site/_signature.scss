@@ -7,34 +7,44 @@
 @use '../helpers/responsive' as *;
 @use '../helpers/ink' as *;
 
-/* 时段灯色（由 StudioClock 在 <html> 上设置 data-daypart） */
+/* 时段灯色（由 StudioClock 在 <html> 上设置 data-daypart）
+   --mist-air：淡紫「云气」浓度，暮色最盛（暮色紫气），昼间收淡 */
 :root {
   --daypart-lamp: #3f5c4a;
   --daypart-wash: rgba(63, 92, 74, 0.1);
+  --mist-air: 0.45;
 }
 
 html[data-daypart='dawn'] {
   --daypart-lamp: #c23a2b;
   --daypart-wash: rgba(194, 58, 43, 0.1);
+  --mist-air: 0.55;
 }
 
 html[data-daypart='day'] {
   --daypart-lamp: #2f4a3a;
   --daypart-wash: rgba(47, 74, 58, 0.08);
+  --mist-air: 0.3;
 }
 
 html[data-daypart='dusk'] {
   --daypart-lamp: #c45a32;
-  --daypart-wash: rgba(196, 90, 50, 0.12);
+  --daypart-wash: rgba(203, 176, 212, 0.16);
+  --mist-air: 1;
 }
 
 html[data-daypart='night'] {
   --daypart-lamp: #8aa392;
   --daypart-wash: rgba(138, 163, 146, 0.12);
+  --mist-air: 0.7;
 }
 
 html.theme-contrasted[data-daypart='day'] {
   --daypart-lamp: #8aa392;
+}
+
+html.theme-contrasted[data-daypart='dusk'] {
+  --daypart-wash: rgba(166, 140, 184, 0.14);
 }
 
 .s-hero::before {
@@ -45,10 +55,13 @@ html.theme-contrasted[data-daypart='day'] {
   background:
     radial-gradient(ellipse 55% 42% at 48% 78%, color-mix(in srgb, var(--color-secondary) 16%, transparent), transparent 72%),
     radial-gradient(ellipse 30% 28% at 8% 30%, color-mix(in srgb, var(--color-secondary) 10%, transparent), transparent 70%),
-    radial-gradient(ellipse 24% 22% at 92% 12%, color-mix(in srgb, var(--daypart-lamp) 18%, transparent), transparent 68%);
+    radial-gradient(ellipse 24% 22% at 92% 12%, color-mix(in srgb, var(--daypart-lamp) 18%, transparent), transparent 68%),
+    /* 淡紫云气：右上低回，浓度随时辰（--mist-air）流转 */
+    radial-gradient(ellipse 30% 26% at 84% 82%, color-mix(in srgb, var(--color-mist) 22%, transparent), transparent 70%);
   content: '';
-  opacity: 0.85;
+  opacity: calc(0.72 + 0.24 * var(--mist-air));
   mix-blend-mode: multiply;
+  transition: opacity 900ms ease;
 }
 
 /* 时段洗色：hero 上叠一层随时间流转的微光 */
@@ -63,6 +76,18 @@ html.theme-contrasted[data-daypart='day'] {
   content: '';
   mix-blend-mode: screen;
   transition: background 900ms ease;
+  /* 淡紫光晕脉冲：呼吸式微涨落（opacity 走合成器，成本低） */
+  animation: mistHalo 9s ease-in-out infinite;
+}
+
+@keyframes mistHalo {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ── 朱砂印章 ── */
@@ -222,7 +247,8 @@ html.theme-contrasted[data-daypart='day'] {
   transition:
     transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 320ms ease,
-    background 320ms ease;
+    background 320ms ease,
+    box-shadow 320ms ease;
   animation: studioClockIn 700ms 2100ms cubic-bezier(0.16, 1, 0.3, 1) both;
 
   @media (min-width: 1100px) {
@@ -230,8 +256,10 @@ html.theme-contrasted[data-daypart='day'] {
   }
 
   &:hover {
-    border-color: color-mix(in srgb, var(--color-secondary) 80%, transparent);
+    /* 淡紫暮光环身：清雅不夺朱砂主位 */
+    border-color: color-mix(in srgb, var(--color-mist) 62%, var(--color-secondary));
     background: var(--color-primary);
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--color-mist) 34%, transparent);
     transform: rotate(0deg);
   }
 
@@ -538,6 +566,16 @@ sen-work,
   }
 
   .s-hero .s__title {
+    animation: none;
+  }
+
+  /* 淡紫氛围动效一并降级为静态 */
+  .s-hero::after {
+    animation: none;
+  }
+
+  .ink-cloud--drift,
+  .ink-knot--drift {
     animation: none;
   }
 }

@@ -3,6 +3,7 @@ import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
 import InkMeander from './InkMeander.astro'
 import InkCloud from './InkCloud.astro'
+import InkKnot from './InkKnot.astro'
 ---
 
 <footer class="site-foot">
@@ -20,7 +21,11 @@ import InkCloud from './InkCloud.astro'
   </p>
 
   <p class="site-foot__cloud" aria-hidden="true">
-    <InkCloud height={13} width="min(24rem, 78vw)" />
+    <InkCloud height={13} width="min(24rem, 78vw)" class="ink-cloud--drift" />
+  </p>
+
+  <p class="site-foot__knot" aria-hidden="true">
+    <InkKnot size={36} class="ink-knot--drift" />
   </p>
 
   <p class="site-foot__credit">
@@ -84,6 +89,11 @@ import InkCloud from './InkCloud.astro'
       margin: -0.35rem 0 0;
 
       opacity: 0.6;
+    }
+
+    /* 盘长徽记：绳结系住云脚，淡紫入韵 */
+    &__knot {
+      margin: 0;
     }
 
     &__credit {

@@ -73,6 +73,16 @@
     font: 400 clamp(1rem, 2.5vw, 1.25rem) / 1.55 font-family(editorial);
   }
 
+  /* 飞白笔触：标题下的一划枯墨 */
+  &__brush {
+    margin: 0.4rem 0 0.2rem;
+  }
+
+  /* 四君子条饰：淡紫入韵的收梢 */
+  &__gentlemen {
+    margin: 1.4rem 0 0;
+  }
+
   &__side {
     position: absolute;
     top: 50%;
