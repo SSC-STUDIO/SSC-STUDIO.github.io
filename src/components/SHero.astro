@@ -304,10 +304,12 @@ import InkMountains from './InkMountains.astro'
         tl.fromTo(
           content,
           {
-            clipPath: 'polygon(0 0, 100% 0, 100% 0, 0 0)',
+            opacity: 0,
+            y: '3%',
           },
           {
-            clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)',
+            opacity: 1,
+            y: '0%',
             duration: 1,
             ease: 'expo.inOut',
           },
@@ -365,6 +367,12 @@ import InkMountains from './InkMountains.astro'
       } catch (e) {
         console.error('SHero intro failed:', e)
         waves?.dispatchEvent(new CustomEvent('introend'))
+      } finally {
+        /* 非破坏性兜底：无论动画成功或中断，确保 .s__content 终态可见，
+           避免 clipPath 之类的破坏性属性把首屏锁在隐藏态 */
+        try {
+          gsap.set(content, { clearProps: 'opacity,transform' })
+        } catch (e) {}
       }
     }
 
@@ -418,13 +426,45 @@ import InkMountains from './InkMountains.astro'
   }
 
   const mountHero = () => {
-    if (!document.querySelector('.s-hero')) return
     const prev = (window as any).__sHero
-    prev?.destroy?.()
+    const hasHero = !!document.querySelector('.s-hero')
+
+    if (!hasHero) {
+      /* 子页 / 其他无首屏页面：彻底清掉前一个实例及其残留引用，
+         避免 stale 状态污染当前页 */
+      try {
+        prev?.destroy?.()
+      } catch (e) {}
+      ;(window as any).__sHero = null
+      return
+    }
+
+    try {
+      prev?.destroy?.()
+    } catch (e) {}
     ;(window as any).__sHero = new Section()
   }
 
   document.addEventListener('astro:page-load', mountHero)
+  document.addEventListener('astro:before-swap', () => {
+    /* SPA 切页前主动收尾：阻止首屏动画在已离场的 DOM 上继续改写样式 */
+    const prev = (window as any).__sHero
+    if (!prev) return
+    try {
+      prev.destroy?.()
+      const content = prev.el?.querySelector?.('.js-content')
+      const border = prev.el?.querySelector?.('.js-border')
+      const chars = prev.el?.querySelectorAll?.('.char__inner')
+      try {
+        gsap.set([content, border], { clearProps: 'all' })
+      } catch (e) {}
+      if (chars) {
+        try {
+          gsap.set(chars, { clearProps: 'all' })
+        } catch (e) {}
+      }
+    } catch (e) {}
+  })
 </script>
 
 <style lang="scss">
