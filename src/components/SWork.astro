@@ -1165,6 +1165,14 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       overflow: auto;
       pointer-events: auto;
 
+      /* 经折折痕：竖向等距折缝，索引如一册经折装 */
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0 calc(4.6rem - 1px),
+        color-mix(in srgb, var(--color-secondary) 14%, transparent)
+          calc(4.6rem - 1px) 4.6rem
+      );
+
       scrollbar-width: thin;
       scrollbar-color: color-mix(in srgb, var(--color-secondary) 45%, transparent)
         transparent;
