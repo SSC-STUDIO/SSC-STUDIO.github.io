@@ -1,4 +1,6 @@
 ---
+import InkMountains from './InkMountains.astro'
+
 // Awards are nice, but they’re not the goal.
 // Focus on building quality projects, enjoying the process, and staying curious—that’s what really matters.
 // Some amazing builders never win anything, while lucky ones sometimes do. Awards are a niche, not a universal measure of value.
@@ -31,6 +33,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 ---
 
 <section id="about" class="s-about" data-intersect>
+  <InkMountains compact />
   <div class="s__inner js-inner">
     <div class="s__block s__block--about">
       <h2 class="s__title">关于</h2>
@@ -916,7 +919,8 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       padding: 0.35rem 0.75rem;
 
       background: color(accent-muted);
-      border: 1px solid color(accent);
+      @include ink-pill;
+      border: 1.5px solid color-mix(in srgb, #{color(accent)} 55%, transparent);
 
       color: color(secondary);
       font: 700 11px / 1 font-family(fraktion);

@@ -1,5 +1,6 @@
 ---
 import AWork from './AWork.astro'
+import InkMountains from './InkMountains.astro'
 
 // Yeah, this should probably be in a CMS or content file.
 // But it’s my site, and editing it in code is faster than setting up yet another headless something.
@@ -87,6 +88,7 @@ const total = String(works.length).padStart(2, '0')
 ---
 
 <section id="work" class="s-work" data-intersect>
+  <InkMountains compact />
   <div class="s__outer">
     <div class="s__inner js-container">
       <h2 class="s__title">
@@ -881,21 +883,10 @@ const total = String(works.length).padStart(2, '0')
 
     height: var(--height);
 
+    overflow: hidden;
     background: color(primary);
 
-    &:before {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 2;
-
-      width: 100%;
-      height: 1px;
-
-      background: color(secondary);
-
-      content: '';
-    }
+    @include ink-rule(top);
 
     .s__mask-outer {
       position: sticky;

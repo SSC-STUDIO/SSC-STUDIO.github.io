@@ -1,8 +1,11 @@
 ---
+import InkMountains from './InkMountains.astro'
+
 const lines = [['一', '起', '做'], ['点', '东', '西']]
 ---
 
 <section class="s-cta" data-intersect>
+  <InkMountains />
   <div id="contact" class="s__inner js-container">
     <div class="s__hover js-hover">
       <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
@@ -596,6 +599,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
   .s-cta {
     position: relative;
     z-index: 2;
+    overflow: hidden;
 
     padding: 55rem 0 0;
 

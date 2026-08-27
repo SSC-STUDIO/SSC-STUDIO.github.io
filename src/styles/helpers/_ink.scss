@@ -184,3 +184,70 @@ $ink-moss-position: 0 0, 11px 4px, 8px 2px;
 @mixin ink-pill {
   border-radius: 0.12rem;
 }
+
+/**
+ * 云纹角饰 —— 四角朱砂短括号（单角两臂，共八层渐变，无平铺需求）
+ * 用于卡片 / 名片 chip 的「碰头角」，比整圈描边更轻更精。
+ */
+@mixin ink-corner-marks(
+  $len: 14px,
+  $w: 1.5px,
+  $inset: 0,
+  $color: var(--color-accent),
+  $softness: 1
+) {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: #{$inset};
+    z-index: 2;
+
+    pointer-events: none;
+
+    opacity: $softness;
+    background:
+      linear-gradient(#{$color}, #{$color}) left top / #{$len} #{$w} no-repeat,
+      linear-gradient(#{$color}, #{$color}) left top / #{$w} #{$len} no-repeat,
+      linear-gradient(#{$color}, #{$color}) right top / #{$len} #{$w} no-repeat,
+      linear-gradient(#{$color}, #{$color}) right top / #{$w} #{$len} no-repeat,
+      linear-gradient(#{$color}, #{$color}) left bottom / #{$len} #{$w} no-repeat,
+      linear-gradient(#{$color}, #{$color}) left bottom / #{$w} #{$len} no-repeat,
+      linear-gradient(#{$color}, #{$color}) right bottom / #{$len} #{$w} no-repeat,
+      linear-gradient(#{$color}, #{$color}) right bottom / #{$w} #{$len} no-repeat;
+  }
+}
+
+/**
+ * 界格栏线 —— 文本两侧的碑帖式短界栏（横臂），常配合手书体大字。
+ * 仅装饰；宿主需自带 overflow 可视空间。
+ */
+@mixin ink-column-rule(
+  $color: currentColor,
+  $width: 0.95em,
+  $thickness: 2px,
+  $offset: 1.1em
+) {
+  &::before,
+  &::after {
+    position: absolute;
+    top: 0.42em;
+
+    width: #{$width};
+    height: #{$thickness};
+
+    background: #{$color};
+
+    opacity: 0.42;
+    content: '';
+  }
+
+  &::before {
+    left: #{$offset};
+  }
+
+  &::after {
+    right: #{$offset};
+  }
+}
