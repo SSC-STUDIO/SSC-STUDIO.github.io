@@ -1,5 +1,6 @@
 ---
 import InkMountains from './InkMountains.astro'
+import SealMark from './SealMark.astro'
 
 const lines = [['一', '起', '做'], ['点', '东', '西']]
 ---
@@ -39,7 +40,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
           ))
         }
         <a href="mailto:3992237161@qq.com" class="s__cta__link" data-copy-email>
-          3992237161@qq.com
+          <span class="s__cta__chip">3992237161@qq.com</span>
         </a>
 
         <a
@@ -48,62 +49,38 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
           target="_blank"
           rel="noopener"
         >
-          @SSC-STUDIO
+          <span class="s__cta__chip">@SSC-STUDIO</span>
         </a>
 
         <div class="s__cta__stars">
-          <svg
-            class="s__cta__star"
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            class="s__cta__star"
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            class="s__cta__star"
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            class="s__cta__star"
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
+          {
+            Array(4)
+              .fill(0)
+              .map(() => (
+                <svg
+                  class="s__cta__star"
+                  width="49"
+                  height="49"
+                  viewBox="0 0 49 49"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="ff-halo"
+                    cx="24.5"
+                    cy="24.5"
+                    r="10"
+                  ></circle>
+                  <circle
+                    class="ff-core"
+                    cx="24.5"
+                    cy="24.5"
+                    r="2.8"
+                  ></circle>
+                </svg>
+              ))
+          }
         </div>
 
         <div class="a-dots"></div>
@@ -111,11 +88,16 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     </div><!-- .s__hover -->
   </div><!-- .s__inner -->
 
+  <span class="s__couplet s__couplet--east" aria-hidden="true">以好奇为灯</span>
+  <span class="s__couplet s__couplet--west" aria-hidden="true">以长期为舟</span>
+
   <div class="s__grid js-grid">
     <svg class="s__grid__svg js-grid-svg">
       <path class="s__grid__path js-grid-path" d=""></path>
     </svg>
   </div><!-- .s__grid -->
+
+  <SealMark variant="watermark" size={46} />
 </section>
 
 <script>
@@ -650,7 +632,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
       cursor: pointer;
 
-      color: color(primary);
+      color: #fff6ea;
       font: 700 2.4rem / 6rem font-family(bigger);
       letter-spacing: 0.08em;
       text-align: center;
@@ -658,13 +640,14 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       text-indent: 0;
       text-transform: none;
 
-      /* 呼吸光环：时刻提醒「这是个按钮」 */
+      /* 呼吸铃环：火漆印外一圈虚线朱丝 */
       &::before {
         position: absolute;
         inset: -0.55rem;
 
-        border: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
-        border-radius: 0.45rem;
+        border: 1px dashed
+          color-mix(in srgb, var(--color-accent) 76%, transparent);
+        border-radius: 50%;
         content: '';
         pointer-events: none;
 
@@ -693,9 +676,19 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         width: 100%;
         height: 100%;
 
-        background: color(accent);
-        border-radius: 0.45rem;
-        box-shadow: inset 0 0 0 2px color-mix(in srgb, color(primary) 55%, transparent);
+        /* 火漆朱印：蜡面的高光与内凹阴影 */
+        background: radial-gradient(
+          circle at 35% 30%,
+          #d8503e,
+          var(--color-accent) 56%,
+          color-mix(in srgb, var(--color-accent) 60%, #000)
+        );
+        border-radius: 50%;
+        box-shadow:
+          inset 0 0 0 2px rgba(255, 244, 230, 0.28),
+          inset 0 -4px 9px rgba(96, 16, 8, 0.55),
+          inset 0 3px 6px rgba(255, 235, 215, 0.2),
+          0 5px 16px color-mix(in srgb, var(--color-accent) 38%, transparent);
 
         transition: scale 1s ease(out-quint) 0.2s;
 
@@ -703,6 +696,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       }
 
       &__text {
+        text-shadow: 0 1px 1px rgba(90, 14, 8, 0.65);
+
         transition: scale 1.2s ease(out-quint) 0.2s;
 
         will-change: scale;
@@ -918,6 +913,38 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         }
       }
 
+      /* 墨框名片：链接化为笺纸小签 */
+      &__chip {
+        position: relative;
+
+        display: inline-flex;
+        align-items: center;
+        padding: 0.55em 0.95em;
+
+        border: 1px solid
+          color-mix(in srgb, var(--color-primary) 32%, transparent);
+        @include ink-corner-marks(
+          $len: 7px,
+          $w: 1.5px,
+          $inset: -1px,
+          $color: color-mix(in srgb, var(--color-primary) 88%, transparent)
+        );
+
+        transition:
+          border-color 0.3s ease,
+          background-color 0.3s ease,
+          transform 0.3s ease(out-quint);
+      }
+
+      .s__cta__link:hover &__chip,
+      .s__cta__link:focus-visible &__chip {
+        border-color: color-mix(in srgb, var(--color-primary) 68%, transparent);
+
+        background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+
+        transform: translateY(-2px);
+      }
+
       &__line {
         position: absolute;
         top: 50%;
@@ -1101,13 +1128,37 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         top: 50%;
         left: 50%;
 
-        width: 0.15em;
+        width: 0.16em;
         height: auto;
 
-        fill: color(primary);
+        overflow: visible;
 
         animation: s-cta-star-float 10s infinite ease(in-out-quad);
         will-change: transform;
+
+        /* 流萤光点：晕圈呼吸 */
+        .ff-halo {
+          fill: color-mix(
+            in srgb,
+            var(--daypart-lamp, var(--color-accent)) 30%,
+            transparent
+          );
+
+          animation: s-ff-pulse 3.2s ease-in-out infinite;
+        }
+
+        .ff-core {
+          fill: var(--daypart-lamp, var(--color-accent));
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+
+          .ff-halo {
+            animation: none;
+          }
+        }
+      }
 
         &:nth-child(1) {
           top: 12%;
@@ -1221,13 +1272,74 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       &__path {
         fill: none;
         stroke: color(secondary);
+        stroke-opacity: 0.72;
         stroke-width: 1px;
+        stroke-dasharray: 2px 7px;
       }
     }
 
     &.is-out-of-view {
       .s__hover {
         display: none;
+      }
+    }
+
+    /* 楹联：两侧竖题，宽屏独见 */
+    .s__couplet {
+      position: absolute;
+      top: 22%;
+      z-index: 2;
+
+      writing-mode: vertical-rl;
+
+      padding: 1.15em 0.42em;
+
+      pointer-events: none;
+
+      opacity: 0.8;
+      color: color(secondary);
+      font: 600 clamp(0.82rem, 1.25vw, 1rem) / 1 font-family(editorial);
+      letter-spacing: 0.44em;
+      text-transform: none;
+
+      &::after {
+        display: block;
+        width: 1px;
+        height: 3.2em;
+        margin: 1.4em auto 0;
+
+        background: linear-gradient(transparent, color(accent), transparent);
+
+        content: '';
+      }
+
+      &--east {
+        right: clamp(0.75rem, 4vw, 4.5rem);
+
+        border-right: 1px dashed
+          color-mix(in srgb, color(accent) 42%, transparent);
+      }
+
+      &--west {
+        left: clamp(0.75rem, 4vw, 4.5rem);
+
+        border-left: 1px dashed
+          color-mix(in srgb, color(accent) 42%, transparent);
+      }
+
+      @include mq(tablet-sm) {
+        display: none;
+      }
+    }
+
+    @keyframes s-ff-pulse {
+      0%,
+      100% {
+        opacity: 0.9;
+      }
+
+      50% {
+        opacity: 0.32;
       }
     }
   }
