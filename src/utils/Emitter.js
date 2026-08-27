@@ -56,7 +56,12 @@ class Emitter {
 
     if (this.events[name]) {
       this.events[name].forEach((object, index) => {
-        object.cb.apply(object.context, data)
+        /* 单个订阅者抛错不炸整条派发链，保住全局动效循环 */
+        try {
+          object.cb.apply(object.context, data)
+        } catch (error) {
+          console.error('[Emitter] handler failed for "' + name + '":', error)
+        }
 
         if (object.once) {
           delete self.events[name][index]

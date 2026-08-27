@@ -126,6 +126,7 @@ const consoleLines = [
   import Ticker from '../utils/Ticker'
 
   import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
   const STORAGE_KEY = 'site-theme'
   const THEME_COLORS = {
@@ -363,6 +364,12 @@ const consoleLines = [
      * Toggle contrast
      */
     toggleContrast() {
+      const mask = this.contrastMask
+      if (!mask) return
+
+      /* 快速连点防护：先终止在途的旧补间，防止遮罩停在半途盖住页面 */
+      gsap.killTweensOf(mask)
+
       let fromX = '0'
       let toX = '-100%'
 
@@ -372,7 +379,7 @@ const consoleLines = [
       }
 
       gsap.fromTo(
-        this.contrastMask,
+        mask,
         {
           x: fromX,
         },
@@ -381,10 +388,20 @@ const consoleLines = [
           duration: 1,
           ease: 'expo.inOut',
           onComplete: () => {
-            this.contrastMask.style.transform = ''
+            /* 复位不可失败：先按 CSS 基态回位，再清行内样式 */
+            mask.style.transform = 'translate3d(-100%, 0, 0)'
+            gsap.set(mask, { clearProps: 'transform' })
 
             const theme = toX === '0' ? 'light' : 'dark'
-            applyTheme(theme)
+
+            try {
+              applyTheme(theme)
+            } catch (error) {
+              console.error('[theme] applyTheme failed:', error)
+            }
+
+            /* 翻色后布局度量可能变化，刷新 ScrollTrigger 防止 pin 错位 */
+            ScrollTrigger.refresh()
 
             Emitter.emit(
               'contrastchange',

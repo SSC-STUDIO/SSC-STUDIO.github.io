@@ -28,7 +28,11 @@ class Ticker {
     this.delta = delta
 
     this.callbacks.forEach((object, index) => {
-      object.callback.apply(object.context)
+      try {
+        object.callback.apply(object.context)
+      } catch (error) {
+        console.error('[Ticker] nextTick callback failed:', error)
+      }
 
       delete self.callbacks[index]
     })
