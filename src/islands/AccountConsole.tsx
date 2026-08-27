@@ -448,6 +448,9 @@ export default function AccountConsole({
             <a className="p-card__link p-card__link--ghost" href="/class">
               班级空间
             </a>
+            <a className="p-card__link p-card__link--ghost" href="/messages">
+              消息
+            </a>
           </div>
         </section>
       ) : null}
@@ -501,6 +504,9 @@ export default function AccountConsole({
             </a>
             <a className="p-card__link p-card__link--ghost" href="/class">
               班级空间
+            </a>
+            <a className="p-card__link p-card__link--ghost" href="/messages">
+              消息
             </a>
             <button
               type="button"

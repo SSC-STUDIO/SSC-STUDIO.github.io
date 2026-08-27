@@ -1,0 +1,279 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import PageHero from '@/components/pages/PageHero.astro'
+import PageFoot from '@/components/pages/PageFoot.astro'
+import PageCard from '@/components/pages/PageCard.astro'
+import MessagesConsole from '@/islands/MessagesConsole'
+---
+
+<BaseLayout
+  title="Messages · 陈润森"
+  description="私信：只对登录账号开放，和班里有账号的同学互相写留言。"
+>
+  <PageHero
+    kicker="MESSAGES · 私信"
+    title="消息"
+    summary="给班里有账号的同学写私信——对话只对你们双方可见。"
+  />
+
+  <main class="p-page p-page--wide">
+    <PageCard kicker="private" title="Inbox">
+      <MessagesConsole client:load />
+    </PageCard>
+  </main>
+
+  <PageFoot current="/messages" />
+</BaseLayout>
+
+<style lang="scss" is:global>
+  .p-msg {
+    --msg-rail: 15rem;
+
+    &__hint {
+      margin: 1rem 0;
+      font: 400 0.9rem / 1.6 font-family(editorial);
+      color: color(secondary);
+    }
+
+    &__shell {
+      display: grid;
+      grid-template-columns: var(--msg-rail) 1fr;
+      border-top: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
+
+      @include mq(phone) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    &__rail {
+      border-right: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
+
+      @include mq(phone) {
+        border-right: 0;
+        border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
+      }
+    }
+
+    &__rail-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 22%, transparent);
+    }
+
+    &__rail-title {
+      font: 700 0.75rem / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: color(secondary);
+    }
+
+    &__new {
+      appearance: none;
+      padding: 0.4rem 0.7rem;
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+      background: transparent;
+      color: color(secondary);
+      font: 600 0.75rem / 1 font-family(fraktion);
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, #{color(accent)} 26%, transparent);
+      }
+    }
+
+    &__compose {
+      padding: 0.5rem;
+      border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 22%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    &__recipient {
+      appearance: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border: 0;
+      background: transparent;
+      color: color(secondary);
+      font: 400 0.85rem / 1.3 font-family(editorial);
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, #{color(accent)} 22%, transparent);
+      }
+    }
+
+    &__recipient-role {
+      font: 400 0.7rem / 1 font-family(fraktion);
+      color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    }
+
+    &__state,
+    &__notice {
+      margin: 0;
+      padding: 1rem;
+      font: 400 0.85rem / 1.6 font-family(editorial);
+      color: color(secondary);
+    }
+
+    &__notice {
+      color: color(accent);
+    }
+
+    &__retry {
+      appearance: none;
+      margin-top: 0.5rem;
+      padding: 0.35rem 0.6rem;
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+      background: transparent;
+      color: color(secondary);
+      font: 600 0.75rem / 1 font-family(fraktion);
+      cursor: pointer;
+    }
+
+    &__list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    &__conv {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.15rem 0.6rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 0;
+      border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 16%, transparent);
+      background: transparent;
+      color: color(secondary);
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, #{color(accent)} 16%, transparent);
+      }
+
+      &.is-active {
+        background: color-mix(in srgb, #{color(accent)} 30%, transparent);
+      }
+
+      &.is-unread .p-msg__conv-name {
+        font-weight: 700;
+      }
+    }
+
+    &__conv-name {
+      font: 700 0.9rem / 1.35 font-family(editorial);
+    }
+
+    &__conv-time {
+      font: 400 0.7rem / 1.4 font-family(fraktion);
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+    }
+
+    &__conv-preview {
+      grid-column: 1 / -1;
+      overflow: hidden;
+      font: 400 0.8rem / 1.4 font-family(editorial);
+      color: color-mix(in srgb, #{color(secondary)} 74%, transparent);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &__pane {
+      display: flex;
+      flex-direction: column;
+      min-height: 22rem;
+
+      @include mq(phone) {
+        min-height: 18rem;
+      }
+    }
+
+    &__pane-head {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid color-mix(in srgb, #{color(secondary)} 22%, transparent);
+    }
+
+    &__pane-name {
+      font: 700 1rem / 1.3 font-family(editorial);
+      color: color(secondary);
+    }
+
+    &__pane-role {
+      font: 400 0.72rem / 1 font-family(fraktion);
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+    }
+
+    &__thread {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      max-height: 28rem;
+      padding: 1rem;
+    }
+
+    &__bubbles {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    &__bubble {
+      max-width: 78%;
+      padding: 0.55rem 0.8rem 0.4rem;
+      border-radius: 4px;
+      background: color-mix(in srgb, #{color(secondary)} 12%, transparent);
+      color: color(secondary);
+
+      &.is-mine {
+        align-self: flex-end;
+        background: color-mix(in srgb, #{color(accent)} 26%, transparent);
+      }
+    }
+
+    &__bubble-content {
+      margin: 0;
+      font: 400 0.9rem / 1.55 font-family(editorial);
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+
+    &__bubble-time {
+      display: block;
+      margin-top: 0.3rem;
+      font: 400 0.68rem / 1 font-family(fraktion);
+      color: color-mix(in srgb, #{color(secondary)} 58%, transparent);
+    }
+
+    &__empty {
+      display: grid;
+      place-items: center;
+      flex: 1 1 auto;
+      padding: 2rem;
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+      font: 400 0.9rem / 1.6 font-family(editorial);
+      text-align: center;
+    }
+
+    &__composer {
+      margin: 0;
+      padding: 1rem;
+      border-top: 1px solid color-mix(in srgb, #{color(secondary)} 22%, transparent);
+    }
+  }
+</style>
