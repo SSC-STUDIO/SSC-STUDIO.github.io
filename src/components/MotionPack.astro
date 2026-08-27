@@ -3,6 +3,8 @@
  * MotionPack — 首页动效增强包
  * 光标拖尾 / 磁吸按钮 / 卡片倾斜 / 滚动视差。
  * 全部仅 pointer:fine 生效，prefers-reduced-motion 下一律关闭。
+ * SPA 安全：监听 astro:page-load，每次换页后重新绑定当前 DOM；
+ * 窗口级监听统一登记，销毁时逐一移除，避免跨页残留。
  */
 ---
 
@@ -14,25 +16,47 @@
     var fine = window.matchMedia('(pointer: fine)').matches;
     if (reduced || !fine) return;
 
-    /* ── 光标拖尾：灯色微粒，随指针起落 ─────────────────── */
-    var canvas = document.querySelector('.cursor-trail');
-    var ctx = canvas.getContext('2d');
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var particles = [];
-    var raf = 0;
-    var running = false;
+    var S = {
+      canvas: null,
+      ctx: null,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      particles: [],
+      raf: 0,
+      running: false,
+      lastX: 0,
+      lastY: 0,
+      lamp: '#c23a2b',
+      listeners: [],
+    };
 
-    function resize() {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    function on(target, type, fn, opts) {
+      target.addEventListener(type, fn, opts);
+      S.listeners.push([target, type, fn, opts]);
     }
-    resize();
-    window.addEventListener('resize', resize, { passive: true });
+
+    function destroy() {
+      S.listeners.forEach(function (entry) {
+        entry[0].removeEventListener(entry[1], entry[2], entry[3]);
+      });
+      S.listeners = [];
+      cancelAnimationFrame(S.raf);
+      S.running = false;
+      S.particles = [];
+      S.canvas = null;
+      S.ctx = null;
+    }
+
+    /* ── 光标拖尾：灯色微粒，随指针起落 ─────────────────── */
+    function resize() {
+      if (!S.canvas) return;
+      S.canvas.width = window.innerWidth * S.dpr;
+      S.canvas.height = window.innerHeight * S.dpr;
+      S.ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
+    }
 
     function spawn(x, y, boost) {
-      if (particles.length > 56) particles.shift();
-      particles.push({
+      if (S.particles.length > 56) S.particles.shift();
+      S.particles.push({
         x: x,
         y: y,
         vx: (Math.random() - 0.5) * (0.6 + boost * 0.02),
@@ -43,113 +67,145 @@
       });
     }
 
-    var lamp = '#c23a2b';
     function refreshLamp() {
-      lamp = getComputedStyle(document.documentElement).getPropertyValue('--daypart-lamp') || '#c23a2b';
+      S.lamp =
+        getComputedStyle(document.documentElement).getPropertyValue(
+          '--daypart-lamp'
+        ) || '#c23a2b';
     }
-    refreshLamp();
 
     function tick() {
-      if (!particles.length) {
-        running = false;
+      if (!S.particles.length) {
+        S.running = false;
         return;
       }
-      raf = requestAnimationFrame(tick);
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      for (var i = particles.length - 1; i >= 0; i--) {
-        var p = particles[i];
+      S.raf = requestAnimationFrame(tick);
+      S.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      for (var i = S.particles.length - 1; i >= 0; i--) {
+        var p = S.particles[i];
         p.life++;
         if (p.life > p.max) {
-          particles.splice(i, 1);
+          S.particles.splice(i, 1);
           continue;
         }
         p.x += p.vx + Math.sin((p.life + i) * 0.08) * 0.2;
         p.y += p.vy;
         var fade = 1 - p.life / p.max;
-        ctx.globalAlpha = fade * 0.5;
-        ctx.fillStyle = lamp.trim();
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2);
-        ctx.fill();
+        S.ctx.globalAlpha = fade * 0.5;
+        S.ctx.fillStyle = S.lamp.trim();
+        S.ctx.beginPath();
+        S.ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2);
+        S.ctx.fill();
       }
-      ctx.globalAlpha = 1;
+      S.ctx.globalAlpha = 1;
     }
 
-    var lastX = 0, lastY = 0;
-    window.addEventListener('pointermove', function (e) {
-      var d = Math.hypot(e.clientX - lastX, e.clientY - lastY);
-      lastX = e.clientX;
-      lastY = e.clientY;
+    function onPointerMove(e) {
+      var d = Math.hypot(e.clientX - S.lastX, e.clientY - S.lastY);
+      S.lastX = e.clientX;
+      S.lastY = e.clientY;
       if (d < 6) return;
       var boost = Math.min(40, d);
       spawn(e.clientX, e.clientY, boost);
       if (boost > 24) spawn(e.clientX, e.clientY, boost * 0.6);
-      if (!running) {
-        running = true;
-        raf = requestAnimationFrame(tick);
+      if (!S.running) {
+        S.running = true;
+        S.raf = requestAnimationFrame(tick);
       }
-    }, { passive: true });
+    }
 
-    document.addEventListener('visibilitychange', function () {
+    function onVisibilityChange() {
       if (document.hidden) {
-        cancelAnimationFrame(raf);
-        running = false;
-      } else if (particles.length) {
-        running = true;
-        raf = requestAnimationFrame(tick);
+        cancelAnimationFrame(S.raf);
+        S.running = false;
+      } else if (S.particles.length) {
+        S.running = true;
+        S.raf = requestAnimationFrame(tick);
       }
-    });
+    }
 
     /* ── 磁吸：CTA 按钮与名片 ──────────────────────────── */
-    var magnets = Array.from(
-      document.querySelectorAll('.s-cta .s__button, .studio-card, .sb-menu a')
-    );
-    magnets.forEach(function (el) {
-      el.addEventListener('pointermove', function (e) {
-        var r = el.getBoundingClientRect();
-        var dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
-        var dy = (e.clientY - (r.top + r.height / 2)) * 0.16;
-        el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px');
-        el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px');
+    function bindMagnets() {
+      var magnets = Array.from(
+        document.querySelectorAll('.s-cta .s__button, .studio-card, .sb-menu a')
+      );
+      magnets.forEach(function (el) {
+        el.addEventListener('pointermove', function (e) {
+          var r = el.getBoundingClientRect();
+          var dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
+          var dy = (e.clientY - (r.top + r.height / 2)) * 0.16;
+          el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px');
+          el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px');
+        });
+        el.addEventListener('pointerleave', function () {
+          el.style.removeProperty('--magnet-x');
+          el.style.removeProperty('--magnet-y');
+        });
       });
-      el.addEventListener('pointerleave', function () {
-        el.style.removeProperty('--magnet-x');
-        el.style.removeProperty('--magnet-y');
-      });
-    });
+    }
 
     /* ── 倾斜视差：作品卡 ──────────────────────────────── */
-    var tilts = Array.from(document.querySelectorAll('sen-work, .p-card'));
-    tilts.forEach(function (el) {
-      el.addEventListener('pointermove', function (e) {
-        var r = el.getBoundingClientRect();
-        var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4;
-        var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5;
-        el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg');
-        el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg');
+    function bindTilts() {
+      var tilts = Array.from(document.querySelectorAll('sen-work, .p-card'));
+      tilts.forEach(function (el) {
+        el.addEventListener('pointermove', function (e) {
+          var r = el.getBoundingClientRect();
+          var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4;
+          var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5;
+          el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg');
+          el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg');
+        });
+        el.addEventListener('pointerleave', function () {
+          el.style.removeProperty('--tilt-x');
+          el.style.removeProperty('--tilt-y');
+        });
       });
-      el.addEventListener('pointerleave', function () {
-        el.style.removeProperty('--tilt-x');
-        el.style.removeProperty('--tilt-y');
-      });
-    });
+    }
 
     /* ── 滚动视差：hero 内容与波浪分层 ─────────────────── */
-    var heroContent = document.querySelector('.s-hero .s__content');
-    var heroWaves = document.querySelector('.s-hero .s__waves');
-    var parallaxTick = false;
-    window.addEventListener('scroll', function () {
-      if (parallaxTick) return;
-      parallaxTick = true;
-      requestAnimationFrame(function () {
-        parallaxTick = false;
-        var y = window.scrollY;
-        if (y < window.innerHeight) {
-          if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)';
-          if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
-        }
-      });
-    }, { passive: true });
+    function bindParallax() {
+      var heroContent = document.querySelector('.s-hero .s__content');
+      var heroWaves = document.querySelector('.s-hero .s__waves');
+      var parallaxTick = false;
+
+      function onScroll() {
+        if (parallaxTick) return;
+        parallaxTick = true;
+        requestAnimationFrame(function () {
+          parallaxTick = false;
+          var y = window.scrollY;
+          if (y < window.innerHeight) {
+            if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)';
+            if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
+          }
+        });
+      }
+
+      on(window, 'scroll', onScroll, { passive: true });
+    }
+
+    /* ── 挂载：每次 astro:page-load（含首次加载）执行 ──── */
+    function mount() {
+      destroy();
+
+      var canvas = document.querySelector('.cursor-trail');
+      if (!canvas) return;
+
+      S.canvas = canvas;
+      S.ctx = canvas.getContext('2d');
+
+      resize();
+      refreshLamp();
+
+      on(window, 'resize', resize, { passive: true });
+      on(window, 'pointermove', onPointerMove, { passive: true });
+      on(document, 'visibilitychange', onVisibilityChange);
+
+      bindMagnets();
+      bindTilts();
+      bindParallax();
+    }
+
+    document.addEventListener('astro:page-load', mount);
   })();
 </script>
-
