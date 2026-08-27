@@ -2,6 +2,7 @@
 import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
 import InkMeander from './InkMeander.astro'
+import InkCloud from './InkCloud.astro'
 ---
 
 <footer class="site-foot">
@@ -16,6 +17,10 @@ import InkMeander from './InkMeander.astro'
 
   <p class="site-foot__band" aria-hidden="true">
     <InkMeander height={9} width="100%" />
+  </p>
+
+  <p class="site-foot__cloud" aria-hidden="true">
+    <InkCloud height={13} width="min(24rem, 78vw)" />
   </p>
 
   <p class="site-foot__credit">
@@ -73,6 +78,12 @@ import InkMeander from './InkMeander.astro'
       margin: 0;
 
       opacity: 0.5;
+    }
+
+    &__cloud {
+      margin: -0.35rem 0 0;
+
+      opacity: 0.6;
     }
 
     &__credit {

@@ -251,3 +251,27 @@ $ink-moss-position: 0 0, 11px 4px, 8px 2px;
     right: #{$offset};
   }
 }
+
+/**
+ * 云气地纹 —— 远近两环相扣的极淡云气底（云雷纹「为地」之意）。
+ * 叠环由双层 radial-gradient 环组成，密度与透明度压到隐约可见，
+ * 只作留白处的气韵铺垫，不抢主纹。宿主仅需指定 background-color。
+ */
+@mixin ink-cloud-ground {
+  background-image:
+    radial-gradient(
+      circle,
+      transparent 0 5px,
+      color-mix(in srgb, var(--color-secondary) 8%, transparent) 5px 6px,
+      transparent 6px
+    ),
+    radial-gradient(
+      circle at 40% 62%,
+      transparent 0 9px,
+      color-mix(in srgb, var(--color-secondary) 6%, transparent) 9px 10px,
+      transparent 10px
+    );
+  background-repeat: repeat;
+  background-size: 46px 46px, 74px 74px;
+  background-position: 0 0, 21px 13px;
+}
