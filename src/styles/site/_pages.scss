@@ -196,10 +196,29 @@
 .p-grid {
   display: grid;
   gap: 1.25rem;
+  align-items: start;
 
   @include mq(tablet) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
   }
+
+  /* 宽屏三列，园林错落 */
+  @media (min-width: 1080px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+
+    &.p-grid--stagger > :nth-child(even) {
+      margin-top: 2.75rem;
+    }
+  }
+}
+
+/* 均质封面：所有网格封面裁成同一比例，齐整如册页 */
+.p-grid .p-detail-cover,
+.p-stack .p-detail-cover {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 /* Card */
@@ -460,8 +479,13 @@ a.p-card {
 /* Prose (article / detail bodies) */
 
 .p-prose {
+  counter-reset: prose-h2;
+
   color: color-mix(in srgb, #{color(secondary)} 88%, transparent);
   font: 400 1.05rem / 1.7 font-family(editorial);
+
+  /* 行长度量：一页之内不过四十四字，读来不倦 */
+  max-width: 46em;
 
   > p:first-of-type::first-letter {
     float: left;
@@ -483,19 +507,36 @@ a.p-card {
 
   h2 {
     position: relative;
-    margin: 2rem 0 0.75rem;
+    margin: 2.25rem 0 0.85rem;
+    padding-bottom: 0.55rem;
 
     color: color(secondary);
     font: 700 1.5rem / 1.2 font-family(bigger);
+    letter-spacing: 0.04em;
     text-transform: none;
 
+    /* 章次题号：其一 · 其二 …… 朱丝压脚 */
+    counter-increment: prose-h2;
+
     &::before {
-      content: '◆';
-      display: inline-block;
-      margin-right: 0.45em;
+      content: counter(prose-h2, cjk-ideographic) ' · ';
+      margin-right: 0.35em;
       color: color(accent);
-      font-size: 0.72em;
-      vertical-align: 0.1em;
+      font-size: 0.82em;
+      vertical-align: 0.12em;
+    }
+
+    &::after {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+
+      width: 3.25rem;
+      height: 2px;
+
+      background: linear-gradient(90deg, color(accent), transparent);
+
+      content: '';
     }
   }
 
@@ -686,37 +727,79 @@ a.p-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
     @media (min-width: 720px) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    @media (min-width: 1080px) {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.65rem;
+      grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
     }
   }
 
   &__link {
-    display: block;
+    position: relative;
 
-    padding: 0.6rem 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+
+    padding: 0.7rem 0.85rem;
 
     border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
 
     color: color(secondary);
-    font: 700 10px / 1.3 font-family(fraktion);
-    letter-spacing: 0.08em;
-    text-align: center;
+    font: 700 11px / 1.3 font-family(editorial);
+    letter-spacing: 0.14em;
+    text-align: left;
     text-decoration: none;
     text-transform: none;
 
     transition:
       background 0.2s ease,
-      border-color 0.2s ease;
+      border-color 0.2s ease,
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* 去向箭头：悬停时朱砂点起 */
+    &::after {
+      content: '→';
+      flex-shrink: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 45%, transparent);
+      font-family: font-family(fraktion);
+      transition: color 0.2s ease, transform 0.25s
+        cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
     &:hover,
     &:focus-visible,
     &.is-current {
       border-color: color(accent);
+
+      transform: translateY(-2px);
+
+      &::after {
+        color: color(accent);
+        transform: translateX(3px);
+      }
+    }
+
+    &:hover {
+      background: color-mix(in srgb, #{color(accent)} 9%, transparent);
+    }
+
+    &.is-current {
       background: color(accent);
+      color: color(primary);
+
+      &::after {
+        color: color(primary);
+        transform: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &:hover,
+      &:focus-visible,
+      &.is-current {
+        transform: none;
+      }
     }
   }
 }
@@ -1439,5 +1522,43 @@ sen-rail {
     opacity: 0.4;
 
     content: '·';
+  }
+}
+
+/* ── 关于页：立轴 + 展卷双栏 ──
+ * 窄屏依序纵排；宽屏左轴右文——照片如立轴悬于左侧，
+ * 行述在右徐徐展开，卡片横陈卷底。
+ */
+
+.p-about {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+@media (min-width: 1080px) {
+  .p-about {
+    position: relative;
+
+    display: grid;
+    grid-template-columns: minmax(18rem, 23rem) minmax(0, 1fr);
+    gap: 3rem 3.5rem;
+    align-items: start;
+
+    > .p-about-photo {
+      position: sticky;
+      top: 5.75rem;
+    }
+
+    > .p-stack {
+      grid-column: 1 / -1;
+
+      margin-top: 0.5rem;
+    }
+
+    > .p-prose {
+      max-width: none;
+      margin-top: -0.35rem;
+    }
   }
 }
