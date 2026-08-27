@@ -1,5 +1,6 @@
 ---
 import InkMountains from './InkMountains.astro'
+import SenMark from './SenMark.astro'
 
 // Awards are nice, but they’re not the goal.
 // Focus on building quality projects, enjoying the process, and staying curious—that’s what really matters.
@@ -99,68 +100,11 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         }
 
         <li class="s__award s__award--blank">
-          <svg
-            width="101"
-            height="113"
-            viewBox="0 0 101 113"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M80.05 107.398c-21.944 12.67-52.875.18-69.085-27.896m69.086 27.896c21.945-12.67 26.594-45.702 10.384-73.778M80.05 107.398c-19.686 11.366-48.786-2.181-64.996-30.258C-1.155 49.063 1.663 17.09 21.35 5.723m58.702 101.675c19.686-11.366 22.504-43.34 6.293-71.417C70.134 7.904 41.034-5.642 21.35 5.723m58.702 101.675c-10.973 6.335-33.009-11.29-49.219-39.367-16.21-28.077-20.456-55.973-9.483-62.308m58.702 101.675c10.972-6.335 6.726-34.231-9.484-62.308C54.357 17.013 32.322-.612 21.35 5.723m58.702 101.675c3.74-2.159-6.262-26.77-22.456-54.818S25.089 3.564 21.349 5.723m58.702 101.675c-3.74 2.159-20.053-18.808-36.246-46.856C27.61 32.493 17.609 7.882 21.349 5.723M10.965 79.502C-5.245 51.425-.596 18.393 21.349 5.723M10.965 79.502c11.366 19.686 38.37 25.373 60.314 12.703 21.946-12.67 30.522-38.9 19.156-58.585m-79.47 45.882C-.401 59.816 8.175 33.586 30.121 20.916c21.945-12.67 48.948-6.982 60.314 12.704m-79.47 45.882c6.335 10.972 29.26 9.596 51.206-3.074C84.115 63.758 96.77 44.592 90.434 33.62m-79.47 45.882C4.63 68.529 17.285 49.363 39.23 36.693c21.945-12.67 44.87-14.046 51.205-3.073M21.349 5.723c21.945-12.67 52.876-.18 69.086 27.897M54.749 63.573C32.778 76.258 13.192 83.358 11.033 79.618c-2.16-3.74 13.783-17.15 35.754-29.836 21.97-12.685 41.557-19.785 43.716-16.045 2.159 3.74-13.783 17.15-35.754 29.836Z"
-            >
-            </path>
-          </svg>
-
-          <svg
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-          <svg
-            width="49"
-            height="49"
-            viewBox="0 0 49 49"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m24.5 0 3.3 21.2L49 24.5l-21.2 3.3L24.5 49l-3.3-21.2L0 24.5l21.2-3.3L24.5 0z"
-            >
-            </path>
-          </svg>
-        </li>
+            <span class="s__blank__inner" aria-hidden="true">
+              <SenMark size={54} />
+              <i class="s__blank__note">虚位以待<br />下一件作品</i>
+            </span>
+          </li>
 
       </ul><!-- .s__content -->
     </div><!-- .s__block -->
@@ -1030,7 +974,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
             height: 100%;
 
             background: color(primary);
-            mask: url('/images/asset-star.svg') center / 1.5rem 1.5rem no-repeat;
+            mask: url('/images/asset-plum.svg') center / 1.5rem 1.5rem no-repeat;
 
             transition: transform 0.8s ease(in-cubic);
             will-change: transform;
@@ -1289,6 +1233,11 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           grid-column: 1 / 2;
           grid-row: 5 / 6;
 
+          display: grid;
+          place-items: center;
+
+          opacity: 0.88;
+
           @include mq(tablet-sm) {
             grid-column: 1 / 2;
             grid-row: 8 / 9;
@@ -1298,65 +1247,27 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
             display: none;
           }
 
-          svg {
-            position: absolute;
+          .s__blank__inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.95rem;
 
-            &:nth-child(1) {
-              top: 50%;
-              left: 50%;
+            padding: 1rem;
 
-              width: 62.538%;
-              height: 53.1333%;
+            opacity: 0.82;
 
-              transform: translate(-50%, -50%);
-
-              path {
-                fill: none;
-                stroke: color(secondary);
-                stroke-width: 1px;
-              }
-            }
-
-            &:nth-child(2),
-            &:nth-child(3),
-            &:nth-child(4),
-            &:nth-child(5) {
-              position: absolute;
-
-              width: 12.1203%;
-              height: auto;
-
-              path {
-                fill: color(secondary);
-                stroke: none;
-              }
-            }
-
-            &:nth-child(2) {
-              top: 0.5rem;
-              left: 0.5rem;
-            }
-
-            &:nth-child(3) {
-              top: 0.5rem;
-              right: 0.5rem;
-            }
-
-            &:nth-child(4) {
-              bottom: 0.5rem;
-              left: 0.5rem;
-            }
-
-            &:nth-child(5) {
-              bottom: 0.5rem;
-              right: 0.5rem;
-            }
+            pointer-events: none;
           }
 
-          path {
-            fill: none;
-            stroke: color(secondary);
-            stroke-width: 1px;
+          .s__blank__note {
+            font-style: normal;
+            color: color-mix(in srgb, var(--color-secondary) 80%, transparent);
+            font: 500 clamp(0.72rem, 1vw, 0.85rem) / 1.75
+              font-family(editorial);
+            letter-spacing: 0.38em;
+            text-align: center;
+            text-indent: 0.38em;
           }
         }
 

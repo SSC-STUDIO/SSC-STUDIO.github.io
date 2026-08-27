@@ -415,7 +415,14 @@ html.theme-contrasted[data-daypart='day'] {
 
   &__tick:hover &__sprocket,
   &__tick:focus-visible &__sprocket {
-    border-color: color(accent-strong);
+    background: color-mix(in srgb, var(--color-accent) 26%, transparent);
+
+    border-color: var(--color-accent);
+  }
+
+  /* 悬停朱砂化：编号随点染红 */
+  &__tick:hover &__index {
+    color: color(accent);
   }
 
   &__tick[data-active='true'] &__sprocket {

@@ -1,6 +1,7 @@
 ---
 import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
+import InkMeander from './InkMeander.astro'
 ---
 
 <footer class="site-foot">
@@ -12,6 +13,10 @@ import SenMark from './SenMark.astro'
     </a>
     <SealMark variant="footer" />
   </div><!-- .site-foot__logo -->
+
+  <p class="site-foot__band" aria-hidden="true">
+    <InkMeander height={9} width="100%" />
+  </p>
 
   <p class="site-foot__credit">
     © 2026 陈润森 · Chen Runsen<br />
@@ -61,6 +66,13 @@ import SenMark from './SenMark.astro'
           height: 1.875rem;
         }
       }
+    }
+
+    &__band {
+      width: min(19rem, 62vw);
+      margin: 0;
+
+      opacity: 0.5;
     }
 
     &__credit {
