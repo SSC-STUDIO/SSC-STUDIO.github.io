@@ -770,3 +770,99 @@
     animation: none;
   }
 }
+
+/* --- Media attachments (guestbook + messages) ---------------------------- */
+
+.att__embed {
+  margin: 0.6rem 0 0;
+}
+
+.att__media {
+  display: block;
+  max-width: 100%;
+  max-height: 22rem;
+  width: auto;
+  @include ink-frame;
+  background-color: var(--color-primary);
+}
+
+.att__audio {
+  display: block;
+  width: min(100%, 26rem);
+}
+
+.att__file {
+  display: inline-flex;
+  padding: 0.5rem 0.85rem;
+  @include ink-frame;
+  background-color: transparent;
+  color: var(--color-secondary);
+  font: 700 11px/1 var(--font-family-fraktion);
+  letter-spacing: 0.12em;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background: var(--color-accent);
+  }
+}
+
+.att__picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.att__file-input {
+  max-width: 100%;
+  width: min(100%, 26rem);
+  padding: 0.55rem 0.75rem;
+  @include ink-frame;
+  background-color: color-mix(in srgb, var(--color-accent) 8%, var(--color-primary));
+  font: 400 0.8rem/1.2 var(--font-family-editorial);
+  color: var(--color-secondary);
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+}
+
+.att__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  @include ink-frame;
+  background-color: color-mix(in srgb, var(--color-accent) 26%, var(--color-primary));
+  color: var(--color-secondary);
+  font: 700 10px/1 var(--font-family-fraktion);
+  letter-spacing: 0.1em;
+}
+
+.att__chip-remove {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary);
+  font: 400 10px/1 var(--font-family-editorial);
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: #b91c1c;
+  }
+}
+
+.att__busy {
+  color: color-mix(in srgb, var(--color-secondary) 70%, transparent);
+  font: 400 0.8rem/1.2 var(--font-family-editorial);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .att__file {
+    transition: none;
+  }
+}

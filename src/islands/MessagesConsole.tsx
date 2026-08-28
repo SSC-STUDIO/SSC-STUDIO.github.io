@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
+import {
+  AttachmentPicker,
+  MediaEmbed,
+  uploadAttachment,
+  type AttachmentMeta,
+} from "./media";
 
 /**
  * Messages island — private direct messages between accounts.
@@ -17,6 +23,7 @@ type MessageDto = {
   fromUserId: string;
   toUserId: string;
   content: string;
+  attachment?: AttachmentMeta;
   createdAt: string;
   readAt?: string;
 };
@@ -68,6 +75,8 @@ export default function MessagesConsole() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [attachment, setAttachment] = useState<AttachmentMeta | null>(null);
   const [notice, setNotice] = useState("");
 
   const loadRecipients = useCallback(async () => {
@@ -173,10 +182,31 @@ export default function MessagesConsole() {
     }
   }
 
+  async function handleFile(file: File) {
+    setUploadBusy(true);
+    setNotice("");
+    try {
+      const meta = await uploadAttachment(file);
+      setAttachment(meta);
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code === "unauthorized") {
+        setSession("out");
+        setNotice("会话已失效，无法上传附件，请重新登录。");
+      } else if (code === "too_large") {
+        setNotice("文件太大了，请换一个小一些的附件。");
+      } else {
+        setNotice("附件没有传上去，请重试。");
+      }
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
   async function sendMessage(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content) return;
+    if (!content && !attachment) return;
     if (!activeUserId) {
       setNotice("请先选择一位同学开始对话。");
       return;
@@ -191,7 +221,11 @@ export default function MessagesConsole() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ toUserId: activeUserId, content }),
+        body: JSON.stringify({
+          toUserId: activeUserId,
+          content,
+          attachment: attachment ?? undefined,
+        }),
       });
       if (response.status === 401) {
         setSession("out");
@@ -218,6 +252,7 @@ export default function MessagesConsole() {
       const created = (await response.json()) as MessageDto;
       setThread((current) => [...current, created]);
       setDraft("");
+      setAttachment(null);
       updateConversationFromActive([...thread, created]);
       await loadConversations();
     } catch {
@@ -364,6 +399,7 @@ export default function MessagesConsole() {
                             className={`p-msg__bubble${mine ? " is-mine" : " is-theirs"}`}
                           >
                             <p className="p-msg__bubble-content">{m.content}</p>
+                            <MediaEmbed attachment={m.attachment} />
                             <time className="p-msg__bubble-time" dateTime={m.createdAt}>
                               {formatTime(m.createdAt)}
                             </time>
@@ -383,14 +419,23 @@ export default function MessagesConsole() {
                     回复 {activePeer?.displayName ?? ""}
                     <textarea
                       name="content"
-                      required
+                      required={!attachment}
                       maxLength={MAX_LENGTH}
                       placeholder="写一句想说的话…"
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
                     />
                   </label>
-                  <button type="submit" disabled={sending || threadState !== "ready"}>
+                  <AttachmentPicker
+                    attachment={attachment}
+                    busy={uploadBusy}
+                    onFileChange={(file) => void handleFile(file)}
+                    onRemove={() => setAttachment(null)}
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || uploadBusy || threadState !== "ready"}
+                  >
                     {sending ? "发送中…" : "发送"}
                   </button>
                 </form>

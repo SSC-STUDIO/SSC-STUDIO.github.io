@@ -24,6 +24,7 @@ type CommentDto = {
   parentId?: string;
   authorName: string;
   content: string;
+  attachment?: AttachmentMeta;
   createdAt: string;
   updatedAt: string;
   likesCount: number;
@@ -177,6 +178,7 @@ function CommentItem({
                     </time>
                   </div>
                   <p className="p-guestbook__content">{reply.content}</p>
+                  <MediaEmbed attachment={reply.attachment} />
                   <div className="p-guestbook__actions">
                     <LikeButton comment={reply} busy={likeBusy} onLike={onLike} />
                   </div>
@@ -232,6 +234,8 @@ export default function Guestbook() {
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [recipients, setRecipients] = useState<PeerDto[]>([]);
   const [recipientId, setRecipientId] = useState("");
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [attachment, setAttachment] = useState<AttachmentMeta | null>(null);
 
   const sortedComments = useMemo(
     () =>
@@ -295,11 +299,32 @@ export default function Guestbook() {
     };
   }, []);
 
+  async function handleFile(file: File) {
+    setUploadBusy(true);
+    setNotice("");
+    try {
+      const meta = await uploadAttachment(file);
+      setAttachment(meta);
+    } catch (error) {
+      const code = (error as Error & { code?: string }).code;
+      if (code === "unauthorized") {
+        setSession("out");
+        setNotice("会话已失效，无法上传附件，请重新登录。");
+      } else if (code === "too_large") {
+        setNotice("文件太大了，请换一个小一些的附件。");
+      } else {
+        setNotice("附件没有传上去，请重试。");
+      }
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
   async function handlePost(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content) {
-      setNotice("先写点什么，再把脚印放下。");
+    if (!content && !attachment) {
+      setNotice("先写点什么，或附上一张图/一段视频。");
       return;
     }
     setPosting(true);
@@ -317,7 +342,11 @@ export default function Guestbook() {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ toUserId: recipientId, content }),
+          body: JSON.stringify({
+            toUserId: recipientId,
+            content,
+            attachment: attachment ?? undefined,
+          }),
         });
         if (response.status === 401) {
           setSession("out");
@@ -333,6 +362,7 @@ export default function Guestbook() {
         setDraft("");
         setRecipientId("");
         setVisibility("public");
+        setAttachment(null);
         setNotice(
           peer
             ? `已私发给${peer.displayName}，可在“消息”页查看。`
@@ -350,6 +380,7 @@ export default function Guestbook() {
             targetKind: TARGET_KIND,
             targetId: TARGET_ID,
             content,
+            attachment: attachment ?? undefined,
           }),
         });
         if (response.status === 401) {
@@ -365,6 +396,7 @@ export default function Guestbook() {
         const created = (await response.json()) as CommentDto;
         setComments((current) => [created, ...current]);
         setDraft("");
+        setAttachment(null);
       }
     } catch {
       setNotice("发布失败，请检查网络后重试。");
@@ -511,13 +543,20 @@ export default function Guestbook() {
             写下你的脚印
             <textarea
               name="content"
-              required
+              required={!attachment}
               maxLength={MAX_LENGTH}
               placeholder="问题、想法、路过的心情，都欢迎。"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />
           </label>
+
+          <AttachmentPicker
+            attachment={attachment}
+            busy={uploadBusy}
+            onFileChange={(file) => void handleFile(file)}
+            onRemove={() => setAttachment(null)}
+          />
 
           <div className="p-guestbook__vis">
             <div
@@ -576,7 +615,7 @@ export default function Guestbook() {
             </p>
           </div>
 
-          <button type="submit" disabled={posting}>
+          <button type="submit" disabled={posting || uploadBusy}>
             {posting
               ? "发送中…"
               : visibility === "private"
