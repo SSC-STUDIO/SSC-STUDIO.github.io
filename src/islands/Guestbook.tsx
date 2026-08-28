@@ -36,6 +36,15 @@ type CommentsResponse = {
   items: CommentDto[];
 };
 
+type PeerDto = {
+  userId: string;
+  username: string;
+  displayName: string;
+  role: string;
+};
+
+type Visibility = "public" | "private";
+
 type SessionState = "loading" | "out" | "in";
 type FeedState = "loading" | "error" | "ready";
 
@@ -220,6 +229,9 @@ export default function Guestbook() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [recipients, setRecipients] = useState<PeerDto[]>([]);
+  const [recipientId, setRecipientId] = useState("");
 
   const sortedComments = useMemo(
     () =>
@@ -242,6 +254,20 @@ export default function Guestbook() {
     }
   }, []);
 
+  const loadRecipients = useCallback(async () => {
+    try {
+      const response = await fetch("/api/messages/recipients", {
+        ...AUTH_FETCH_OPTIONS,
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("failed");
+      const data = (await response.json()) as { items: PeerDto[] };
+      setRecipients(Array.isArray(data.items) ? data.items : []);
+    } catch {
+      setRecipients([]);
+    }
+  }, []);
+
   useEffect(() => {
     void loadComments();
   }, [loadComments]);
@@ -256,7 +282,9 @@ export default function Guestbook() {
         });
         const data = (await response.json()) as AuthSession;
         if (!cancelled) {
-          setSession(data.authenticated && data.user ? "in" : "out");
+          const isIn = Boolean(data.authenticated && data.user);
+          setSession(isIn ? "in" : "out");
+          if (isIn) await loadRecipients();
         }
       } catch {
         if (!cancelled) setSession("out");
@@ -277,32 +305,67 @@ export default function Guestbook() {
     setPosting(true);
     setNotice("");
     try {
-      const response = await fetch("/api/comments", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          targetKind: TARGET_KIND,
-          targetId: TARGET_ID,
-          content,
-        }),
-      });
-      if (response.status === 401) {
-        setSession("out");
-        setNotice("会话已失效，请重新登录后再发布。");
-        return;
+      if (visibility === "private") {
+        if (!recipientId) {
+          setNotice("选了“仅某人”，请先选择一位同学。");
+          return;
+        }
+        const response = await fetch("/api/messages", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ toUserId: recipientId, content }),
+        });
+        if (response.status === 401) {
+          setSession("out");
+          setNotice("会话已失效，请重新登录后再发布。");
+          return;
+        }
+        if (response.status === 403) {
+          setNotice("这位同学还没有账号，暂时无法私发。");
+          return;
+        }
+        if (!response.ok) throw new Error("failed");
+        const peer = recipients.find((r) => r.userId === recipientId);
+        setDraft("");
+        setRecipientId("");
+        setVisibility("public");
+        setNotice(
+          peer
+            ? `已私发给${peer.displayName}，可在“消息”页查看。`
+            : "已私发成功，可在“消息”页查看。",
+        );
+      } else {
+        const response = await fetch("/api/comments", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            targetKind: TARGET_KIND,
+            targetId: TARGET_ID,
+            content,
+          }),
+        });
+        if (response.status === 401) {
+          setSession("out");
+          setNotice("会话已失效，请重新登录后再发布。");
+          return;
+        }
+        if (response.status === 429) {
+          setNotice("脚印太密了，歇一会儿再写。");
+          return;
+        }
+        if (!response.ok) throw new Error("failed");
+        const created = (await response.json()) as CommentDto;
+        setComments((current) => [created, ...current]);
+        setDraft("");
       }
-      if (response.status === 429) {
-        setNotice("脚印太密了，歇一会儿再写。");
-        return;
-      }
-      if (!response.ok) throw new Error("failed");
-      const created = (await response.json()) as CommentDto;
-      setComments((current) => [created, ...current]);
-      setDraft("");
     } catch {
       setNotice("发布失败，请检查网络后重试。");
     } finally {
@@ -455,8 +518,70 @@ export default function Guestbook() {
               onChange={(event) => setDraft(event.target.value)}
             />
           </label>
+
+          <div className="p-guestbook__vis">
+            <div
+              className="p-guestbook__vis-row"
+              role="radiogroup"
+              aria-label="可见性"
+            >
+              <label className="p-guestbook__vis-opt is-public">
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="public"
+                  checked={visibility === "public"}
+                  onChange={() => setVisibility("public")}
+                />
+                <span>公开到留言板</span>
+              </label>
+              <label className="p-guestbook__vis-opt is-private">
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="private"
+                  checked={visibility === "private"}
+                  onChange={() => setVisibility("private")}
+                />
+                <span>仅某人可见</span>
+              </label>
+            </div>
+
+            {visibility === "private" ? (
+              <label className="p-guestbook__vis-peer">
+                <span className="u-sr-only">选择接收的同学</span>
+                <select
+                  value={recipientId}
+                  onChange={(event) => setRecipientId(event.target.value)}
+                >
+                  <option value="">选择一位同学…</option>
+                  {recipients.map((r) => (
+                    <option key={r.userId} value={r.userId}>
+                      {r.displayName}（@{r.username}）
+                    </option>
+                  ))}
+                </select>
+                {recipients.length === 0 ? (
+                  <span className="p-guestbook__vis-hint">
+                    暂无有账号的同学可私发
+                  </span>
+                ) : null}
+              </label>
+            ) : null}
+
+            <p className="p-guestbook__vis-note">
+              {visibility === "private"
+                ? "只发给你选中的同学，其他人看不到。"
+                : "所有人都能在留言板上看到这条。"}
+            </p>
+          </div>
+
           <button type="submit" disabled={posting}>
-            {posting ? "发布中…" : "发布留言"}
+            {posting
+              ? "发送中…"
+              : visibility === "private"
+                ? "私发给TA"
+                : "发布留言"}
           </button>
         </form>
       )}
