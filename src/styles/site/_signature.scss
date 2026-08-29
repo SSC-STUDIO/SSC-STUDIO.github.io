@@ -152,12 +152,10 @@ html.theme-contrasted[data-daypart='dusk'] {
   0% {
     opacity: 0;
     transform: translateY(-10px) scale(2.3) rotate(-18deg);
-    filter: blur(2px) drop-shadow(0 6px 16px rgba(160, 42, 32, 0.35));
   }
   55% {
     opacity: 1;
     transform: translateY(0) scale(0.92) rotate(-4deg);
-    filter: blur(0) drop-shadow(0 6px 16px rgba(160, 42, 32, 0.35));
   }
   78% {
     transform: scale(1.06) rotate(-7deg);

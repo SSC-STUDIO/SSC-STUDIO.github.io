@@ -36,10 +36,24 @@
   }
 }
 
-/* ── 主题切换：450ms 颜色过渡 ── */
+/* ── 主题切换：450ms 颜色过渡 ──
+   定向到主要容器与纹样元素（:where 零特异性），
+   避免对全 DOM * 强制过渡造成的重绘风暴 */
 html.theme-animating,
 html.theme-animating body,
-html.theme-animating * {
+html.theme-animating :where(
+    .site-wrapper,
+    .site-head,
+    .site-foot,
+    .s-hero,
+    .s-about,
+    .s-work,
+    .s-cta,
+    .p-hero,
+    .p-card,
+    [class*='ink-'],
+    [class*='seal-mark']
+  ) {
   transition-property:
     background-color,
     border-color,
@@ -59,7 +73,19 @@ html.theme-animating * {
 
   html.theme-animating,
   html.theme-animating body,
-  html.theme-animating * {
+  html.theme-animating :where(
+      .site-wrapper,
+      .site-head,
+      .site-foot,
+      .s-hero,
+      .s-about,
+      .s-work,
+      .s-cta,
+      .p-hero,
+      .p-card,
+      [class*='ink-'],
+      [class*='seal-mark']
+    ) {
     transition: none !important;
   }
 }
@@ -78,7 +104,8 @@ html.theme-animating * {
 }
 
 .p-hero__title {
-  animation: ph-rise 720ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ph-rise 720ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    ph-ink-blur 720ms 130ms ease both;
 }
 
 .p-hero__summary {
@@ -117,18 +144,25 @@ html.theme-animating * {
   animation: sealStamp 720ms 520ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
 }
 
-/* data-reveal 升级：上移 + 模糊消退（覆盖 _shell.scss 原规则） */
+/* data-reveal 升级：上移淡入（覆盖 _shell.scss 原规则）
+   注：不再对全部显现元素做 blur 过渡（长页重绘开销高），
+   模糊显影只保留给每页一次性的 .p-hero__title */
 [data-reveal] {
   transform: translateY(0.9rem);
-  filter: blur(3px);
 
   transition:
     opacity 0.65s ease,
-    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.65s ease;
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--reveal-delay, 0ms);
+}
 
-  &.is-revealed {
+/* p-hero 标题：单元素一次性模糊显影（洇墨感） */
+@keyframes ph-ink-blur {
+  from {
+    filter: blur(4px);
+  }
+
+  to {
     filter: blur(0);
   }
 }
@@ -244,10 +278,6 @@ html.theme-animating * {
   .island-fade-in,
   .benchmark-target {
     animation: none;
-  }
-
-  [data-reveal] {
-    filter: none;
   }
 
   .p-eco__link,
