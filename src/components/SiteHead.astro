@@ -3,6 +3,9 @@ import SenMark from './SenMark.astro'
 
 const isSubpage = Astro.url.pathname !== '/'
 
+// 当前页路径（去尾斜杠），用于导航 aria-current 标记
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/'
+
 const menu = isSubpage
   ? [
       { href: '/', text: '首页' },
@@ -59,7 +62,11 @@ const consoleLines = [
         {
           menu.map((item) => (
             <li class="sb__item js-menu-item">
-              <a href={item.href} class="js-menu-link">
+              <a
+                href={item.href}
+                class="js-menu-link"
+                aria-current={item.href === currentPath ? 'page' : undefined}
+              >
                 <span class="sb__text">{item.text}</span>
               </a>
             </li>
@@ -790,6 +797,45 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
           .sb__text:before {
             animation: blink-in 0.3s ease(in-out-expo) forwards;
+          }
+
+          &:after {
+            transform: scaleX(1);
+          }
+        }
+
+        /* 朱丝栏下划线：墨线托朱线的双行界栏，悬停/当前页展开 */
+        &:after {
+          position: absolute;
+          right: 30%;
+          bottom: 1.15rem;
+          left: 30%;
+
+          height: 4.5px;
+
+          background:
+            linear-gradient(
+                color-mix(in srgb, #{color(secondary)} 62%, transparent),
+                color-mix(in srgb, #{color(secondary)} 62%, transparent)
+              )
+              top / 100% 1.5px no-repeat,
+            linear-gradient(
+                color-mix(in srgb, #{color(accent)} 80%, transparent),
+                color-mix(in srgb, #{color(accent)} 80%, transparent)
+              )
+              bottom / 100% 1.5px no-repeat;
+
+          transform: scaleX(0);
+          transform-origin: center;
+          transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+
+          content: '';
+          pointer-events: none;
+        }
+
+        &[aria-current='page'] {
+          &:after {
+            transform: scaleX(1);
           }
         }
       }

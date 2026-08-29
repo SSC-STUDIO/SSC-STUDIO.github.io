@@ -200,7 +200,8 @@
   &__fallback {
     padding: 2.5rem 1.5rem;
 
-    border: 1px dashed color-mix(in srgb, #{color(secondary)} 45%, transparent);
+    @include ink-window-lattice($cell: 22px);
+    @include ink-hairline-dashed;
 
     text-align: center;
   }

@@ -40,7 +40,8 @@
     margin: 0;
     padding: 2rem 1.5rem;
 
-    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+    @include ink-window-lattice($cell: 22px);
+    @include ink-hairline-dashed;
 
     color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
     font: 400 1rem / 1.6 font-family(editorial);
@@ -119,6 +120,18 @@
 
   &__composer textarea {
     min-height: 6.5rem;
+
+    /* 朱丝栏笺：留言如落款于八行笺，行线随文滚动。
+       覆盖全局 ink-frame 的多层背景列表，行线对齐行框底沿 */
+    @include ink-ruled-paper;
+
+    padding: 0.65rem 0.75rem 0.9rem;
+    background-repeat: repeat;
+    background-size: auto;
+    background-position: 0 0.65rem;
+
+    color: color(secondary);
+    line-height: 1.9rem;
   }
 
   /* Visibility toggle for each entry — 公开 / 仅某人 */

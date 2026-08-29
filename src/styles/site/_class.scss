@@ -20,7 +20,8 @@
     margin: 0;
     padding: 2rem 1.5rem;
 
-    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+    @include ink-window-lattice($cell: 22px);
+    @include ink-hairline-dashed;
 
     color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
     font: 400 1rem / 1.6 font-family(editorial);
@@ -265,6 +266,15 @@
 
   &__form textarea {
     min-height: 6.5rem;
+
+    /* 朱丝栏笺：与留言簿同款八行笺底稿 */
+    @include ink-ruled-paper;
+
+    background-repeat: repeat;
+    background-size: auto;
+    background-position: 0 0.65rem;
+
+    line-height: 1.9rem;
   }
 
   &__notice {
@@ -278,7 +288,8 @@
     margin: 0;
     padding: 2rem 1.5rem;
 
-    border: 1px dashed color-mix(in srgb, #{color(secondary)} 50%, transparent);
+    @include ink-window-lattice($cell: 22px);
+    @include ink-hairline-dashed;
 
     color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
     font: 400 1rem / 1.6 font-family(editorial);
