@@ -5,6 +5,7 @@ import InkMountains from '../InkMountains.astro'
 import InkMeander from '../InkMeander.astro'
 import InkBrush from '../InkBrush.astro'
 import InkGentlemen from '../InkGentlemen.astro'
+import InkRipple from '../InkRipple.astro'
 
 interface Props {
   kicker: string
@@ -29,6 +30,7 @@ const { kicker, title, summary } = Astro.props
   <p class="p-hero__gentlemen" aria-hidden="true">
     <InkGentlemen height={20} width="min(15rem, 52vw)" />
   </p>
+  <InkRipple size={110} class="p-hero__ripple" />
   <SealMark variant="watermark" />
   <InkMeander height={8} width="46%" class="p-hero__meander" />
 </header>

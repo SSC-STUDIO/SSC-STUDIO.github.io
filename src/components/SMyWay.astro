@@ -1,5 +1,6 @@
 ---
 import InkMountains from './InkMountains.astro'
+import InkBloom from './InkBloom.astro'
 
 const frames = [
   {
@@ -104,6 +105,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
 <section class="s-my-way" data-intersect>
   <InkMountains compact />
+  <InkBloom class="s__bloom" size={260} />
   <svg
     class="s__smiley js-smiley"
     xmlns="http://www.w3.org/2000/svg"
@@ -1036,6 +1038,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     padding: calc(var(--padding) * 0.75) 0 calc(var(--padding) * 1.5);
 
     clip-path: inset(-100vh 0 calc(var(--padding) * -1.375));
+
+    /* 梅枝：探入区块右缘，「疏影横斜」点景 */
+    .s__bloom {
+      top: clamp(6rem, 12vw, 14rem);
+      right: clamp(0.25rem, 3vw, 4rem);
+      z-index: 1;
+
+      opacity: 0.9;
+    }
 
     @include mq(desktop-lg) {
       --padding: 35rem;

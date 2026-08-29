@@ -1,5 +1,6 @@
 ---
 import InkMountains from './InkMountains.astro'
+import InkBamboo from './InkBamboo.astro'
 import SenMark from './SenMark.astro'
 
 // Awards are nice, but they’re not the goal.
@@ -35,6 +36,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
 <section id="about" class="s-about" data-intersect>
   <InkMountains compact />
+  <InkBamboo class="s__bamboo" size={300} />
   <div class="s__inner js-inner">
     <div class="s__block s__block--about">
       <h2 class="s__title">关于</h2>
@@ -759,6 +761,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
     @include mq(phone) {
       --width: 80vw;
+    }
+
+    /* 竹影：倚在信笺左侧，「宁可食无肉，不可居无竹」 */
+    .s__bamboo {
+      bottom: 4rem;
+      left: clamp(0.25rem, 4vw, 6rem);
+      z-index: 1;
+
+      opacity: 0.9;
     }
 
     .s__inner {

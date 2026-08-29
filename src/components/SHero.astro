@@ -6,10 +6,14 @@ import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
 import StudioClock from './StudioClock.astro'
 import InkMountains from './InkMountains.astro'
+import InkMist from './InkMist.astro'
+import InkBamboo from './InkBamboo.astro'
 ---
 
 <div class="s-hero" data-intersect>
   <InkMountains />
+  <InkMist class="s__mist" />
+  <InkBamboo class="s__bamboo" size={280} flip />
   <AWaves class="s__waves" />
 
   <StudioClock />
@@ -514,6 +518,18 @@ import InkMountains from './InkMountains.astro'
 
       flex-grow: 1;
       flex-shrink: 1;
+    }
+
+    .s__mist {
+      z-index: 1;
+    }
+
+    .s__bamboo {
+      right: clamp(0.5rem, 3vw, 3rem);
+      bottom: -2rem;
+      z-index: 1;
+
+      opacity: 0.85;
     }
 
     .s__border {

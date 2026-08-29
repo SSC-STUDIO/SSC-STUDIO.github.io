@@ -1,0 +1,96 @@
+---
+/**
+ * InkMist — 水墨雾霭（横卷薄雾，多层淡墨叠加）
+ * 山脚云气意象：缓慢漂移 + 呼吸，不用 filter，纯 transform/opacity。
+ * currentColor 取色，随主题自动适配。
+ */
+type Props = {
+  class?: string
+}
+
+const { class: className } = Astro.props
+---
+
+<div class:list={['ink-mist', className]} aria-hidden="true">
+  <svg viewBox="0 0 1440 260" preserveAspectRatio="xMidYMid slice">
+    <ellipse class="ink-mist__layer ink-mist__layer--far" cx="380" cy="150" rx="420" ry="54"></ellipse>
+    <ellipse class="ink-mist__layer ink-mist__layer--mid" cx="900" cy="120" rx="480" ry="46"></ellipse>
+    <ellipse class="ink-mist__layer ink-mist__layer--near" cx="640" cy="190" rx="560" ry="40"></ellipse>
+  </svg>
+</div>
+
+<style lang="scss">
+  .ink-mist {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+
+    height: min(30vh, 15rem);
+
+    overflow: hidden;
+    pointer-events: none;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .ink-mist__layer {
+    fill: color(secondary);
+    transform-origin: center;
+
+    animation: mistDrift 22s ease-in-out infinite;
+
+    &--far {
+      opacity: 0.05;
+    }
+
+    &--mid {
+      opacity: 0.07;
+
+      animation-duration: 28s;
+      animation-delay: -8s;
+    }
+
+    &--near {
+      opacity: 0.1;
+
+      animation-duration: 34s;
+      animation-delay: -16s;
+    }
+  }
+
+  @keyframes mistDrift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-36px, -6px, 0) scale(1.06);
+    }
+  }
+
+  :global(.theme-contrasted) .ink-mist__layer {
+    &--far {
+      opacity: 0.1;
+    }
+
+    &--mid {
+      opacity: 0.14;
+    }
+
+    &--near {
+      opacity: 0.18;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-mist__layer {
+      animation: none;
+    }
+  }
+</style>

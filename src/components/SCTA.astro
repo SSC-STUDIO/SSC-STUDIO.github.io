@@ -1,5 +1,6 @@
 ---
 import InkMountains from './InkMountains.astro'
+import InkMist from './InkMist.astro'
 import SealMark from './SealMark.astro'
 import InkCloud from './InkCloud.astro'
 import InkLattice from './InkLattice.astro'
@@ -9,6 +10,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
 <section class="s-cta" data-intersect>
   <InkMountains />
+  <InkMist class="s__mist" />
   <InkCloud height={13} width="min(30rem, 72vw)" class="s__cloud" />
   <InkLattice size={168} class="s__lattice" />
   <div id="contact" class="s__inner js-container">
@@ -622,6 +624,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
     @include mq(phone) {
       padding-top: 21.6rem;
+    }
+
+    /* 山脚雾霭：压住远山脚线，垫在卷云之下 */
+    .s__mist {
+      z-index: 1;
     }
 
     /* 信笺云头：区块上端一抹卷云，收「窗下写信」之意 */

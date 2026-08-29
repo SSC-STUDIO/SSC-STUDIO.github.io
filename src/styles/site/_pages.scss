@@ -83,6 +83,18 @@
     margin: 1.4rem 0 0;
   }
 
+  /* 水波涟漪：君子条饰右下方一圈春水，「疏影横斜水清浅」 */
+  &__ripple {
+    bottom: clamp(0.75rem, 2vw, 1.75rem);
+    left: clamp(18rem, 42vw, 34rem);
+    z-index: 1;
+
+    @include mq(tablet-sm) {
+      left: auto;
+      right: clamp(1rem, 8vw, 6rem);
+    }
+  }
+
   &__side {
     position: absolute;
     top: 50%;
