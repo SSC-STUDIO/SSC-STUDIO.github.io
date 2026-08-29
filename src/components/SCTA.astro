@@ -107,6 +107,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 <script>
   import Emitter from '../utils/Emitter'
   import Ticker from '../utils/Ticker'
+  import { prefersReducedMotion } from '../utils/motion'
 
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -157,6 +158,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     constructor() {
       // Elements
       this.el = document.querySelector('.s-cta')
+
+      if (!this.el) {
+        return
+      }
+
       this.container = this.el.querySelector('.js-container')
       this.hover = this.el.querySelector('.js-hover')
       this.button = this.el.querySelector('.js-button')
@@ -397,6 +403,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
      * Create pulse timeline
      */
     createPulseTimeline() {
+      /* reduced-motion：不建无限脉冲时间线，按钮文字保持静止 */
+      if (prefersReducedMotion()) {
+        return
+      }
+
       const text = this.container.querySelector('.js-button-text')
 
       this.tl = gsap.timeline({

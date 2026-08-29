@@ -164,6 +164,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 <script>
   import Emitter from '../utils/Emitter'
   import Ticker from '../utils/Ticker'
+  import { prefersReducedMotion } from '../utils/motion'
 
   import { gsap } from 'gsap'
   import { SlowMo } from 'gsap/EasePack'
@@ -221,6 +222,11 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     constructor() {
       // Elements
       this.el = document.querySelector('.s-work')
+
+      if (!this.el) {
+        return
+      }
+
       this.container = this.el.querySelector('.js-container')
       this.ruler = this.el.querySelector('.js-ruler')
       this.scene = this.container.querySelector('.js-scene')
@@ -561,6 +567,17 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
      * Set timeline
      */
     setTimeline() {
+      /* reduced-motion：不绑定滚动 scrub，静态布局由 CSS 决定 */
+      if (prefersReducedMotion()) {
+        if (this.tl) {
+          this.tl.scrollTrigger?.kill()
+          this.tl.kill()
+          this.tl = null
+        }
+
+        return
+      }
+
       const { el, container, works, scene, mask } = this
 
       const worksEl = works.map((work) => work.el)

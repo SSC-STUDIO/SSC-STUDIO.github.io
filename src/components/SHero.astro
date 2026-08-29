@@ -49,6 +49,7 @@ import InkMountains from './InkMountains.astro'
 <script>
   import Emitter from '../utils/Emitter'
   import Ticker from '../utils/Ticker'
+  import { prefersReducedMotion } from '../utils/motion'
 
   import { gsap } from 'gsap'
 
@@ -267,6 +268,19 @@ import InkMountains from './InkMountains.astro'
       const chars = content.querySelectorAll('.char__inner')
       const separators = content.querySelectorAll('.js-separator')
       const star = content.querySelector('.js-star')
+
+      /* reduced-motion：跳过整段时间线，直接落终态 */
+      if (prefersReducedMotion()) {
+        lines.forEach((line: SVGPathElement) => {
+          line.style.strokeDasharray = ''
+          line.style.strokeDashoffset = ''
+        })
+
+        waves.dispatchEvent(new CustomEvent('introend'))
+        this.isWaiting = false
+
+        return
+      }
 
       try {
         const tl = gsap.timeline()
