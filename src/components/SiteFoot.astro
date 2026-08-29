@@ -4,6 +4,10 @@ import SenMark from './SenMark.astro'
 import InkMeander from './InkMeander.astro'
 import InkCloud from './InkCloud.astro'
 import InkKnot from './InkKnot.astro'
+import { getSolarTerm } from '../utils/solar-terms'
+
+// 构建时的节气作为无 JS 兜底；客户端脚本会用实时日期覆写
+const term = getSolarTerm()
 ---
 
 <footer class="site-foot">
@@ -28,6 +32,11 @@ import InkKnot from './InkKnot.astro'
     <InkKnot size={36} class="ink-knot--drift" />
   </p>
 
+  <p class="site-foot__term" data-solar-term data-season={term.season}>
+    <span class="site-foot__term-badge" data-term-name>今值{term.name}</span>
+    <span class="site-foot__term-line" data-term-line>{term.line}</span>
+  </p>
+
   <p class="site-foot__credit">
     © 2026 陈润森 · Chen Runsen<br />
     动效骨架参考 Antoine Wodniack / wodniack.dev（CC BY-NC 4.0），身份、文案与版式为重新设计。
@@ -42,6 +51,24 @@ import InkKnot from './InkKnot.astro'
     >
   </p>
 </footer>
+
+<script>
+  import { getSolarTerm } from '../utils/solar-terms'
+
+  // 用实时日期覆写构建时的节气兜底
+  const root = document.querySelector('[data-solar-term]')
+
+  if (root) {
+    const term = getSolarTerm()
+    const name = root.querySelector('[data-term-name]')
+    const line = root.querySelector('[data-term-line]')
+
+    root.setAttribute('data-season', term.season)
+
+    if (name) name.textContent = `今值${term.name}`
+    if (line) line.textContent = term.line
+  }
+</script>
 
 <style lang="scss">
   .site-foot {
@@ -94,6 +121,48 @@ import InkKnot from './InkKnot.astro'
     /* 盘长徽记：绳结系住云脚，淡紫入韵 */
     &__knot {
       margin: 0;
+    }
+
+    /* 节气信笺：今值某节气 + 物候短句，四季换徽 */
+    &__term {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.4rem 0.65rem;
+
+      margin: 0;
+
+      opacity: 0.85;
+    }
+
+    &__term-badge {
+      padding: 0.18rem 0.5rem;
+
+      background: color-mix(in srgb, #{color(accent)} 82%, #{color(primary)});
+      @include ink-pill;
+
+      color: color(primary);
+      font: 700 10px / 1.5 font-family(bigger);
+      letter-spacing: 0.14em;
+    }
+
+    &__term-line {
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+      font: 400 0.8rem / 1.5 font-family(bigger);
+      letter-spacing: 0.08em;
+    }
+
+    .site-foot__term[data-season='春'] .site-foot__term-badge {
+      background: color-mix(in srgb, #{color(mist)} 58%, #{color(secondary)});
+    }
+
+    .site-foot__term[data-season='夏'] .site-foot__term-badge {
+      background: color-mix(in srgb, #{color(indigo)} 72%, #{color(secondary)});
+    }
+
+    .site-foot__term[data-season='秋'] .site-foot__term-badge {
+      background: color-mix(in srgb, #{color(accent-strong)} 78%, #{color(secondary)});
     }
 
     &__credit {
