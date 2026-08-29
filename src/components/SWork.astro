@@ -565,13 +565,12 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       const worksEl = works.map((work) => work.el)
 
-      let { tl } = this
-
-      if (tl) {
-        tl.kill()
+      if (this.tl) {
+        this.tl.scrollTrigger?.kill()
+        this.tl.kill()
       }
 
-      tl = gsap.timeline({
+      const tl = (this.tl = gsap.timeline({
         scrollTrigger: {
           trigger: el,
           start: 'top 25%',
@@ -581,7 +580,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
         onUpdate: () => {
           scene.style.setProperty('--state', String(this.state))
         },
-      })
+      }))
 
       tl.fromTo(
         mask.el,

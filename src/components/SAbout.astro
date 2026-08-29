@@ -164,11 +164,16 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     constructor() {
       // Elements
       this.el = document.querySelector('.s-about')
+
+      if (!this.el) {
+        return
+      }
+
       this.inner = this.el.querySelector('.js-inner')
       this.svg = this.el.querySelector('.js-grid')
       this.path = this.el.querySelector('.js-path')
-      ;(this.canvas = document.querySelector('.js-canvas')),
-        (this.ctx = this.canvas.getContext('2d'))
+      this.canvas = this.el.querySelector('.js-canvas')
+      this.ctx = this.canvas ? this.canvas.getContext('2d') : null
       this.awards = this.el.querySelectorAll('.js-award')
 
       // Properties
