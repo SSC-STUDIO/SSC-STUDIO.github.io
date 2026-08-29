@@ -6,8 +6,9 @@
 @use '../helpers/colors' as *;
 @use '../helpers/responsive' as *;
 
-/* ── SPA 页面切换：水墨晕开 ──
-   旧页如墨入水（模糊淡出微缩），新页如纸上显影（去模糊浮现） */
+/* ── SPA 页面切换：卷轴展开 + 水墨晕开 ──
+   旧页如墨入水（模糊淡出微缩），
+   新页如手卷自轴心向两侧展开（clip-path 横向开卷）再显影 */
 ::view-transition-old(root) {
   animation: vt-ink-out 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
@@ -29,10 +30,16 @@
     opacity: 0;
     filter: blur(8px);
     transform: scale(1.005);
+    clip-path: inset(-8% 50% -8% 50%);
+  }
+
+  60% {
+    clip-path: inset(-8% 12% -8% 12%);
   }
 
   to {
     filter: blur(0);
+    clip-path: inset(-8% 0 -8% 0);
   }
 }
 
@@ -142,6 +149,33 @@ html.theme-animating :where(
 /* 页头印章水印：落章时刻 */
 .p-hero .seal-mark--watermark {
   animation: sealStamp 720ms 520ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
+}
+
+/* 落章之后的墨点涟漪：印章四周一圈朱砂微晕散开（配合 SealMark 内置涟漪环） */
+.p-hero .seal-mark--watermark .seal-mark__splash {
+  transform-box: view-box;
+  transform-origin: 32px 32px;
+
+  animation: sealSplash 860ms 1.08s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.p-hero .seal-mark--watermark .seal-mark__splash--soft {
+  animation-duration: 1.04s;
+  animation-delay: 1.16s;
+}
+
+@keyframes sealSplash {
+  0% {
+    opacity: 0;
+    transform: scale(0.42);
+  }
+  16% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
 }
 
 /* data-reveal 升级：上移淡入（覆盖 _shell.scss 原规则）
@@ -275,9 +309,14 @@ html.theme-animating :where(
   .p-hero__title,
   .p-hero__summary,
   .p-hero .seal-mark--watermark,
+  .p-hero .seal-mark--watermark .seal-mark__splash,
   .island-fade-in,
   .benchmark-target {
     animation: none;
+  }
+
+  .p-hero .seal-mark--watermark .seal-mark__splash {
+    opacity: 0;
   }
 
   .p-eco__link,
