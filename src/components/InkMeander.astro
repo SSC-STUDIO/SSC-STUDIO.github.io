@@ -10,10 +10,11 @@ type Props = {
   class?: string
 }
 
+import { uid } from '../utils/uid'
+
 const { height = 10, width = '100%', class: className } = Astro.props
 
-let meanderUid = 0
-const patternId = `ink-meander-${++meanderUid}`
+const patternId = uid('ink-meander')
 const scale = height / 24
 ---
 

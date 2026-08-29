@@ -9,7 +9,12 @@ type Props = {
   variant?: 'hero' | 'footer' | 'watermark' | 'dot';
 };
 
+import { uid } from '../utils/uid';
+
 const { size = 56, variant = 'hero' } = Astro.props;
+
+const gradientId = uid('seal-mark-red');
+const filterId = uid('seal-mark-ink');
 ---
 
 <svg
@@ -21,19 +26,19 @@ const { size = 56, variant = 'hero' } = Astro.props;
   aria-label="润森印章"
 >
   <defs>
-    <linearGradient id="seal-mark-red" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#d84a3a"></stop>
       <stop offset="55%" stop-color="#c03528"></stop>
       <stop offset="100%" stop-color="#a02a20"></stop>
     </linearGradient>
-    <filter id="seal-mark-ink" x="-8%" y="-8%" width="116%" height="116%">
+    <filter id={filterId} x="-8%" y="-8%" width="116%" height="116%">
       <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="7" result="n"
       ></feTurbulence>
       <feDisplacementMap in="SourceGraphic" in2="n" scale="1.7"></feDisplacementMap>
     </filter>
   </defs>
-  <g filter="url(#seal-mark-ink)">
-    <rect x="3" y="3" width="58" height="58" rx="7" fill="url(#seal-mark-red)"></rect>
+  <g filter={`url(#${filterId})`}>
+    <rect x="3" y="3" width="58" height="58" rx="7" fill={`url(#${gradientId})`}></rect>
     <rect
       x="8"
       y="8"

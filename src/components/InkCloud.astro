@@ -10,10 +10,11 @@ type Props = {
   class?: string
 }
 
+import { uid } from '../utils/uid'
+
 const { height = 14, width = '100%', class: className } = Astro.props
 
-let cloudUid = 0
-const patternId = `ink-cloud-${++cloudUid}`
+const patternId = uid('ink-cloud')
 const scale = height / 28
 ---
 

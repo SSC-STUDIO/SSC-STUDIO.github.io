@@ -9,10 +9,11 @@ type Props = {
   class?: string
 }
 
+import { uid } from '../utils/uid'
+
 const { size = 96, class: className } = Astro.props
 
-let latticeUid = 0
-const patternId = `ink-lattice-${++latticeUid}`
+const patternId = uid('ink-lattice')
 ---
 
 <svg
