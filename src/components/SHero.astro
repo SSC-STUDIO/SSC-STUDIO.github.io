@@ -1,11 +1,10 @@
 ---
-import AWaves from './AWaves.astro'
+import InkRidges from './InkRidges.astro'
 import ASeparator from './ASeparator.astro'
 import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
 import StudioClock from './StudioClock.astro'
-import InkMountains from './InkMountains.astro'
 import InkMist from './InkMist.astro'
 import InkBamboo from './InkBamboo.astro'
 import InkFish from './InkFish.astro'
@@ -14,13 +13,12 @@ import DateSeal from './DateSeal.astro'
 ---
 
 <div class="s-hero" data-intersect>
-  <InkMountains />
   <InkMist class="s__mist" />
   <InkBamboo class="s__bamboo" size={280} flip />
   <InkMoon class="s__moon" size={190} />
   <InkFish class="s__fish" size={200} />
   <DateSeal class="s__seal" />
-  <AWaves class="s__waves" />
+  <InkRidges class="s__waves" />
 
   <StudioClock />
 
@@ -99,48 +97,6 @@ import DateSeal from './DateSeal.astro'
         })
       },
     }
-  }
-
-  /**
-   * Prepare SVG paths for the draw animation (replaces DrawSVGPlugin)
-   */
-  function preparePaths(paths) {
-    paths.forEach((path) => {
-      if (typeof path.getTotalLength !== 'function') return
-
-      const length = path.getTotalLength()
-
-      path.style.strokeDasharray = `${length}`
-      path.style.strokeDashoffset = `${length}`
-    })
-  }
-
-  /**
-   * Draw SVG paths in
-   */
-  function drawPaths(paths, gsap, vars: gsap.TweenVars = {}) {
-    preparePaths(paths)
-
-    return gsap.fromTo(
-      paths,
-      {
-        strokeDashoffset: (index, path) =>
-          typeof path.getTotalLength === 'function'
-            ? path.getTotalLength()
-            : 1000,
-      },
-      {
-        strokeDashoffset: 0,
-        duration: 3,
-        ease: 'expo.out',
-        stagger: {
-          amount: 0.5,
-          from: 'edges',
-          ease: 'power3.inOut',
-        },
-        ...vars,
-      }
-    )
   }
 
   class Section {
@@ -265,7 +221,7 @@ import DateSeal from './DateSeal.astro'
         this.splitWords()
       }
 
-      const waves = this.el.querySelector('sen-waves')
+      const waves = this.el.querySelector('ink-ridges')
       const content = this.el.querySelector('.js-content')
 
       if (!waves || !content) {
@@ -273,7 +229,6 @@ import DateSeal from './DateSeal.astro'
         return
       }
 
-      const lines = waves.querySelectorAll('.js-line')
       const border = this.el.querySelector('.js-border')
       const chars = content.querySelectorAll('.char__inner')
       const separators = content.querySelectorAll('.js-separator')
@@ -281,11 +236,6 @@ import DateSeal from './DateSeal.astro'
 
       /* reduced-motion：跳过整段时间线，直接落终态 */
       if (prefersReducedMotion()) {
-        lines.forEach((line: SVGPathElement) => {
-          line.style.strokeDasharray = ''
-          line.style.strokeDashoffset = ''
-        })
-
         waves.dispatchEvent(new CustomEvent('introend'))
         this.isWaiting = false
 
@@ -295,24 +245,14 @@ import DateSeal from './DateSeal.astro'
       try {
         const tl = gsap.timeline()
 
-        drawPaths(lines, gsap, {
-          duration: 2.5,
-          ease: 'expo.out',
-        })
-
-        tl.add(() => {}, 0.5)
-
+        /* 远山显影自理（InkRidges 收到信号后自行升起） */
         tl.call(
           () => {
             waves.dispatchEvent(new CustomEvent('introend'))
           },
           null,
-          '-=1'
+          0.35
         )
-
-        gsap.set(waves, {
-          y: 0,
-        })
 
         tl.to(
           border,

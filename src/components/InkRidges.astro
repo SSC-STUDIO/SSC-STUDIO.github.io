@@ -1,0 +1,446 @@
+---
+/**
+ * InkRidges — 水墨远山（首屏交互画布）
+ *
+ * 四叠山脊由自研值噪声（motion/field）铺出，远淡近浓、平铺积墨；
+ * 指针如风拂过，脊线被轻轻托起又弹回（分层触感：只扰动指下那一叠），
+ * 点按则激起一圈更大的山风。整山随时间极缓地漂移，如雾中换景。
+ * 显影由 SHero 的 introend 信号触发：山自雾底缓缓升起。
+ */
+const { class: className } = Astro.props
+---
+
+<ink-ridges class:list={className} data-intersect>
+  <canvas class="js-canvas" aria-hidden="true"></canvas>
+</ink-ridges><!-- .ink-ridges -->
+
+<script>
+  import {
+    onFrame,
+    onResize,
+    onPointer,
+    onThemeFlip,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+  import { createField, type Field2D } from '../motion/field'
+
+  /**
+   * 山层配置（远 → 近）：
+   * base = 山脚基线（占高度比例）；amp = 峰高（占高度比例）
+   * scale = 横向大约铺几个山团；drift = 噪声漂移速度（越大漂越快）
+   * alpha = 墨色浓度；line = 脊线粗细
+   */
+  const LAYERS = [
+    { base: 0.54, amp: 0.11, scale: 1.7, drift: 0.35, alpha: 0.13, line: 1 },
+    { base: 0.66, amp: 0.14, scale: 2.2, drift: 0.55, alpha: 0.2, line: 1.1 },
+    { base: 0.78, amp: 0.18, scale: 2.8, drift: 0.8, alpha: 0.3, line: 1.25 },
+    { base: 0.92, amp: 0.21, scale: 3.5, drift: 1.1, alpha: 0.44, line: 1.4 },
+  ]
+
+  /** 采样列宽（px）：列越密越顺滑，也越费 */
+  const STEP = 7
+  /** 弹簧回正刚度 / 阻尼 / 位移钳制 */
+  const SPRING = 0.045
+  const DAMPING = 0.9
+  const MAX_DISP = 46
+  /** 显影时长（ms） */
+  const REVEAL_MS = 1500
+
+  type RGB = { r: number; g: number; b: number }
+
+  function hexToRgb(hex: string): RGB | null {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+    if (!m) return null
+
+    const n = parseInt(m[1], 16)
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
+  }
+
+  function easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3)
+  }
+
+  class InkRidges extends HTMLElement {
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+    field: Field2D
+
+    width = 0
+    height = 0
+    cols = 0
+
+    /** 每层每列的脊线位移与速度（风拂弹簧） */
+    disp: Float32Array[] = []
+    vel: Float32Array[] = []
+
+    ink: RGB = { r: 28, g: 42, b: 34 }
+    paper: RGB = { r: 244, g: 234, b: 216 }
+    /** 暗色主题下淡墨提一档浓度，否则夜里看不清山 */
+    boost = 1
+
+    reduced = false
+    paused = true
+    revealing = false
+    reveal = 0
+    revealStart = 0
+    lastTime = 0
+
+    /** 指针（元素局部坐标），px/py 为缓动后的游点位置 */
+    pointer = { x: -9999, y: -9999, lx: -9999, ly: -9999, px: -9999, py: 0 }
+
+    stops: Cleanup[] = []
+    stopFrame: Cleanup | null = null
+    revealFallback = 0
+
+    connectedCallback() {
+      this.canvas = this.querySelector('.js-canvas')
+      const ctx = this.canvas?.getContext('2d')
+
+      if (!this.canvas || !ctx) return
+
+      this.ctx = ctx
+      this.field = createField(Math.random())
+      this.reduced = prefersReducedMotion()
+
+      this.sampleColors()
+      this.resize()
+
+      this.stops.push(onResize(() => this.resize()))
+      this.stops.push(
+        onThemeFlip(() => {
+          this.sampleColors()
+          if (!this.stopFrame) this.paint(performance.now())
+        })
+      )
+
+      if (!this.reduced) {
+        this.stops.push(onPointer(({ x, y }) => this.stir(x, y)))
+        this.addEventListener('pointerdown', this.onTap, { passive: true })
+      }
+
+      this.addEventListener('intersect', this.onIntersect as EventListener, {
+        passive: true,
+      })
+      this.addEventListener('introend', this.onIntroEnd, { once: true })
+
+      /* introend 迟迟不来（开场被跳过/中断）也要显影 */
+      this.revealFallback = window.setTimeout(() => this.beginReveal(), 4000)
+
+      this.paint(performance.now())
+    }
+
+    disconnectedCallback() {
+      window.clearTimeout(this.revealFallback)
+      this.suspend()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    onIntroEnd = () => {
+      this.beginReveal()
+    }
+
+    onIntersect = (e: CustomEvent) => {
+      this.paused = !e.detail?.isIntersecting
+
+      if (this.paused) {
+        this.suspend()
+      } else {
+        this.resume()
+      }
+    }
+
+    onTap = (e: PointerEvent) => {
+      const rect = this.getBoundingClientRect()
+      this.poke(e.clientX - rect.left, e.clientY - rect.top, 8.5, 170)
+    }
+
+    /** 山从雾底升起 */
+    beginReveal() {
+      if (this.revealing || this.reveal >= 1) return
+
+      window.clearTimeout(this.revealFallback)
+      this.revealing = true
+      this.revealStart = performance.now()
+      this.classList.add('is-interactive')
+
+      if (this.reduced) {
+        this.reveal = 1
+        this.paint(performance.now())
+        return
+      }
+
+      this.resume()
+    }
+
+    resume() {
+      if (this.stopFrame || this.reduced) return
+      this.stopFrame = onFrame((time) => this.paint(time))
+    }
+
+    suspend() {
+      this.stopFrame?.()
+      this.stopFrame = null
+    }
+
+    resize() {
+      const width = this.clientWidth
+      const height = this.clientHeight
+
+      if (!width || !height) return
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+      this.canvas.width = Math.round(width * dpr)
+      this.canvas.height = Math.round(height * dpr)
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+      this.width = width
+      this.height = height
+      this.cols = Math.ceil(width / STEP) + 2
+
+      this.disp = LAYERS.map(() => new Float32Array(this.cols))
+      this.vel = LAYERS.map(() => new Float32Array(this.cols))
+
+      if (!this.stopFrame) this.paint(performance.now())
+    }
+
+    sampleColors() {
+      const css = getComputedStyle(this)
+      this.ink =
+        hexToRgb(css.getPropertyValue('--color-secondary')) ?? this.ink
+      this.paper =
+        hexToRgb(css.getPropertyValue('--color-primary')) ?? this.paper
+      this.boost = document.documentElement.classList.contains(
+        'theme-contrasted'
+      )
+        ? 1.45
+        : 1
+    }
+
+    /** 某层脊线的静态高度（未加风拂位移） */
+    ridgeY(layerIndex: number, x: number, time: number): number {
+      const layer = LAYERS[layerIndex]
+      const nx =
+        (x / Math.max(this.width, 1)) * layer.scale +
+        time * layer.drift * 0.00002
+
+      /* 第二维取每层各自的常数：同一片场里切出四条互不相同的山线 */
+      const v = this.field.fbm(nx, layerIndex * 7.3 + 2.17, 3)
+
+      return (
+        this.height * layer.base -
+        (0.5 + 0.5 * v) * layer.amp * this.height
+      )
+    }
+
+    /** 全局指针驱动的风拂（进入元素范围附近才生效） */
+    stir(clientX: number, clientY: number) {
+      const rect = this.getBoundingClientRect()
+      const x = clientX - rect.left
+      const y = clientY - rect.top
+      const p = this.pointer
+
+      const hadLast = p.lx > -9000
+      const dx = hadLast ? x - p.lx : 0
+      const dy = hadLast ? y - p.ly : 0
+
+      p.lx = x
+      p.ly = y
+      p.x = x
+      p.y = y
+
+      if (x < -80 || x > this.width + 80 || y < -80 || y > this.height + 80) {
+        return
+      }
+
+      const speed = Math.min(Math.hypot(dx, dy), 42)
+      if (speed < 0.6) return
+
+      this.poke(x, y, speed * 0.14, 100)
+    }
+
+    /**
+     * 向脊线施力：横向高斯衰减；纵向只扰动脊线贴近指针的那几叠，
+     * 方向永远推离指针 —— 风从指下过，山向两旁让。
+     */
+    poke(x: number, y: number, force: number, radius: number) {
+      if (this.reduced || !this.cols) return
+
+      const sigmaX = radius * 0.55
+      const sigmaY = 78
+
+      const colFrom = Math.max(0, Math.floor((x - radius) / STEP))
+      const colTo = Math.min(this.cols - 1, Math.ceil((x + radius) / STEP))
+
+      for (let li = 0; li < LAYERS.length; li++) {
+        const disp = this.disp[li]
+        const vel = this.vel[li]
+
+        for (let col = colFrom; col <= colTo; col++) {
+          const cx = col * STEP
+          const ry = this.ridgeY(li, cx, this.lastTime) + disp[col]
+
+          const gx = Math.exp(-((cx - x) ** 2) / (2 * sigmaX * sigmaX))
+          const gy = Math.exp(-((ry - y) ** 2) / (2 * sigmaY * sigmaY))
+          const dir = ry > y ? 1 : -1
+
+          vel[col] += dir * force * gx * gy
+        }
+      }
+    }
+
+    paint(time: number) {
+      const { ctx, width, height } = this
+      if (!width || !height) return
+
+      this.lastTime = time
+
+      /* 显影推进 */
+      if (this.revealing && this.reveal < 1) {
+        this.reveal = Math.min((time - this.revealStart) / REVEAL_MS, 1)
+      }
+      const eased = easeOutCubic(this.reveal)
+      const rise = (1 - eased) * 38
+
+      ctx.clearRect(0, 0, width, height)
+
+      const { r, g, b } = this.ink
+
+      for (let li = 0; li < LAYERS.length; li++) {
+        const layer = LAYERS[li]
+        const disp = this.disp[li]
+        const vel = this.vel[li]
+
+        /* 弹簧回正 */
+        if (!this.reduced) {
+          for (let col = 0; col < this.cols; col++) {
+            vel[col] += -SPRING * disp[col]
+            vel[col] *= DAMPING
+            disp[col] += vel[col]
+
+            if (disp[col] > MAX_DISP) disp[col] = MAX_DISP
+            else if (disp[col] < -MAX_DISP) disp[col] = -MAX_DISP
+          }
+        }
+
+        /* 铺山：脊线折线 + 直落画底的积墨填充 */
+        ctx.beginPath()
+
+        for (let col = 0; col < this.cols; col++) {
+          const x = Math.min(col * STEP, width)
+          const y = this.ridgeY(li, x, time) + disp[col] + rise
+
+          if (col === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+
+        const fill = Math.min(layer.alpha * this.boost, 0.6) * eased
+
+        ctx.lineTo(width, height)
+        ctx.lineTo(0, height)
+        ctx.closePath()
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fill * 0.5})`
+        ctx.fill()
+
+        /* 描脊：比填充浓一档 */
+        ctx.beginPath()
+
+        for (let col = 0; col < this.cols; col++) {
+          const x = Math.min(col * STEP, width)
+          const y = this.ridgeY(li, x, time) + disp[col] + rise
+
+          if (col === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${Math.min(fill + 0.16, 0.62)})`
+        ctx.lineWidth = layer.line
+        ctx.stroke()
+      }
+
+      /* 雾脚：画底一带渐入纸色，山脚融进雾里 */
+      const mist = ctx.createLinearGradient(0, height * 0.72, 0, height)
+      const paper = this.paper
+      mist.addColorStop(0, `rgba(${paper.r}, ${paper.g}, ${paper.b}, 0)`)
+      mist.addColorStop(1, `rgba(${paper.r}, ${paper.g}, ${paper.b}, ${0.55 * eased})`)
+      ctx.fillStyle = mist
+      ctx.fillRect(0, height * 0.72, width, height * 0.28)
+
+      /* 朱砂游点缓动跟随 */
+      const p = this.pointer
+      if (p.x > -9000) {
+        if (p.px < -9000) {
+          p.px = p.x
+          p.py = p.y
+        } else {
+          p.px += (p.x - p.px) * 0.16
+          p.py += (p.y - p.py) * 0.16
+        }
+
+        this.style.setProperty('--x', `${p.px}px`)
+        this.style.setProperty('--y', `${p.py}px`)
+      }
+    }
+  }
+
+  if (!customElements.get('ink-ridges')) {
+    customElements.define('ink-ridges', InkRidges)
+  }
+</script>
+
+<style lang="scss">
+  ink-ridges {
+    --x: -10rem;
+    --y: 50%;
+
+    position: relative;
+
+    display: block;
+
+    overflow: hidden;
+
+    canvas {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 朱砂游点：一粒印泥随指而行 */
+    &::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+
+      width: 0.6rem;
+      height: 0.42rem;
+
+      background: var(--daypart-lamp, #{color(accent)});
+      border-radius: 55% 45% 60% 40% / 55% 50% 50% 45%;
+      box-shadow: 0 0 0 0.22rem
+        color-mix(in srgb, var(--daypart-lamp, var(--color-accent)) 26%, transparent);
+
+      transform: translate3d(calc(var(--x) - 50%), calc(var(--y) - 50%), 0);
+      opacity: 0;
+
+      transition: opacity 0.35s ease;
+
+      content: '';
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    &.is-interactive::before {
+      opacity: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &::before {
+        display: none;
+      }
+    }
+  }
+</style>
