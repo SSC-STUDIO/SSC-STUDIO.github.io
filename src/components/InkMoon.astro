@@ -1,0 +1,179 @@
+---
+/**
+ * InkMoon — 望月窗（月洞门）
+ * 「明月松间照」意象：圆窗之内一轮满月，棂条横斜，云气缓缓过窗。
+ * 窗内月盘用 clipPath 裁切，云片只在窗内可见；currentColor 取色。
+ */
+import { uid } from '../utils/uid'
+
+type Props = {
+  size?: number
+  class?: string
+}
+
+const { size = 200, class: className } = Astro.props
+
+// 同页多实例需唯一 id，否则 clipPath / 渐变会互相覆盖
+const windowId = uid('ink-moon-window')
+const discId = uid('ink-moon-disc')
+---
+
+<div
+  class:list={['ink-moon', className]}
+  style={`width:${size}px;height:${size}px`}
+  aria-hidden="true"
+>
+  <svg viewBox="0 0 200 200">
+    <defs>
+      <clipPath id={windowId}>
+        <circle cx="100" cy="100" r="76"></circle>
+      </clipPath>
+      <radialGradient id={discId} cx="38%" cy="34%" r="72%">
+        <stop offset="0%" stop-color="var(--color-primary)"></stop>
+        <stop offset="72%" stop-color="var(--color-accent-muted)"></stop>
+        <stop offset="100%" stop-color="var(--color-secondary)"></stop>
+      </radialGradient>
+    </defs>
+
+    {/* 窗内：月盘 + 月面淡影 */}
+    <g clip-path={`url(#${windowId})`}>
+      <circle cx="100" cy="100" r="76" fill="var(--color-primary)"></circle>
+      <circle
+        class="ink-moon__disc"
+        cx="94"
+        cy="88"
+        r="42"
+        fill={`url(#${discId})`}></circle>
+      <circle
+        class="ink-moon__crater"
+        cx="82"
+        cy="76"
+        r="7"></circle>
+      <circle
+        class="ink-moon__crater"
+        cx="104"
+        cy="98"
+        r="5"></circle>
+      <circle
+        class="ink-moon__crater"
+        cx="88"
+        cy="104"
+        r="3.4"></circle>
+
+      {/* 过窗云气 */}
+      <g class="ink-moon__cloud">
+        <ellipse cx="70" cy="118" rx="58" ry="11"></ellipse>
+        <ellipse cx="140" cy="132" rx="46" ry="9"></ellipse>
+      </g>
+    </g>
+
+    {/* 窗棂：方格 + 冰裂斜撑 */}
+    <g class="ink-moon__lattice">
+      <circle cx="100" cy="100" r="76" fill="none"></circle>
+      <path d="M100 24 V176 M24 100 H176"></path>
+      <path d="M46 46 L154 154 M154 46 L46 154" opacity="0.55"></path>
+    </g>
+
+    {/* 窗框双圈：外浓内淡，如木框包边 */}
+    <circle class="ink-moon__frame" cx="100" cy="100" r="80" fill="none"></circle>
+    <circle class="ink-moon__frame-outer" cx="100" cy="100" r="88" fill="none"></circle>
+  </svg>
+</div>
+
+<style lang="scss">
+  .ink-moon {
+    position: absolute;
+    pointer-events: none;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+  }
+
+  .ink-moon__disc {
+    animation: moonBreathe 12s ease-in-out infinite;
+  }
+
+  .ink-moon__crater {
+    fill: var(--color-secondary);
+    opacity: 0.1;
+  }
+
+  .ink-moon__cloud ellipse {
+    fill: var(--color-primary);
+    opacity: 0.55;
+
+    animation: moonCloud 26s ease-in-out infinite;
+  }
+
+  .ink-moon__cloud ellipse:last-child {
+    opacity: 0.42;
+    animation-duration: 32s;
+    animation-delay: -9s;
+  }
+
+  .ink-moon__lattice {
+    fill: none;
+    stroke: color(secondary);
+    stroke-width: 1.6;
+    opacity: 0.4;
+  }
+
+  .ink-moon__frame {
+    stroke: color(secondary);
+    stroke-width: 3;
+    opacity: 0.55;
+  }
+
+  .ink-moon__frame-outer {
+    stroke: color(secondary);
+    stroke-width: 1;
+    opacity: 0.25;
+  }
+
+  @keyframes moonBreathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      transform: scale(1.03);
+      opacity: 1;
+    }
+  }
+
+  @keyframes moonCloud {
+    0%,
+    100% {
+      transform: translate3d(-14px, 0, 0);
+    }
+    50% {
+      transform: translate3d(22px, -3px, 0);
+    }
+  }
+
+  :global(.theme-contrasted) {
+    .ink-moon__lattice {
+      opacity: 0.52;
+    }
+
+    .ink-moon__frame {
+      opacity: 0.68;
+    }
+
+    .ink-moon__cloud ellipse {
+      opacity: 0.3;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-moon__disc,
+    .ink-moon__cloud ellipse {
+      animation: none;
+    }
+  }
+</style>

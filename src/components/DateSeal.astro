@@ -1,0 +1,175 @@
+---
+/**
+ * DateSeal — 朱砂日戳
+ * 「今日」的一方印：中文数字纪年 + 农历式月日 + 当期节气。
+ * 与右上角 StudioClock 成对角呼应，构成 Hero 的时间坐标系。
+ * 构建时渲染兜底值，客户端脚本再用实时日期覆写。
+ */
+import { getSolarTerm } from '../utils/solar-terms'
+
+const WEEKDAY_CN = ['日', '一', '二', '三', '四', '五', '六']
+const NUMERALS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+
+/** 数字 → 中文数字（2026 → 二〇二六） */
+function toChineseNumber(value: number): string {
+  return String(value)
+    .split('')
+    .map((digit) => NUMERALS[Number(digit)] ?? digit)
+    .join('')
+}
+
+/** 月/日 → 传统写法（7 → 七月，16 → 十六） */
+function toChineseMonthDay(value: number, isMonth: boolean): string {
+  if (isMonth) {
+    if (value === 1) return '正月'
+    if (value === 12) return '腊月'
+    return `${value === 11 ? '十' : NUMERALS[value]}月`
+  }
+
+  if (value <= 10) return NUMERALS[value]
+  if (value < 20) return `十${value % 10 === 0 ? '' : NUMERALS[value % 10]}`
+  if (value === 20) return '二十'
+  if (value < 30) return `廿${value % 10 === 0 ? '' : NUMERALS[value % 10]}`
+  if (value === 30) return '三十'
+  return `三十${NUMERALS[value % 10]}`
+}
+
+const now = new Date()
+
+const yearCn = toChineseNumber(now.getFullYear())
+const monthCn = toChineseMonthDay(now.getMonth() + 1, true)
+const dayCn = toChineseMonthDay(now.getDate(), false)
+const weekdayCn = WEEKDAY_CN[now.getDay()]
+const term = getSolarTerm(now)
+---
+
+<div class="date-seal" data-date-seal>
+  <span class="date-seal__label">今日</span>
+  <span class="date-seal__year" data-seal-year>{yearCn}年</span>
+  <span class="date-seal__day" data-seal-day>{monthCn}{dayCn}</span>
+  <span class="date-seal__week" data-seal-week>星期{weekdayCn}</span>
+  <span class="date-seal__term" data-seal-term>{term.name}</span>
+</div>
+
+<script>
+  import { getSolarTerm } from '../utils/solar-terms'
+
+  const WEEKDAY_CN = ['日', '一', '二', '三', '四', '五', '六']
+  const NUMERALS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+
+  function toChineseNumber(value: number): string {
+    return String(value)
+      .split('')
+      .map((d) => NUMERALS[Number(d)] ?? d)
+      .join('')
+  }
+
+  function toChineseMonthDay(value: number, isMonth: boolean): string {
+    if (isMonth) {
+      if (value === 1) return '正月'
+      if (value === 12) return '腊月'
+      return `${value === 11 ? '十' : NUMERALS[value]}月`
+    }
+
+    if (value <= 10) return NUMERALS[value]
+    if (value < 20) return `十${value % 10 === 0 ? '' : NUMERALS[value % 10]}`
+    if (value === 20) return '二十'
+    if (value < 30) return `廿${value % 10 === 0 ? '' : NUMERALS[value % 10]}`
+    if (value === 30) return '三十'
+    return `三十${NUMERALS[value % 10]}`
+  }
+
+  const root = document.querySelector('[data-date-seal]')
+
+  if (root) {
+    const now = new Date()
+
+    const set = (key: string, text: string) => {
+      const el = root.querySelector(`[data-seal-${key}]`)
+      if (el) el.textContent = text
+    }
+
+    set('year', `${toChineseNumber(now.getFullYear())}年`)
+    set(
+      'day',
+      `${toChineseMonthDay(now.getMonth() + 1, true)}${toChineseMonthDay(
+        now.getDate(),
+        false
+      )}`
+    )
+    set('week', `星期${WEEKDAY_CN[now.getDay()]}`)
+    set('term', getSolarTerm(now).name)
+  }
+</script>
+
+<style lang="scss">
+  .date-seal {
+    @include flex(column, center, center);
+
+    position: absolute;
+    z-index: 6;
+
+    width: 3.4rem;
+    padding: 0.5rem 0.25rem 0.4rem;
+
+    @include ink-hairline;
+    @include ink-pill;
+
+    background: color-mix(in srgb, #{color(primary)} 62%, transparent);
+    backdrop-filter: blur(6px);
+
+    color: color(secondary);
+
+    /* 印章略斜，如随手钤下 */
+    transform: rotate(-3deg);
+    transform-origin: center;
+
+    &__label {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 8px / 1 font-family(fraktion);
+      letter-spacing: 0.24em;
+    }
+
+    &__year {
+      margin-top: 0.3rem;
+
+      font: 400 0.6rem / 1.2 font-family(bigger);
+      letter-spacing: 0.06em;
+    }
+
+    &__day {
+      margin-top: 0.15rem;
+
+      color: color(accent);
+      font: 700 0.95rem / 1.2 font-family(bigger);
+      letter-spacing: 0.02em;
+      writing-mode: horizontal-tb;
+    }
+
+    &__week {
+      margin-top: 0.2rem;
+
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+      font: 400 0.55rem / 1.2 font-family(editorial);
+    }
+
+    &__term {
+      margin-top: 0.35rem;
+
+      padding: 0.1rem 0.3rem;
+
+      background: color(accent);
+      @include ink-pill;
+
+      color: color(primary);
+      font: 700 8px / 1.5 font-family(bigger);
+      letter-spacing: 0.1em;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .date-seal {
+      transform: none;
+    }
+  }
+</style>

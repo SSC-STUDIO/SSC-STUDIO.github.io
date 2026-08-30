@@ -8,12 +8,18 @@ import StudioClock from './StudioClock.astro'
 import InkMountains from './InkMountains.astro'
 import InkMist from './InkMist.astro'
 import InkBamboo from './InkBamboo.astro'
+import InkFish from './InkFish.astro'
+import InkMoon from './InkMoon.astro'
+import DateSeal from './DateSeal.astro'
 ---
 
 <div class="s-hero" data-intersect>
   <InkMountains />
   <InkMist class="s__mist" />
   <InkBamboo class="s__bamboo" size={280} flip />
+  <InkMoon class="s__moon" size={190} />
+  <InkFish class="s__fish" size={200} />
+  <DateSeal class="s__seal" />
   <AWaves class="s__waves" />
 
   <StudioClock />
@@ -530,6 +536,57 @@ import InkBamboo from './InkBamboo.astro'
       z-index: 1;
 
       opacity: 0.85;
+    }
+
+    /* 望月窗：左侧开窗，与右侧竹影对望 */
+    .s__moon {
+      top: 42%;
+      left: clamp(0.5rem, 3vw, 3.5rem);
+      z-index: 1;
+
+      opacity: 0.9;
+
+      @include mq(tablet) {
+        top: auto;
+        bottom: 8rem;
+        left: -2.5rem;
+
+        opacity: 0.5;
+      }
+
+      @include mq(phone) {
+        display: none;
+      }
+    }
+
+    /* 游鱼：贴着水波缓游 */
+    .s__fish {
+      bottom: clamp(3rem, 9vh, 7rem);
+      left: clamp(6rem, 22vw, 20rem);
+      z-index: 2;
+
+      opacity: 0.9;
+
+      @include mq(tablet-sm) {
+        left: 2rem;
+        opacity: 0.6;
+      }
+
+      @include mq(phone) {
+        display: none;
+      }
+    }
+
+    /* 日戳：与右上角时钟成对角 */
+    .s__seal {
+      top: 84px;
+      left: clamp(16px, 4vw, 48px);
+      z-index: 6;
+
+      @include mq(phone) {
+        top: 64px;
+        left: 1rem;
+      }
     }
 
     .s__border {
