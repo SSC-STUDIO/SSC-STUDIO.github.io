@@ -3,6 +3,10 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import reposData from '@/data/github-repos.json'
+
+/** GitHub 数据由 `npm run sync:repos` 生成（构建期静态，不占用运行时配额） */
+const repos = reposData.repos
 
 const projects = [
   {
@@ -120,6 +124,60 @@ const projects = [
         ))
       }
     </div>
+  </main>
+
+  <main class="p-page p-page--wide">
+    <section class="p-gh" data-reveal>
+      <div class="p-gh__head">
+        <span class="p-gh__kicker">open source · 开源</span>
+        <h2 class="p-gh__title">GitHub 仓库</h2>
+        <p class="p-gh__summary">
+          {reposData.count} 个公开仓库，来自
+          <a
+            href={`https://github.com/${reposData.user}`}
+            target="_blank"
+            rel="noopener noreferrer">@{reposData.user}</a
+          >；数据由构建期同步，最后更新 {reposData.generatedAt.slice(0, 10)}。
+        </p>
+      </div>
+
+      <div class="p-grid p-grid--stagger">
+        {
+          repos.map((repo) => (
+            <PageCard
+              href={repo.url}
+              external
+              kicker={repo.archived ? 'archived · 已归档' : 'github'}
+              id={`★ ${repo.stars}`}
+              title={repo.title}
+            >
+              <p class="p-gh__name">{repo.fullName}</p>
+              <p>{repo.summary}</p>
+              <p class="p-gh__meta">
+                {repo.language && <span>{repo.language}</span>}
+                <span>更新于 {repo.pushedAt}</span>
+                {repo.license && <span>{repo.license}</span>}
+              </p>
+              {repo.homepage && (
+                <a
+                  class="p-gh__home"
+                  href={repo.homepage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  项目主页 ↗
+                </a>
+              )}
+              <div class="p-card__tags">
+                {repo.tags.map((tag) => (
+                  <span class="p-card__tag">{tag}</span>
+                ))}
+              </div>
+            </PageCard>
+          ))
+        }
+      </div>
+    </section>
   </main>
 
   <PageFoot current="/projects" />

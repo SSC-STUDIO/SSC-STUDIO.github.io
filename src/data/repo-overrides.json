@@ -1,0 +1,47 @@
+{
+  "_comment": "GitHub 仓库的人工润色层：中文名/摘要/标签/排序。重新运行 npm run sync:repos 不会覆盖这里。order 越小越靠前；hidden 可隐藏；include 可强制纳入 fork。",
+  "repos": {
+    "UniversalDeviceToolkit": {
+      "order": 1,
+      "title": "通用设备工具箱",
+      "summary": "联想拯救者 Vantage 的开源替代：Fn+Q 性能模式、RGB 灯效、风扇曲线与独显控制。无需登录、无遥测，插件体系可扩展到其它 Windows 机型。",
+      "tags": ["TypeScript", "Electron", "C#", "硬件控制", "Windows"]
+    },
+    "GreedySnake-2026": {
+      "order": 2,
+      "title": "贪吃蛇 2026",
+      "summary": "Godot 4.6 做的 Roguelite 竞技场生存贪吃蛇：5 种模式、24 项升级、10 套流派构筑、4 种诅咒变体、29 个成就与 60 余种特效，中英双语。",
+      "tags": ["GDScript", "Godot 4", "Roguelite", "游戏开发"]
+    },
+    "Ai-Model-Gateway": {
+      "order": 3,
+      "title": "AI 模型网关",
+      "summary": "自托管的大模型运维网关：模型路由、故障回退、限流、遥测观测、基准评测，以及配置发布、更新与回滚。",
+      "tags": ["Go", "LLM Ops", "自托管", "可观测性"]
+    },
+    "Multi-Board-Game-Collection": {
+      "order": 4,
+      "title": "多棋类合集",
+      "summary": "浏览器里的多款棋类小游戏合集，把规则、对局与复盘做成一个可以随手打开的页面。",
+      "tags": ["JavaScript", "棋类", "小游戏"]
+    },
+    "Plants-Disease-Detection": {
+      "order": 5,
+      "title": "植物病害识别",
+      "summary": "开放的植物病害分类工具包：可复现的 PyTorch 训练流程、数据集溯源整理与配套教学材料。已归档，作为 CV 入门实验留存。",
+      "tags": ["Python", "PyTorch", "计算机视觉", "已归档"]
+    },
+    "Home-Cloud-Server": {
+      "order": 6,
+      "title": "家庭云服务器",
+      "summary": "基于 Flask 的家庭服务器系统，把家里的机器变成能管文件、能跑服务的私有节点。已归档。",
+      "tags": ["Python", "Flask", "自托管", "已归档"]
+    },
+    "scoop-bucket": {
+      "order": 7,
+      "title": "Scoop 软件源",
+      "summary": "自建的 Scoop bucket，用来分发和维护 SSC-STUDIO 的 Windows 软件包清单。",
+      "tags": ["Scoop", "包管理", "Windows"]
+    }
+  }
+}

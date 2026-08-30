@@ -2,13 +2,15 @@
 interface Props {
   /** when set the card renders as a link */
   href?: string
+  /** external links open in a new tab with rel hardening */
+  external?: boolean
   kicker?: string
   id?: string
   title: string
   class?: string
 }
 
-const { href, kicker, id, title, class: className } = Astro.props
+const { href, external, kicker, id, title, class: className } = Astro.props
 
 const Tag = href ? 'a' : 'article'
 ---
@@ -17,6 +19,9 @@ const Tag = href ? 'a' : 'article'
   class:list={['p-card', className]}
   data-reveal="true"
   {...(href ? { href } : {})}
+  {...(href && external
+    ? { target: '_blank', rel: 'noopener noreferrer' }
+    : {})}
 >
   <div class="p-card__head">
     {kicker && <span class="p-card__kicker">{kicker}</span>}
