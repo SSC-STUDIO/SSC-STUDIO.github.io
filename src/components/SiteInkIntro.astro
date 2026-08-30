@@ -1,0 +1,186 @@
+---
+/**
+ * SiteInkIntro — 研墨开卷（首页入场层）
+ *
+ * 三幕布景：墨滴洇开、「润森」印钤下与竖排落款、卷帘上收。
+ * 编排逻辑在 src/motion/ink-intro.ts，由壳层在首次硬加载时调用；
+ * 看过一次（sessionStorage）或减少动态时整层直接撤走。
+ */
+import SealMark from './SealMark.astro'
+---
+
+<div class="ink-intro js-intro" aria-hidden="true">
+  <div class="ink-intro__sheet js-intro-sheet">
+    <div class="ink-intro__blot js-intro-blot"></div>
+
+    <div class="ink-intro__mark js-intro-mark">
+      <SealMark size={72} variant="hero" />
+    </div>
+
+    <p class="ink-intro__name js-intro-name">陈润森</p>
+  </div>
+
+  <div class="ink-intro__rod js-intro-rod"></div>
+</div><!-- .ink-intro -->
+
+<style lang="scss">
+  .ink-intro {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+
+    /* 卷帘（sheet）与轴杆（rod）分离：clip-path 只裁纸面，杆不受裁切 */
+
+    &__sheet {
+      position: absolute;
+      inset: 0;
+
+      background:
+        radial-gradient(
+          90% 70% at 50% 115%,
+          color-mix(in srgb, #{color(accent)} 12%, transparent) 0%,
+          transparent 62%
+        ),
+        linear-gradient(
+          180deg,
+          color(primary) 0%,
+          color(primary) 72%,
+          color-mix(in srgb, #{color(secondary)} 6%, transparent) 100%
+        );
+
+      will-change: clip-path;
+    }
+
+    /* 墨团：径向渐变淡出边缘 + 不规则圆角，像一滴墨洇开 */
+    &__blot {
+      --blot-size: min(44vmin, 320px);
+
+      position: absolute;
+      top: 50%;
+      left: 50%;
+
+      width: var(--blot-size);
+      height: var(--blot-size);
+
+      background: radial-gradient(
+        closest-side,
+        color-mix(in srgb, #{color(secondary)} 92%, transparent) 0%,
+        color-mix(in srgb, #{color(secondary)} 86%, transparent) 56%,
+        color-mix(in srgb, #{color(secondary)} 38%, transparent) 74%,
+        transparent 92%
+      );
+      border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%;
+
+      /* 居中用 translate 属性，transform 留给 WAAPI 的缩放 */
+      translate: -50% -50%;
+      opacity: 0;
+
+      will-change: transform, opacity;
+
+      /* 一小滴溅出的副墨点，破掉正圆的呆气 */
+      &::after {
+        position: absolute;
+        top: 8%;
+        right: -4%;
+
+        width: 18%;
+        height: 14%;
+
+        background: radial-gradient(
+          closest-side,
+          color-mix(in srgb, #{color(secondary)} 78%, transparent) 0%,
+          transparent 88%
+        );
+        border-radius: 62% 38% 54% 46% / 52% 60% 40% 48%;
+
+        content: '';
+      }
+    }
+
+    &__mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+
+      translate: -50% -50%;
+      opacity: 0;
+
+      will-change: transform, opacity;
+    }
+
+    /* 竖排落款，如画上题名 */
+    &__name {
+      position: absolute;
+      top: calc(50% + 3.4rem);
+      left: calc(50% + 3.1rem);
+
+      margin: 0;
+
+      color: color(primary);
+      font: 400 0.8rem / 1 font-family(editorial);
+      letter-spacing: 0.42em;
+      writing-mode: vertical-rl;
+
+      /* 衬在墨团上，取纸色反白 */
+      opacity: 0;
+
+      will-change: transform, opacity;
+
+      @include mq(phone) {
+        top: calc(50% + 2.6rem);
+        left: calc(50% + 2.4rem);
+
+        font-size: 0.72rem;
+      }
+    }
+
+    /* 轴杆：温木色圆杆，两端朱砂轴头，随卷边上行 */
+    &__rod {
+      position: absolute;
+      bottom: -0.15rem;
+      left: 50%;
+
+      width: calc(100% + 1.4rem);
+      height: 0.8rem;
+
+      background: linear-gradient(180deg, #6d5138 0%, #4a3524 55%, #2f2116 100%);
+      border-radius: 0.4rem;
+      box-shadow: 0 -14px 34px rgba(15, 22, 18, 0.24);
+
+      translate: -50% 0;
+
+      will-change: transform;
+
+      &::before,
+      &::after {
+        position: absolute;
+        top: -2px;
+
+        width: 1.05rem;
+        height: calc(100% + 4px);
+
+        background: linear-gradient(180deg, #d84a3a 0%, #a42e22 100%);
+        border-radius: 0.3rem;
+
+        content: '';
+      }
+
+      &::before {
+        left: -0.2rem;
+      }
+
+      &::after {
+        right: -0.2rem;
+      }
+
+      @include mq(phone) {
+        height: 0.6rem;
+
+        &::before,
+        &::after {
+          width: 0.8rem;
+        }
+      }
+    }
+  }
+</style>

@@ -1,0 +1,246 @@
+---
+/**
+ * SiteScrollRod — 卷轴进度杆
+ *
+ * 右缘一线朱丝为轨，杆身如卷轴的轴，两端缠朱砂轴头；
+ * 页面滚到哪里，轴就落到哪里，也可以直接拽着轴走。
+ * 自己度量文档高度（ResizeObserver），不依赖壳层全局量；
+ * SPA 换页后自动重挂，旧监听全部退订。
+ */
+---
+
+<div class="scroll-rod is-idle" aria-hidden="true">
+  <div class="scroll-rod__silk"></div>
+  <div class="scroll-rod__knob js-rod-knob"></div>
+</div><!-- .scroll-rod -->
+
+<script>
+  import {
+    onScroll,
+    onResize,
+    whenReady,
+    type Cleanup,
+  } from '../motion/core'
+
+  /** 杆身最短长度（px）：再短就抓不住了 */
+  const MIN_EXTENT = 36
+
+  function initScrollRod(): Cleanup {
+    const el = document.querySelector<HTMLElement>('.scroll-rod')
+    const knob = el?.querySelector<HTMLElement>('.js-rod-knob')
+
+    if (!el || !knob) return () => {}
+
+    const stops: Cleanup[] = []
+
+    let dragging = false
+    let dragPointer = 0
+    let dragStartY = 0
+    let dragStartScroll = 0
+
+    const measure = () => {
+      const viewH = window.innerHeight
+      const docH = Math.max(document.documentElement.scrollHeight, viewH)
+      return { viewH, docH, maxScroll: docH - viewH }
+    }
+
+    const paint = () => {
+      const { viewH, docH, maxScroll } = measure()
+
+      if (maxScroll <= 0) {
+        el.classList.add('is-idle')
+        return
+      }
+
+      const extent = Math.max((viewH / docH) * viewH, MIN_EXTENT)
+      const progress = Math.min(Math.max(window.scrollY / maxScroll, 0), 1)
+      const shift = progress * (viewH - extent)
+
+      el.classList.remove('is-idle')
+      el.style.setProperty('--rod-extent', `${extent}px`)
+      el.style.setProperty('--rod-shift', `${shift}px`)
+    }
+
+    stops.push(onScroll(paint))
+    stops.push(onResize(paint))
+    whenReady(paint)
+
+    /* 正文高度会被图片、异步内容撑高，量 body 比等 resize 靠谱 */
+    const observer = new ResizeObserver(paint)
+    observer.observe(document.body)
+    stops.push(() => observer.disconnect())
+
+    /* 拖拽：指针捕获，一套逻辑吃下鼠标与触控 */
+    const onPointerDown = (e: PointerEvent) => {
+      const { maxScroll } = measure()
+      if (maxScroll <= 0) return
+
+      dragging = true
+      dragPointer = e.pointerId
+      dragStartY = e.clientY
+      dragStartScroll = window.scrollY
+
+      el.classList.add('is-dragging')
+      knob.setPointerCapture(e.pointerId)
+      e.preventDefault()
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== dragPointer) return
+
+      const { viewH, docH, maxScroll } = measure()
+      const extent = Math.max((viewH / docH) * viewH, MIN_EXTENT)
+      const track = viewH - extent
+
+      if (track <= 0) return
+
+      const ratio = (e.clientY - dragStartY) / track
+      window.scrollTo(0, dragStartScroll + ratio * maxScroll)
+    }
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== dragPointer) return
+
+      dragging = false
+      el.classList.remove('is-dragging')
+    }
+
+    knob.addEventListener('pointerdown', onPointerDown)
+    knob.addEventListener('pointermove', onPointerMove)
+    knob.addEventListener('pointerup', onPointerUp)
+    knob.addEventListener('pointercancel', onPointerUp)
+
+    stops.push(() => {
+      knob.removeEventListener('pointerdown', onPointerDown)
+      knob.removeEventListener('pointermove', onPointerMove)
+      knob.removeEventListener('pointerup', onPointerUp)
+      knob.removeEventListener('pointercancel', onPointerUp)
+    })
+
+    paint()
+
+    return () => stops.forEach((stop) => stop())
+  }
+
+  let teardown: Cleanup | null = null
+
+  /* astro:page-load 首载与每次 SPA 换页都触发；换页后元素是新的，重挂一遍 */
+  document.addEventListener('astro:page-load', () => {
+    teardown?.()
+    teardown = initScrollRod()
+  })
+</script>
+
+<style lang="scss">
+  .scroll-rod {
+    --rod-lane: 1rem;
+
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 20;
+
+    width: var(--rod-lane);
+    height: 100%;
+
+    transition: opacity 0.3s ease;
+
+    @include mq(phone) {
+      --rod-lane: 0.5rem;
+    }
+
+    /* 页面不足一屏时整根收起 */
+    &.is-idle {
+      opacity: 0;
+
+      pointer-events: none;
+    }
+
+    /* 朱丝为轨 */
+    &__silk {
+      position: absolute;
+      top: 0;
+      left: 50%;
+
+      width: 1px;
+      height: 100%;
+
+      background: color-mix(in srgb, #{color(accent)} 22%, transparent);
+
+      translate: -50% 0;
+
+      pointer-events: none;
+    }
+
+    /* 轴身 */
+    &__knob {
+      position: absolute;
+      top: 0;
+      left: 50%;
+
+      width: calc(var(--rod-lane) * 0.5);
+      height: var(--rod-extent, 0);
+
+      cursor: grab;
+      touch-action: none;
+
+      translate: -50% var(--rod-shift, 0);
+
+      will-change: transform;
+
+      /* 命中区加宽到整条边栏 */
+      &::before {
+        position: absolute;
+        inset: calc(var(--rod-lane) * -0.75);
+
+        content: '';
+      }
+
+      /* 杆芯：墨色圆杆 */
+      &::after {
+        position: absolute;
+        top: 0.35rem;
+        bottom: 0.35rem;
+        left: 50%;
+
+        width: 100%;
+
+        background: color-mix(in srgb, #{color(secondary)} 82%, transparent);
+        border-radius: 999px;
+
+        translate: -50% 0;
+
+        transition:
+          width 0.12s ease,
+          background-color 0.12s ease;
+
+        content: '';
+      }
+
+      &:hover::after {
+        width: calc(100% + 2px);
+
+        background: color(secondary);
+      }
+    }
+
+    &.is-dragging {
+      .scroll-rod__knob {
+        cursor: grabbing;
+
+        &::after {
+          background: color(accent-strong);
+        }
+      }
+    }
+
+    /* 页面切换与开场期间收起 */
+    @at-root html.is-scroll-blocked & {
+      opacity: 0;
+    }
+
+    @at-root .is-transitioning & {
+      opacity: 0;
+    }
+  }
+</style>
