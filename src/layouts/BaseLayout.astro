@@ -172,6 +172,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     import { initSealPress } from '../motion/seal-press'
     import { initLeafFlip } from '../motion/leaf-flip'
     import { initHandscroll } from '../motion/handscroll'
+    import { markReady } from '../motion/core'
 
     import Lenis from 'lenis'
 
@@ -431,6 +432,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         Emitter.emit('siteLoaded')
         Emitter.emit('updateViewport')
+
+        // 新核心的就绪闩（迁移期与 Emitter 并行，迁移完成后 Emitter 退役）
+        markReady()
 
         this.initReveal()
       }

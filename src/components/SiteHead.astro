@@ -133,6 +133,7 @@ const consoleLines = [
 <script>
   import Emitter from '../utils/Emitter'
   import Ticker from '../utils/Ticker'
+  import { signalThemeFlip } from '../motion/core'
 
   import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -416,6 +417,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
               'contrastchange',
               theme === 'dark' ? 'contrasted' : 'default'
             )
+
+            // 新核心的翻色信号（迁移期与 Emitter 并行）
+            signalThemeFlip(theme)
           },
         }
       )
