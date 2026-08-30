@@ -1,0 +1,78 @@
+---
+/**
+ * SealChar — 单字朱砂印章
+ * 与 SealMark（白文「润森」）同一语言：朱红底、白字、油墨边缘 feTurbulence。
+ * 用于作品索引册页卷号（壹、贰…捌）等小面积钤印场景。
+ */
+import { uid } from '../utils/uid'
+
+type Props = {
+  char: string
+  size?: number
+  class?: string
+}
+
+const { char, size = 28, class: className } = Astro.props
+
+const gradientId = uid('seal-char-red')
+const filterId = uid('seal-char-ink')
+---
+
+<svg
+  class:list={['seal-char', className]}
+  width={size}
+  height={size}
+  viewBox="0 0 32 32"
+  role="img"
+  aria-label={`印章：${char}`}
+>
+  <defs>
+    <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d84a3a"></stop>
+      <stop offset="55%" stop-color="#c03528"></stop>
+      <stop offset="100%" stop-color="#a02a20"></stop>
+    </linearGradient>
+    <filter id={filterId} x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.62"
+        numOctaves="2"
+        seed="5"
+        result="n"></feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4"></feDisplacementMap>
+    </filter>
+  </defs>
+  <g filter={`url(#${filterId})`}>
+    <rect
+      x="2"
+      y="2"
+      width="28"
+      height="28"
+      rx="4"
+      fill={`url(#${gradientId})`}></rect>
+    <text
+      x="16"
+      y="16"
+      text-anchor="middle"
+      dominant-baseline="central"
+      fill="#fff"
+      font-size="17"
+      font-weight="700"
+      font-family="'Noto Serif SC','SimSun',serif">{char}</text>
+  </g>
+</svg>
+
+<style lang="scss">
+  .seal-char {
+    display: block;
+
+    transform: rotate(-3deg);
+    transform-origin: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .seal-char {
+      transform: none;
+    }
+  }
+</style>

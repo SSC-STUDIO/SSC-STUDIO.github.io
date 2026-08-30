@@ -1,0 +1,115 @@
+---
+/**
+ * InkScroll — 手卷卷轴上下轴杆（HTML/CSS 版，避免 SVG 拉伸变形）
+ * 「展卷」意象：左右固定比例轴头 + 可拉伸的绫绢地/滚木，
+ * 让作品区在滚动时像一幅徐徐打开的长卷。
+ */
+type Props = {
+  class?: string
+  flip?: boolean
+}
+
+const { class: className, flip = false } = Astro.props
+---
+
+<div
+  class:list={['ink-scroll', flip && 'ink-scroll--flip', className]}
+  aria-hidden="true"
+>
+  <div class="ink-scroll__knob ink-scroll__knob--left">
+    <svg viewBox="0 0 56 72" preserveAspectRatio="xMidYMid meet">
+      <rect x="0" y="12" width="56" height="48" rx="10" fill="var(--color-secondary)"></rect>
+      <rect x="6" y="18" width="44" height="36" rx="6" fill="var(--color-shadow)"></rect>
+      <circle cx="28" cy="36" r="8" fill="var(--color-accent)" opacity="0.6"></circle>
+    </svg>
+  </div>
+
+  <div class="ink-scroll__bar">
+    <div class="ink-scroll__silk"></div>
+  </div>
+
+  <div class="ink-scroll__knob ink-scroll__knob--right">
+    <svg viewBox="0 0 56 72" preserveAspectRatio="xMidYMid meet">
+      <rect x="0" y="12" width="56" height="48" rx="10" fill="var(--color-secondary)"></rect>
+      <rect x="6" y="18" width="44" height="36" rx="6" fill="var(--color-shadow)"></rect>
+      <circle cx="28" cy="36" r="8" fill="var(--color-accent)" opacity="0.6"></circle>
+    </svg>
+  </div>
+</div>
+
+<style lang="scss">
+  .ink-scroll {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+    height: 100%;
+
+    pointer-events: none;
+
+    &__knob {
+      flex: 0 0 auto;
+
+      width: clamp(2rem, 5.2vh, 3.4rem);
+      height: 100%;
+
+      svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    &__bar {
+      position: relative;
+
+      flex: 1 1 auto;
+
+      height: 52%;
+
+      border-radius: 0.35rem;
+      background: linear-gradient(
+        180deg,
+        color(secondary) 0%,
+        color(ink-muted) 24%,
+        color(secondary) 50%,
+        color(shadow) 78%,
+        color(secondary) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, color(primary) 22%, transparent),
+        inset 0 -1px 0 color-mix(in srgb, color(shadow) 40%, transparent);
+    }
+
+    &__silk {
+      position: absolute;
+      inset: 0;
+
+      border-radius: inherit;
+
+      background:
+        radial-gradient(
+          circle,
+          color-mix(in srgb, var(--color-secondary) 14%, transparent) 0 1.2px,
+          transparent 1.4px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 18px,
+          color-mix(in srgb, var(--color-secondary) 7%, transparent) 18px 19px
+        );
+      background-size: 10px 10px, 38px 100%;
+      opacity: 0.55;
+    }
+
+    &--flip {
+      transform: scaleY(-1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-scroll {
+      transform: none;
+    }
+  }
+</style>

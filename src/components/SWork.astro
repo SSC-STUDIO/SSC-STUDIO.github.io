@@ -2,6 +2,8 @@
 import AWork from './AWork.astro'
 import InkMountains from './InkMountains.astro'
 import InkMeander from './InkMeander.astro'
+import InkScroll from './InkScroll.astro'
+import SealChar from './SealChar.astro'
 
 // Yeah, this should probably be in a CMS or content file.
 // But it’s my site, and editing it in code is faster than setting up yet another headless something.
@@ -133,13 +135,13 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
         {
           works.map((work, index) => (
-            <a class="s__index__item" href={work.href}>
-              <span class="s__index__num">{cnNumerals[index]}</span>
-              <span class="s__index__body">
-                <span class="s__index__title">{work.name}</span>
-                <span class="s__index__summary">{work.summary}</span>
-              </span>
-            </a>
+          <a class="s__index__item" href={work.href}>
+            <SealChar char={cnNumerals[index]} class="s__index__seal" />
+            <span class="s__index__body">
+              <span class="s__index__title">{work.name}</span>
+              <span class="s__index__summary">{work.summary}</span>
+            </span>
+          </a>
           ))
         }
       </aside>
@@ -148,6 +150,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     </div><!-- .s__inner -->
 
     <div class="s__mask-outer">
+      <InkScroll class="s__roller s__roller--top" />
       <div class="s__mask js-mask">
         <svg class="s__mask__svg js-mask-svg">
           <path class="s__mask__path-inner js-mask-path-inner" d=""></path>
@@ -155,6 +158,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
           <path class="s__mask__path-lines js-mask-path-lines" d=""></path>
         </svg>
       </div><!-- .s__mask -->
+      <InkScroll class="s__roller s__roller--bottom" flip />
     </div><!-- .s__mask-outer -->
 
     <div class="s__ruler js-ruler"></div>
@@ -444,7 +448,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       // Lines
       mask.lines = []
 
-      const vLines = window.safeWidth > 767 ? 12 : 8
+      const vLines = window.safeWidth > 767 ? 10 : 6
       const gapX = width / vLines
       const gapY = height * 0.1
       const hLines = Math.ceil(height / gapY)
@@ -499,7 +503,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
         letter.freq = 1 + Math.random()
 
-        const multiplier = window.safeWidth > 767 ? 0.75 : 0.5
+        const multiplier = window.safeWidth > 767 ? 0.5 : 0.35
 
         // Create ghost letters
         letter.total =
@@ -793,7 +797,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       this.points = []
 
-      const gap = 24
+      const gap = window.safeWidth > 767 ? 36 : 56
       const cols = Math.ceil((bounding.width * 1.2) / gap)
       const rows = Math.ceil((bounding.height * 1.2) / gap)
 
@@ -1226,8 +1230,8 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       display: flex;
       gap: 0.75rem;
-      align-items: flex-start;
-      padding: 0.55rem 0.65rem 0.55rem 0.95rem;
+      align-items: center;
+      padding: 0.55rem 0.65rem 0.55rem 0.6rem;
 
       /* 墨底浅字：条目为松墨小签，文字取对侧「墨上宣纸」色 */
       background: color(surface);
@@ -1277,14 +1281,28 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       }
     }
 
-    .s__index__num {
+    .s__roller {
+      position: absolute;
+      right: 0;
+      left: 0;
+      z-index: 4;
+
+      width: 100%;
+      height: clamp(2.2rem, 5vh, 3.6rem);
+
+      pointer-events: none;
+
+      &--top {
+        top: 0;
+      }
+
+      &--bottom {
+        bottom: 0;
+      }
+    }
+
+    .s__index__seal {
       flex-shrink: 0;
-
-      min-width: 1.35em;
-
-      color: color(accent);
-      font: 700 14px / 1.15 font-family(editorial);
-      letter-spacing: 0;
 
       opacity: 0.92;
     }
