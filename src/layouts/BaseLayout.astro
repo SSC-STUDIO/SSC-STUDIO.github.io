@@ -167,6 +167,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
   <script>
     import Emitter from '../utils/Emitter'
     import Ticker from '../utils/Ticker'
+    import { watchIdleAnimations } from '../utils/idle-anim'
 
     import Lenis from 'lenis'
 
@@ -202,6 +203,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       lenis: any
 
       booted: boolean = false
+
+      /** 离屏动画暂停器的清理函数（每次换页重绑前先清掉） */
+      stopIdleAnimations: (() => void) | null = null
 
       /**
        * Constructor
@@ -276,6 +280,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.documentElement.classList.toggle('is-intro-active', playIntro)
 
         this.bindPageObservers()
+        this.bindIdleAnimations()
 
         try {
           const stored = localStorage.getItem('site-theme')
@@ -372,6 +377,24 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.querySelectorAll('[data-intersect]').forEach((el) => {
           observer.observe(el)
         })
+      }
+
+      /**
+       * 装饰性无限动画：离屏暂停、回屏恢复。
+       * 首页这类长页上同时有十几处漂移/呼吸动画，
+       * 滚过之后不该继续占用每帧的合成预算。
+       */
+      bindIdleAnimations() {
+        if (this.stopIdleAnimations) {
+          this.stopIdleAnimations()
+          this.stopIdleAnimations = null
+        }
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          return
+        }
+
+        this.stopIdleAnimations = watchIdleAnimations()
       }
 
       /**
