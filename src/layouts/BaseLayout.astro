@@ -168,6 +168,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     import Emitter from '../utils/Emitter'
     import Ticker from '../utils/Ticker'
     import { watchIdleAnimations } from '../utils/idle-anim'
+    import { initInkReveal } from '../motion/ink-reveal'
+    import { initSealPress } from '../motion/seal-press'
+    import { initLeafFlip } from '../motion/leaf-flip'
+    import { initHandscroll } from '../motion/handscroll'
 
     import Lenis from 'lenis'
 
@@ -206,6 +210,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
       /** 离屏动画暂停器的清理函数（每次换页重绑前先清掉） */
       stopIdleAnimations: (() => void) | null = null
+
+      /** 原创动效各模块的清理函数（每次换页重绑前先清掉） */
+      stopMotion: Array<() => void> = []
 
       /**
        * Constructor
@@ -281,6 +288,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         this.bindPageObservers()
         this.bindIdleAnimations()
+        this.initMotion()
 
         try {
           const stored = localStorage.getItem('site-theme')
@@ -428,51 +436,29 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
 
       /**
+       * 原创动效：洇墨显影 / 印章钤印 / 册页翻页 / 长卷平移
+       * 每次换页重建（旧元素随 swap 销毁）
+       */
+      initMotion() {
+        // 清理上一页的监听
+        this.stopMotion?.forEach((stop) => stop())
+        this.stopMotion = []
+
+        const stops = [
+          initInkReveal(),
+          initSealPress(),
+          initLeafFlip(),
+          initHandscroll(),
+        ]
+
+        this.stopMotion = stops
+      }
+
+      /**
        * Reveal [data-reveal] elements on scroll
        */
       initReveal() {
-        const elements = document.querySelectorAll('[data-reveal]')
-        if (!elements.length) return
-
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          elements.forEach((el) => el.classList.add('is-revealed'))
-          return
-        }
-
-        const observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                entry.target.classList.add('is-revealed')
-                observer.unobserve(entry.target)
-              }
-            })
-          },
-          {
-            threshold: 0.06,
-            rootMargin: '0px 0px -6% 0px',
-          }
-        )
-
-        elements.forEach((el, index) => {
-          if (el instanceof HTMLElement) {
-            el.style.setProperty(
-              '--reveal-delay',
-              `${Math.min(index % 6, 5) * 70}ms`
-            )
-          }
-          observer.observe(el)
-        })
-
-        // Immediately reveal whatever is already in view
-        requestAnimationFrame(() => {
-          elements.forEach((el) => {
-            if (el.getBoundingClientRect().top < window.innerHeight * 0.94) {
-              el.classList.add('is-revealed')
-              observer.unobserve(el)
-            }
-          })
-        })
+        this.initMotion()
       }
 
       /**

@@ -1,0 +1,137 @@
+/**
+ * Motion — 原创动效语言
+ * 洇墨显影 / 印章钤印 / 册页翻页 / 长卷平移
+ * 全部只用 transform / opacity / clip-path，避开 blur 与 filter 动画。
+ */
+
+@use '../helpers/colors' as *;
+@use '../helpers/responsive' as *;
+
+/* ── 洇墨显影 ──
+   内容自中心以圆形墨迹向外化开，边缘带极轻位移。
+   动画结束后由 JS 打上 .is-inked-done 撤去裁切，
+   否则卡片悬停的投影会被 clip-path 切掉。 */
+[data-reveal] {
+  opacity: 0;
+  clip-path: circle(0% at 50% 50%);
+
+  &.is-inked {
+    animation: inkSpread 880ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--reveal-delay, 0ms);
+  }
+
+  &.is-inked-done {
+    opacity: 1;
+    clip-path: none;
+    animation: none;
+  }
+}
+
+@keyframes inkSpread {
+  from {
+    opacity: 0;
+    clip-path: circle(0% at 50% 50%);
+    transform: translate3d(0, 0.7rem, 0);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    clip-path: circle(150% at 50% 50%);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ── 印章钤印 ──
+   按下的朱砂涟漪自触点扩散，元素本身有一记极短的压印位移。 */
+[data-seal] {
+  &.is-pressed {
+    transform: translate3d(0, 1px, 0);
+    transition: transform 90ms ease-out;
+  }
+
+  &:not(.is-pressed) {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.seal-ripple {
+  position: absolute;
+
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #{color(accent)} 42%, transparent) 0 38%,
+    color-mix(in srgb, #{color(accent)} 16%, transparent) 38% 62%,
+    transparent 64%
+  );
+
+  pointer-events: none;
+  transform: translate3d(-50%, -50%, 0) scale(0);
+
+  animation: sealPress 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sealPress {
+  0% {
+    opacity: 0.85;
+    transform: translate3d(-50%, -50%, 0) scale(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+}
+
+/* ── 册页翻页 ──
+   沿中缝极小幅度翻转，配一道随指针移动的高光。 */
+[data-leaf] {
+  --leaf-rx: 0deg;
+  --leaf-ry: 0deg;
+  --leaf-sheen: 0.5;
+
+  transform: perspective(60rem) rotateX(var(--leaf-rx)) rotateY(var(--leaf-ry));
+  transform-style: preserve-3d;
+
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  &.is-leaf-live {
+    transition: transform 120ms linear;
+  }
+}
+
+/* ── 长卷平移 ──
+   区块内部图层按 --scroll-shift 做视差，由 handscroll.ts 写入。 */
+[data-handscroll] {
+  --scroll-progress: 0;
+  --scroll-shift: 0vh;
+}
+
+[data-handscroll-layer] {
+  transform: translate3d(0, var(--scroll-shift), 0);
+  will-change: transform;
+}
+
+/* ── 减弱动效：全部降级为直接可见 ── */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    clip-path: none;
+    animation: none;
+  }
+
+  .seal-ripple {
+    display: none;
+  }
+
+  [data-leaf] {
+    transform: none;
+    transition: none;
+  }
+
+  [data-handscroll-layer] {
+    transform: none;
+    will-change: auto;
+  }
+}
