@@ -441,7 +441,7 @@ export default function AccountConsole({
                   onChange={(e) => setRealName(e.target.value)}
                 />
                 <span className="p-account__note">
-                  如果你是我们班的同学，填上真实姓名即可解锁班级空间。
+                  选填。班级空间是否开放由服务端会话决定，前端不会因填写姓名而自动认证。
                 </span>
                 <span className="p-form__field-error" hidden={!realNameError}>
                   {realNameError}

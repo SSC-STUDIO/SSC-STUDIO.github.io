@@ -52,6 +52,29 @@ export async function uploadAttachment(file: File): Promise<AttachmentMeta> {
   return (await response.json()) as AttachmentMeta;
 }
 
+const ALLOWED_MEDIA_PREFIXES = ["/api/attachments/", "/api/class/media/"];
+
+function isSafeMediaUrl(url: string): boolean {
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:")
+  ) {
+    return false;
+  }
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    if (parsed.origin !== window.location.origin) return false;
+    return ALLOWED_MEDIA_PREFIXES.some((prefix) =>
+      parsed.pathname.startsWith(prefix),
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Render an attached media by its kind. `className` is merged onto the wrapper. */
 export function MediaEmbed({
   attachment,
@@ -62,7 +85,7 @@ export function MediaEmbed({
   className?: string;
   title?: string;
 }) {
-  if (!attachment?.url) return null;
+  if (!attachment?.url || !isSafeMediaUrl(attachment.url)) return null;
   const { url, kind } = attachment;
   const cls = className ? `att__embed ${className}` : "att__embed";
   switch (kind) {

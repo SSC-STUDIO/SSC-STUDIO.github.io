@@ -6,6 +6,7 @@ type Status = "idle" | "submitting" | "ok" | "busy" | "unavailable" | "error";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONTENT_MIN = 10;
+const CONTENT_MAX = 2000;
 
 /**
  * Contact form island — posts a message to `/api/contact/messages`.
@@ -37,6 +38,7 @@ export default function ContactForm({
     if (name === "content") {
       if (!value) return "请填写消息";
       if (value.length < CONTENT_MIN) return `消息至少 ${CONTENT_MIN} 个字`;
+      if (value.length > CONTENT_MAX) return `消息最多 ${CONTENT_MAX} 个字`;
     }
     return undefined;
   }
@@ -210,6 +212,7 @@ export default function ContactForm({
           name="content"
           required
           minLength={CONTENT_MIN}
+          maxLength={CONTENT_MAX}
           aria-invalid={Boolean(errors.content)}
           aria-describedby="contact-error-content"
           onBlur={handleBlur}
@@ -228,6 +231,10 @@ export default function ContactForm({
         {contentLength > 0 && contentLength < CONTENT_MIN && !errors.content ? (
           <span className="p-form__field-hint">
             还差 {CONTENT_MIN - contentLength} 个字（至少 {CONTENT_MIN} 字）
+          </span>
+        ) : contentLength > CONTENT_MAX * 0.8 ? (
+          <span className="p-form__field-hint">
+            {contentLength} / {CONTENT_MAX} 字
           </span>
         ) : null}
       </label>
