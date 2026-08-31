@@ -4,6 +4,7 @@ import InkMist from './InkMist.astro'
 import SealMark from './SealMark.astro'
 import InkCloud from './InkCloud.astro'
 import InkLattice from './InkLattice.astro'
+import InkBubbles from './InkBubbles.astro'
 
 const lines = [['一', '起', '做'], ['点', '东', '西']]
 ---
@@ -11,8 +12,29 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 <section class="s-cta" data-intersect>
   <InkMountains />
   <InkMist class="s__mist" />
+  <InkBubbles class="s__bubbles" />
   <InkCloud height={13} width="min(30rem, 72vw)" class="s__cloud" />
   <InkLattice size={168} class="s__lattice" />
+
+  <div class="s__fireflies" aria-hidden="true">
+    {
+      Array(3)
+        .fill(0)
+        .map(() => (
+          <svg
+            class="s__firefly"
+            width="49"
+            height="49"
+            viewBox="0 0 49 49"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle class="ff-halo" cx="24.5" cy="24.5" r="10" />
+            <circle class="ff-core" cx="24.5" cy="24.5" r="2.8" />
+          </svg>
+        ))
+    }
+  </div>
   <div id="contact" class="s__inner js-container">
     <div class="s__hover js-hover">
       <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
@@ -673,7 +695,12 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       z-index: 1;
     }
 
-    /* 信笺云头：区块上端一抹卷云，收「窗下写信」之意 */
+    /* 墨圈泡泡：与前几卷同族的上浮墨圈，垫在信物层之下 */
+    .s__bubbles {
+      z-index: 1;
+    }
+
+    /* 信笺云头：区块上端一抹卷云，随风缓漂 */
     .s__cloud {
       position: absolute;
       top: clamp(1.5rem, 4vw, 3.5rem);
@@ -681,6 +708,111 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       z-index: 2;
 
       transform: translateX(-50%);
+      animation: s-cta-cloud-drift 19s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+
+    @keyframes s-cta-cloud-drift {
+      from {
+        transform: translateX(-53%);
+      }
+
+      to {
+        transform: translateX(-47%);
+      }
+    }
+
+    /* 常显流萤：hover 圆环里的流萤只在展开时可见，
+       这三枚在留白处长明，给静场一点游动的光 */
+    .s__fireflies {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+
+      pointer-events: none;
+    }
+
+    @keyframes s-cta-ff-roam {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+
+      30% {
+        transform: translate3d(1.6rem, -2.6rem, 0);
+      }
+
+      62% {
+        transform: translate3d(-1.1rem, -4.4rem, 0);
+      }
+
+      100% {
+        transform: translate3d(0.4rem, -0.8rem, 0);
+      }
+    }
+
+    .s__firefly {
+      position: absolute;
+
+      width: 0.9rem;
+      height: auto;
+
+      overflow: visible;
+
+      animation: s-cta-ff-roam 13s ease-in-out infinite alternate;
+      will-change: transform;
+
+      .ff-halo {
+        fill: color-mix(
+          in srgb,
+          var(--daypart-lamp, var(--color-accent)) 30%,
+          transparent
+        );
+
+        animation: s-ff-pulse 3.2s ease-in-out infinite;
+      }
+
+      .ff-core {
+        fill: var(--daypart-lamp, var(--color-accent));
+      }
+
+      &:nth-child(1) {
+        top: 24%;
+        left: 16%;
+
+        animation-duration: 12s;
+      }
+
+      &:nth-child(2) {
+        top: 14%;
+        right: 21%;
+        width: 0.7rem;
+
+        animation-duration: 16s;
+        animation-delay: -6s;
+
+        .ff-halo {
+          animation-delay: -1.4s;
+        }
+      }
+
+      &:nth-child(3) {
+        top: 55%;
+        left: 9%;
+        width: 0.62rem;
+
+        animation-duration: 14s;
+        animation-delay: -10s;
+
+        .ff-halo {
+          animation-delay: -2.2s;
+        }
+      }
+
+      @include mq(phone) {
+        &:nth-child(3) {
+          display: none;
+        }
+      }
     }
 
     /* 冰裂窗棂水印：右下角隅 */
@@ -1405,7 +1537,17 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       }
     }
 
-    /* 楹联：两侧竖题，宽屏独见 */
+    /* 楹联：两侧竖题，宽屏独见；悬垂微摆如风拂签条 */
+    @keyframes s-cta-couplet-sway {
+      from {
+        transform: rotate(-0.7deg);
+      }
+
+      to {
+        transform: rotate(0.8deg);
+      }
+    }
+
     .s__couplet {
       position: absolute;
       top: 22%;
@@ -1422,6 +1564,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       font: 600 clamp(0.82rem, 1.25vw, 1rem) / 1 font-family(editorial);
       letter-spacing: 0.44em;
       text-transform: none;
+
+      transform-origin: 50% 0;
+      animation: s-cta-couplet-sway 9s ease-in-out infinite alternate;
+      will-change: transform;
 
       &::after {
         display: block;
@@ -1446,10 +1592,26 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
         border-left: 1px dashed
           color-mix(in srgb, color(accent) 42%, transparent);
+
+        /* 与东联错峰，避免两签同摆显得机械 */
+        animation-duration: 11.5s;
+        animation-delay: -5s;
       }
 
       @include mq(tablet-sm) {
         display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .s__cloud,
+      .s__couplet,
+      .s__firefly {
+        animation: none;
+      }
+
+      .s__firefly .ff-halo {
+        animation: none;
       }
     }
 

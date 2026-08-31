@@ -1308,6 +1308,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       z-index: 1;
 
       opacity: 0.9;
+
+      transform-origin: 82% 8%;
+      animation: sm-way-bloom-sway 8.5s ease-in-out infinite alternate;
+      will-change: transform;
     }
 
     /* 墨圈泡泡：与底纹圆环同族，自卷底缓缓上浮（压在物件与大字之下） */
@@ -1354,6 +1358,23 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       }
     }
 
+    @keyframes sm-way-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 碎梅枝：檐下轻摇 */
+    @keyframes sm-way-bloom-sway {
+      from {
+        transform: rotate(-1.3deg);
+      }
+
+      to {
+        transform: rotate(1.5deg);
+      }
+    }
+
     .s__smiley {
       @include flex(row, center, center);
 
@@ -1388,6 +1409,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         border-radius: 999rem;
 
         pointer-events: none;
+
+        /* 罗盘缓转：虚线环顺时针慢走，衬出「路引」的行进感 */
+        animation: sm-way-spin 42s linear infinite;
+        will-change: transform;
       }
 
       &__pips {
@@ -1395,6 +1420,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         inset: -0.15rem;
 
         pointer-events: none;
+
+        /* 四枚方位点逆向缓转，与虚线环错峰 */
+        animation: sm-way-spin 64s linear infinite reverse;
+        will-change: transform;
 
         i {
           position: absolute;
@@ -1447,7 +1476,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .s__smiley {
+      .s__smiley,
+      .s__smiley__ring,
+      .s__smiley__pips,
+      .s__bloom {
         animation: none;
       }
     }
