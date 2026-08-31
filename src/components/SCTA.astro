@@ -267,19 +267,23 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     bindEvents() {
       this.stops.push(onResize(() => this.onResize()))
 
+      const hover = (e: Event) => this.onHover(e)
+      const out = (e: Event) => this.onOut(e)
+      const empty = (e: Event) => this.onEmptyClick(e)
+
       // 整个 CTA 区域（含大圆）都可触发，而不是只有 96px 的按钮格
-      this.container.addEventListener('mouseenter', this.onHover.bind(this))
-      this.container.addEventListener('touchstart', this.onHover.bind(this))
-
-      this.container.addEventListener('mouseleave', this.onOut.bind(this), {
-        passive: true,
-      })
-      this.el.addEventListener('touchstart', this.onOut.bind(this), {
-        passive: true,
-      })
-
+      this.container.addEventListener('pointerenter', hover)
+      this.container.addEventListener('pointerleave', out)
+      this.el.addEventListener('click', empty)
       this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
+      })
+
+      this.stops.push(() => {
+        this.container.removeEventListener('pointerenter', hover)
+        this.container.removeEventListener('pointerleave', out)
+        this.el.removeEventListener('click', empty)
+        this.el.removeEventListener('intersect', this.onIntersect)
       })
     }
 
@@ -320,7 +324,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       this.buttonIsHovered = true
       this.hover.classList.add('is-active')
 
-      this.tl.pause()
+      this.tl?.pause()
 
       clearTimeout(this.wave.timeout)
       this.wave.timeout = setTimeout(() => {
@@ -340,16 +344,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
     /**
      * Out handler
+     *
+     * 老版在这里对 <a> 写 window.location.href，ClientRouter 下会整页硬跳，
+     * 把已经挂好的动效全拆掉。链接交给默认行为 / SPA 导航。
      */
-    onOut(e) {
-      const target = e.target as HTMLAnchorElement
-
-      if (target.tagName === 'A') {
-        window.location.href = target.href
-
-        return
-      }
-
+    onOut(_e) {
       if (!this.buttonIsHovered) return
 
       clearTimeout(this.wave.timeout)
@@ -357,7 +356,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       this.buttonIsHovered = false
       this.hover.classList.remove('is-active')
 
-      this.tl.play(0)
+      this.tl?.play(0)
 
       gsap.to(this.wave, {
         op: 0,
@@ -365,6 +364,17 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         ease: 'expo.inOut',
         overwrite: true,
       })
+    }
+
+    /**
+     * 点大圆与印玺之外的空白（远山、网格）：激起一圈纸面震波
+     */
+    onEmptyClick(e: Event) {
+      if (prefersReducedMotion()) return
+      const target = e.target as Element | null
+      if (!target) return
+      if (target.closest('a, button, ink-seal3d, .s__button, .s__cta')) return
+      this.waveShock()
     }
 
     /**
@@ -616,12 +626,13 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     waveShock() {
       const { wave } = this
 
-      if (!this.buttonIsHovered || wave.state === 'shock') return
+      if (wave.state === 'shock') return
 
       wave.progress = 0
       wave.state = 'shock'
       wave.speed = 30
       wave.strength = 5
+      if (!this.isPaused) this.startFrame()
     }
 
     /**
