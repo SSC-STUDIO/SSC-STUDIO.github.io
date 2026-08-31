@@ -94,8 +94,12 @@ import Guestbook from '@/islands/Guestbook'
       const page = this.page
       if (!page) return
 
-      this.curX += (this.aimX - this.curX) * EASE
-      this.curY += (this.aimY - this.curY) * EASE
+      const dx = this.aimX - this.curX
+      const dy = this.aimY - this.curY
+      if (Math.abs(dx) < 0.0004 && Math.abs(dy) < 0.0004) return
+
+      this.curX += dx * EASE
+      this.curY += dy * EASE
 
       page.style.setProperty('--river-px', this.curX.toFixed(4))
       page.style.setProperty('--river-py', this.curY.toFixed(4))
