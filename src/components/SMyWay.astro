@@ -266,6 +266,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     throwDelay: number
     thrownObjects: any[]
     draggedObject: any
+    inspectedObject: any
     ecosystemLaunched: boolean
 
     smiley: {
@@ -346,6 +347,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.throwDelay = 2000
       this.thrownObjects = []
       this.draggedObject = null
+      this.inspectedObject = null
       this.ecosystemLaunched = false
 
       this.smiley = {
@@ -430,6 +432,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       })
       this.el.addEventListener('mouseup', this.objectDragEnd.bind(this))
       this.el.addEventListener('touchend', this.objectDragEnd.bind(this))
+
+      // Esc 关闭正在细看的物件
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && this.inspectedObject) this.dismissInspected()
+      }
+      window.addEventListener('keydown', onKey)
+      this.stops.push(() => window.removeEventListener('keydown', onKey))
 
       this.objectsWrapper.addEventListener(
         'touchmove',
@@ -852,7 +861,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       const object = this.draggedObject
 
-      if (!object) return
+      if (!object) {
+        // 空点（没按在物件上）：有正在细看的物件则送它退场
+        if (this.inspectedObject) this.dismissInspected()
+        return
+      }
 
       const endX = e.clientX ?? e.changedTouches?.[0]?.clientX ?? object.dragStartX
       const endY = e.clientY ?? e.changedTouches?.[0]?.clientY ?? object.dragStartY
@@ -880,18 +893,110 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         return
       }
 
+      // 轻点（非拖拽）→ 放大细看：物件飞到画面中央端正呈现；
+      // 再点它一下 / 点旁处 / Esc 才以墨点消散退场（对齐老站手感）
+      if (dragDistance < 10) {
+        if (object.isInspecting) {
+          this.dismissInspected()
+        } else {
+          if (this.inspectedObject) this.dismissInspected()
+          this.inspectObject(object)
+        }
+        return
+      }
+
+      // 真正拖拽后松手：继承甩动速度抛出 + 墨点消散
+      this.vanishObject(object)
+    }
+
+    /**
+     * 细看：把物件请到画面中央放大端正呈现
+     */
+    inspectObject(object) {
+      const rect = this.el.getBoundingClientRect()
+      const wRect = this.objectsWrapper.getBoundingClientRect()
+      const wStyle = getComputedStyle(this.objectsWrapper)
+
+      // 放大倍率按视口归一：宽高双约束取小者（竖构图照片本体就很高，
+      // 只按宽放大会溢出视口），换算成透视 z 位移
+      const perspective = parseFloat(wStyle.perspective) || 1200
+      const baseW = object.el.offsetWidth || 500
+      const baseH = object.el.offsetHeight || baseW
+      const scale = Math.min(
+        1.6,
+        Math.max(
+          1.05,
+          Math.min(
+            (window.safeWidth * 0.52) / baseW,
+            (window.safeHeight * 0.68) / baseH
+          )
+        )
+      )
+
+      object.inspectZ = perspective * (1 - 1 / scale)
+
+      // 投影逆变换：把「希望呈现在视口中央」折算回 3D 世界坐标——
+      // z 前移后离透视原点的偏移会被放大，直接给视口坐标会落偏
+      const originY =
+        wRect.top +
+        (parseFloat(wStyle.perspectiveOrigin.split(' ')[1]) ||
+          wRect.height / 2)
+      const desiredY = window.safeHeight * 0.5
+      const virtualClientY = originY + (desiredY - originY) / scale
+
+      // 换算进拖拽同款坐标系（区块本地系，锚在笑脸相对位）
+      object.inspectX = rect.width / 2 - this.smiley.rel.x
+      object.inspectY = virtualClientY - rect.top - this.smiley.rel.y * 1.5
+
+      object.isInspecting = true
+      object.el.classList.add('is-inspecting')
+
+      this.inspectedObject = object
+    }
+
+    /**
+     * 结束细看：轻柔地以墨点消散送走
+     */
+    dismissInspected() {
+      const object = this.inspectedObject
+      if (!object) return
+
+      this.inspectedObject = null
+      object.isInspecting = false
+      object.el.classList.remove('is-inspecting')
+
+      this.vanishObject(object, true)
+    }
+
+    /**
+     * 墨点消散退场；gentle 时只轻轻飘落，不加大旋转
+     */
+    vanishObject(object, gentle = false) {
+      if (object.isInspecting || this.inspectedObject === object) {
+        this.inspectedObject = null
+        object.isInspecting = false
+        object.el.classList.remove('is-inspecting')
+      }
+
       object.isVanishing = true
       object.el.classList.add('is-vanishing')
 
-      // 甩出：松手瞬间继承甩动速度 + 加大旋转，形成抛物线飞出
-      const flick = Math.hypot(object.flickVx, object.flickVy)
-      if (flick > 1.5) {
-        const boost = Math.min(2.2, 24 / flick)
-        object.vx = object.flickVx * boost
-        object.vy = object.flickVy * boost - 2
+      if (gentle) {
+        object.vx *= 0.3
+        object.vy = Math.min(object.vy * 0.3, 0) - 0.4
+        object.vrx = 0.2 + Math.random() * 0.3
+        object.vry = 0.2 + Math.random() * 0.3
+      } else {
+        // 甩出：松手瞬间继承甩动速度 + 加大旋转，形成抛物线飞出
+        const flick = Math.hypot(object.flickVx, object.flickVy)
+        if (flick > 1.5) {
+          const boost = Math.min(2.2, 24 / flick)
+          object.vx = object.flickVx * boost
+          object.vy = object.flickVy * boost - 2
+        }
+        object.vrx = 1.5 + Math.random() * 2.5
+        object.vry = 1.5 + Math.random() * 2.5
       }
-      object.vrx = 1.5 + Math.random() * 2.5
-      object.vry = 1.5 + Math.random() * 2.5
 
       object.vanishStart = performance.now()
     }
@@ -959,6 +1064,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     isWaiting: boolean
     isDragging: boolean
     isVanishing: boolean
+    isInspecting: boolean
+    inspectX: number
+    inspectY: number
+    inspectZ: number
     dragStartX: number
     dragStartY: number
 
@@ -1012,6 +1121,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.isWaiting = false
       this.isDragging = false
       this.isVanishing = false
+      this.isInspecting = false
+      this.inspectX = 0
+      this.inspectY = 0
+      this.inspectZ = 0
       this.dragStartX = 0
       this.dragStartY = 0
       this.flickVx = 0
@@ -1022,6 +1135,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.el.classList.remove('is-waiting')
       this.el.classList.remove('is-dragging')
       this.el.classList.remove('is-vanishing')
+      this.el.classList.remove('is-inspecting')
 
       this.vanishStart = 0
       this.vanishDelay = 1000
@@ -1080,6 +1194,26 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         this.z = Math.min(this.z, 500)
 
         this.s += (1 - this.s) * 0.5
+      } else if (this.isInspecting) {
+        // 细看：弹簧飞至画面中央，端正放大，轻微呼吸浮动
+        this.vx += (this.inspectX - this.x) * 0.06
+        this.vy += (this.inspectY - this.y) * 0.06
+        this.vz += (this.inspectZ - this.z) * 0.25
+
+        this.vx *= 0.86
+        this.vy *= 0.86
+        this.vz *= 0.72
+
+        this.x += this.vx
+        this.y += this.vy + Math.sin(time * 0.0016) * 0.35
+        this.z += this.vz
+
+        // 转回正面（就近归零，不多转圈）
+        this.rx += (Math.round(this.rx / 360) * 360 - this.rx) * 0.14
+        this.ry += (Math.round(this.ry / 360) * 360 - this.ry) * 0.14
+        this.rz += (0 - this.rz) * 0.14
+
+        this.s += (1 - this.s) * 0.3
       } else if (this.isVanishing) {
         this.vy += 0.5
 
@@ -1833,6 +1967,21 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
             transform: rotateX(90deg);
             transform-origin: 50% 100%;
           }
+        }
+      }
+
+      /* 细看：置顶端正呈现，再点一下即送走。
+         与拖拽同款：扁平化并藏起 3D 侧板，否则侧板会盖住照片 */
+      &.is-inspecting {
+        z-index: 5;
+
+        transform-style: flat;
+
+        cursor: zoom-out;
+
+        &:after,
+        .a__side {
+          display: none;
         }
       }
 
