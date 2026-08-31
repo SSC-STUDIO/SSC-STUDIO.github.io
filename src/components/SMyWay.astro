@@ -290,8 +290,6 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     scroll: {
-      start: number
-      end: number
       p: number
       sp: number
     }
@@ -531,17 +529,27 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     /**
      * Scroll handler
      */
-    onScroll(scrollY) {
+    onScroll(_scrollY?: number) {
       const { scroll } = this
 
-      const trigger = scrollY + window.safeHeight
+      // 行程一律用实时几何：load 后字体与懒加载图片会继续撑高上方内容，
+      // init 时缓存的 start/end 会陈旧，导致行程未滚先满、
+      // 卷底大字「我的路」的涌出动效直接定格在终点（看起来不会动了）
+      const rect = this.el.getBoundingClientRect()
+      const total = rect.height + window.safeHeight
 
-      if (trigger < scroll.start) {
-        scroll.p = 0
-      } else if (trigger > scroll.end) {
-        scroll.p = 1
-      } else {
-        scroll.p = (trigger - scroll.start) / (scroll.end - scroll.start)
+      scroll.p = Math.min(
+        1,
+        Math.max(0, (window.safeHeight - rect.top) / total)
+      )
+
+      // 顺带刷新指针坐标换算的锚点，防止布局漂移后拖拽/细看落点偏移
+      if (this.bounding) {
+        this.bounding.left = rect.left
+        this.bounding.top = rect.top
+      }
+      if (this.mouse) {
+        this.mouse.oy = rect.top + window.scrollY
       }
 
       if (scroll.p > 0.58 && !this.ecosystemLaunched && this.canThrow) {
@@ -593,17 +601,9 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Set scroll
      */
     setScroll() {
-      const { bounding } = this
+      this.scroll = { p: 0, sp: 0 }
 
-      this.scroll = {
-        start: bounding.top + window.scrollY,
-        end:
-          bounding.top + window.scrollY + bounding.height + window.safeHeight,
-        p: 0,
-        sp: 0,
-      }
-
-      this.onScroll(window.scrollY)
+      this.onScroll()
       this.scroll.sp = this.scroll.p
     }
 
