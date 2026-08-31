@@ -5,6 +5,7 @@
  * 云气地纹的空心墨圈全部「放活」（宿主区块已撤静态圆环，
  * 免得「死泡」和「活泡」混排）：自区块底部缓缓上浮，
  * 带轻微横向摆动，大小 / 速度 / 相位随机，到顶前淡出并在底部重生。
+ * 点空白纸面（不抢链接/卡片）可把最近一枚点破：圈涨大、洇开、碎成小环。
  * 全部 canvas 圆环描边，透明度压低，不与主体内容抢注意力；
  * reduced-motion 下完全不启动。
  *
@@ -45,6 +46,17 @@ const { class: className } = Astro.props
     /** 少数泡泡染朱砂，作纸面「铜钉」点缀 */
     accent: boolean
     lineWidth: number
+    /** >0 时正在点破：0→1 涨大淡出 */
+    pop: number
+    popR: number
+  }
+
+  type Ripple = {
+    x: number
+    y: number
+    r0: number
+    life: number
+    accent: boolean
   }
 
   function hexToRgb(hex: string): RGB | null {
@@ -54,6 +66,10 @@ const { class: className } = Astro.props
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
   }
 
+  /** 点在这些元素上不破泡，避免抢走链接、卡片、飞来物 */
+  const SKIP =
+    'a,button,input,textarea,select,label,summary,[role="button"],.a-object,.s__button,.s__cta,ink-seal3d,.js-stamp,.studio-card,.p-card,scroll-leaf,.p-honor-cert,.p-about-photo,.p-class-lightbox,.p-prose,.p-hero__title,.p-hero__summary,.p-hero__kicker,.p-empty,.s__inner,.s__ecosystem-label'
+
   class InkBubbles extends HTMLElement {
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
@@ -61,6 +77,8 @@ const { class: className } = Astro.props
     width = 0
     height = 0
     bubbles: Bubble[] = []
+    ripples: Ripple[] = []
+    lastTime = 0
 
     ink: RGB = { r: 28, g: 42, b: 34 }
     accent: RGB = { r: 194, g: 58, b: 43 }
@@ -68,6 +86,7 @@ const { class: className } = Astro.props
     reduced = false
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+    host: Element | null = null
 
     connectedCallback() {
       this.canvas = this.querySelector('.js-canvas')
@@ -91,11 +110,19 @@ const { class: className } = Astro.props
         passive: true,
       })
 
+      // canvas 自身 pointer-events:none，听宿主空白点击，不挡正文
+      this.host =
+        this.closest('section, header, main, .p-page, .p-hero') ||
+        this.parentElement
+      this.host?.addEventListener('click', this.onHostClick)
+
       this.resume()
     }
 
     disconnectedCallback() {
       this.suspend()
+      this.host?.removeEventListener('click', this.onHostClick)
+      this.host = null
       this.stops.forEach((stop) => stop())
       this.stops = []
     }
@@ -103,6 +130,61 @@ const { class: className } = Astro.props
     onIntersect = (e: CustomEvent) => {
       if (e.detail?.isIntersecting) this.resume()
       else this.suspend()
+    }
+
+    onHostClick = (e: Event) => {
+      if (this.reduced || !this.width) return
+      const target = e.target as Element | null
+      if (!target || target.closest(SKIP)) return
+
+      const rect = this.getBoundingClientRect()
+      const ev = e as PointerEvent
+      const x = ev.clientX - rect.left
+      const y = ev.clientY - rect.top
+      if (x < -8 || y < -8 || x > rect.width + 8 || y > rect.height + 8) return
+
+      const time = this.lastTime || performance.now()
+      let best = -1
+      let bestD = 36
+
+      for (let i = 0; i < this.bubbles.length; i++) {
+        const b = this.bubbles[i]
+        if (b.pop > 0) continue
+        const bx =
+          b.bx * this.width + Math.sin(time * b.swayFreq + b.phase) * b.swayAmp
+        const d = Math.hypot(bx - x, b.y - y) - b.r
+        if (d < bestD) {
+          bestD = d
+          best = i
+        }
+      }
+
+      if (best < 0) return
+
+      const hit = this.bubbles[best]
+      const hx =
+        hit.bx * this.width +
+        Math.sin(time * hit.swayFreq + hit.phase) * hit.swayAmp
+      this.popBubble(best, hx, hit.y)
+    }
+
+    popBubble(index: number, x: number, y: number) {
+      const b = this.bubbles[index]
+      b.pop = 0.001
+      b.popR = b.r * (2.6 + Math.random() * 1.1)
+
+      const rings = 2 + Math.floor(Math.random() * 2)
+      for (let i = 0; i < rings; i++) {
+        this.ripples.push({
+          x: x + (Math.random() - 0.5) * b.r,
+          y: y + (Math.random() - 0.5) * b.r,
+          r0: b.r * (0.4 + i * 0.35),
+          life: -i * 0.12,
+          accent: b.accent || Math.random() < 0.2,
+        })
+      }
+
+      this.resume()
     }
 
     resume() {
@@ -141,6 +223,7 @@ const { class: className } = Astro.props
 
     seed(count: number) {
       this.bubbles = []
+      this.ripples = []
       for (let i = 0; i < count; i++) {
         // 初播撒满整个高度，避免开场底部扎堆
         this.bubbles.push(this.makeBubble(Math.random()))
@@ -162,6 +245,8 @@ const { class: className } = Astro.props
         alpha: 0.09 + Math.random() * 0.09,
         accent,
         lineWidth: 0.9 + Math.random() * 0.8,
+        pop: 0,
+        popR: 0,
       }
     }
 
@@ -169,6 +254,7 @@ const { class: className } = Astro.props
       const { ctx, width, height, bubbles } = this
       if (!width || !height) return
 
+      this.lastTime = time
       ctx.clearRect(0, 0, width, height)
 
       const dt = delta / 1000
@@ -176,6 +262,26 @@ const { class: className } = Astro.props
 
       for (let i = 0; i < bubbles.length; i++) {
         let b = bubbles[i]
+        const x =
+          b.bx * width + Math.sin(time * b.swayFreq + b.phase) * b.swayAmp
+
+        if (b.pop > 0) {
+          b.pop = Math.min(1, b.pop + dt * 2.6)
+          const t = b.pop
+          const eased = 1 - Math.pow(1 - t, 3)
+          const r = b.r + (b.popR - b.r) * eased
+          const alpha = b.alpha * (1.8 - t * 1.8)
+          const c = b.accent ? this.accent : this.ink
+          if (alpha > 0.002) {
+            ctx.beginPath()
+            ctx.arc(x, b.y, r, 0, Math.PI * 2)
+            ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`
+            ctx.lineWidth = b.lineWidth * (1 + eased)
+            ctx.stroke()
+          }
+          if (t >= 1) bubbles[i] = this.makeBubble(0)
+          continue
+        }
 
         b.y -= b.speed * dt
 
@@ -191,14 +297,36 @@ const { class: className } = Astro.props
         const alpha = b.alpha * Math.min(fadeIn, fadeOut)
         if (alpha <= 0.002) continue
 
-        const x =
-          b.bx * width + Math.sin(time * b.swayFreq + b.phase) * b.swayAmp
-
         const c = b.accent ? this.accent : this.ink
         ctx.beginPath()
-        ctx.arc(x, b.y, b.r, 0, Math.PI * 2)
+        ctx.arc(
+          b.bx * width + Math.sin(time * b.swayFreq + b.phase) * b.swayAmp,
+          b.y,
+          b.r,
+          0,
+          Math.PI * 2
+        )
         ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`
         ctx.lineWidth = b.lineWidth
+        ctx.stroke()
+      }
+
+      for (let i = this.ripples.length - 1; i >= 0; i--) {
+        const ripple = this.ripples[i]
+        ripple.life += dt * 1.8
+        if (ripple.life >= 1) {
+          this.ripples.splice(i, 1)
+          continue
+        }
+        if (ripple.life < 0) continue
+        const t = ripple.life
+        const r = ripple.r0 + t * 18
+        const alpha = (1 - t) * 0.22
+        const c = ripple.accent ? this.accent : this.ink
+        ctx.beginPath()
+        ctx.arc(ripple.x, ripple.y, r, 0, Math.PI * 2)
+        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`
+        ctx.lineWidth = 1.1
         ctx.stroke()
       }
     }

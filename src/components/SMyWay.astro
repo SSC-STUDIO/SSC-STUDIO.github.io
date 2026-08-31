@@ -1724,6 +1724,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         width: calc(var(--size) * 400px);
         height: calc(var(--size) * 400px);
 
+        /* 默认 .a-object 不接收指针，梅花飞星要点得开才能放大细看 */
+        pointer-events: all;
+        cursor: zoom-in;
+
         @include mq(tablet-sm) {
           width: calc(var(--size) * 200px);
           height: calc(var(--size) * 200px);

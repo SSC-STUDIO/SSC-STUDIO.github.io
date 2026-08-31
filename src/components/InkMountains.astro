@@ -5,6 +5,7 @@
  * 默认：静态 SVG，不进 rAF。
  * dimensional：纸雕模式——三层山各自拆成独立纸片，按远近 translateZ
  * 排进真实透视空间，指针轻移时整座「纸雕盒」微微侧转，层间纵深立现。
+ * 点空白山脚会把近层纸片往前顶一下，像按进纸雕盒。
  * 触屏 / reduced-motion / 无 JS 下与静态版视觉一致，零白屏风险。
  */
 type Props = {
@@ -93,15 +94,27 @@ const MOSS = [
   import { onPointer, prefersReducedMotion, type Cleanup } from '../motion/core'
 
   /** 纸雕山盒：指针驱动的轻微侧转，层间 translateZ 产生纵深视差 */
+  const SKIP =
+    'a,button,input,textarea,select,label,[role="button"],.a-object,.s__button,.s__cta,ink-seal3d,.js-stamp,.studio-card,.p-card,scroll-leaf,.p-honor-cert,.p-about-photo,.p-prose,.p-hero__title,.p-hero__summary,.s__inner'
+
   class InkPeaks extends HTMLElement {
     rx = 0
     ry = 0
     trx = 0
     try_ = 0
+    pop = 0
+    popAim = 0
     raf = 0
+    popTimer = 0
     stops: Cleanup[] = []
+    host: Element | null = null
 
     connectedCallback() {
+      this.host =
+        this.closest('section, header, .p-hero, .s-cta, .s-my-way, .s-about, .s-work') ||
+        this.parentElement
+      this.host?.addEventListener('click', this.onHostClick)
+
       if (
         prefersReducedMotion() ||
         window.matchMedia('(pointer: coarse)').matches
@@ -123,8 +136,36 @@ const MOSS = [
     disconnectedCallback() {
       cancelAnimationFrame(this.raf)
       this.raf = 0
+      window.clearTimeout(this.popTimer)
+      this.host?.removeEventListener('click', this.onHostClick)
+      this.host = null
       this.stops.forEach((stop) => stop())
       this.stops = []
+    }
+
+    onHostClick = (e: Event) => {
+      if (prefersReducedMotion()) return
+      const target = e.target as Element | null
+      if (!target || target.closest(SKIP)) return
+
+      const rect = this.getBoundingClientRect()
+      const ev = e as PointerEvent
+      if (
+        ev.clientX < rect.left ||
+        ev.clientX > rect.right ||
+        ev.clientY < rect.top ||
+        ev.clientY > rect.bottom
+      ) {
+        return
+      }
+
+      this.popAim = 1
+      this.wake()
+      window.clearTimeout(this.popTimer)
+      this.popTimer = window.setTimeout(() => {
+        this.popAim = 0
+        this.wake()
+      }, 480)
     }
 
     wake() {
@@ -135,13 +176,16 @@ const MOSS = [
     tick() {
       this.rx += (this.trx - this.rx) * 0.06
       this.ry += (this.try_ - this.ry) * 0.06
+      this.pop += (this.popAim - this.pop) * 0.16
 
       this.style.setProperty('--peak-rx', this.rx.toFixed(3) + 'deg')
       this.style.setProperty('--peak-ry', this.ry.toFixed(3) + 'deg')
+      this.style.setProperty('--peak-pop', this.pop.toFixed(3))
 
       const settled =
         Math.abs(this.trx - this.rx) < 0.01 &&
-        Math.abs(this.try_ - this.ry) < 0.01
+        Math.abs(this.try_ - this.ry) < 0.01 &&
+        Math.abs(this.popAim - this.pop) < 0.008
       this.raf = settled ? 0 : requestAnimationFrame(() => this.tick())
     }
   }
@@ -221,17 +265,20 @@ const MOSS = [
       height: 100%;
 
       /* 远层退深并放大补偿，正视时与静态版几乎一致，
-         侧转时层间错位显出纸雕纵深 */
+         侧转时层间错位显出纸雕纵深；--peak-pop 是点按后的近推 */
       &--far {
-        transform: translateZ(-120px) scale(1.15);
+        transform: translateZ(calc(-120px + var(--peak-pop, 0) * 28px))
+          scale(calc(1.15 + var(--peak-pop, 0) * 0.03));
       }
 
       &--mid {
-        transform: translateZ(-58px) scale(1.0725);
+        transform: translateZ(calc(-58px + var(--peak-pop, 0) * 46px))
+          scale(calc(1.0725 + var(--peak-pop, 0) * 0.045));
       }
 
       &--near {
-        transform: translateZ(0);
+        transform: translateZ(calc(var(--peak-pop, 0) * 36px))
+          scale(calc(1 + var(--peak-pop, 0) * 0.07));
       }
     }
   }
