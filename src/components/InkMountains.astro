@@ -1,37 +1,155 @@
 ---
 /**
- * InkMountains — 水墨远山（静态 SVG，不进 rAF）
+ * InkMountains — 水墨远山
+ *
+ * 默认：静态 SVG，不进 rAF。
+ * dimensional：纸雕模式——三层山各自拆成独立纸片，按远近 translateZ
+ * 排进真实透视空间，指针轻移时整座「纸雕盒」微微侧转，层间纵深立现。
+ * 触屏 / reduced-motion / 无 JS 下与静态版视觉一致，零白屏风险。
  */
 type Props = {
   compact?: boolean
+  /** 纸雕纵深模式（首页区块启用；默认关闭，内页不受影响） */
+  dimensional?: boolean
 }
 
-const { compact = false } = Astro.props
+const { compact = false, dimensional = false } = Astro.props
+
+const FAR =
+  'M0 420 V268 L90 238 C170 214 210 250 290 228 C380 202 430 248 520 216 C610 186 680 240 760 208 C850 176 910 232 1000 206 C1100 176 1160 236 1240 214 L1440 248 V420 Z'
+const MID =
+  'M0 420 V318 L70 292 C150 268 200 308 280 286 C370 260 430 310 520 284 C610 258 670 308 760 282 C850 256 920 306 1010 288 C1110 266 1180 312 1270 294 L1440 318 V420 Z'
+const NEAR =
+  'M0 420 V368 L120 348 C210 332 250 360 340 346 C430 332 490 362 580 348 C670 334 730 364 820 350 C920 334 980 366 1080 352 C1180 338 1260 368 1440 358 V420 Z'
+
+const MOSS = [
+  [210, 286, 1.6],
+  [402, 302, 1.2],
+  [618, 276, 1.8],
+  [894, 298, 1.3],
+  [1128, 312, 1.5],
+]
 ---
 
-<div class:list={['ink-mountains', compact && 'ink-mountains--compact']} aria-hidden="true">
-  <svg viewBox="0 0 1440 420" preserveAspectRatio="xMidYMax slice">
-    <path
-      class="ink-mountains__far"
-      d="M0 420 V268 L90 238 C170 214 210 250 290 228 C380 202 430 248 520 216 C610 186 680 240 760 208 C850 176 910 232 1000 206 C1100 176 1160 236 1240 214 L1440 248 V420 Z"
-    ></path>
-    <path
-      class="ink-mountains__mid"
-      d="M0 420 V318 L70 292 C150 268 200 308 280 286 C370 260 430 310 520 284 C610 258 670 308 760 282 C850 256 920 306 1010 288 C1110 266 1180 312 1270 294 L1440 318 V420 Z"
-    ></path>
-    <path
-      class="ink-mountains__near"
-      d="M0 420 V368 L120 348 C210 332 250 360 340 346 C430 332 490 362 580 348 C670 334 730 364 820 350 C920 334 980 366 1080 352 C1180 338 1260 368 1440 358 V420 Z"
-    ></path>
-    <g class="ink-mountains__moss">
-      <circle cx="210" cy="286" r="1.6"></circle>
-      <circle cx="402" cy="302" r="1.2"></circle>
-      <circle cx="618" cy="276" r="1.8"></circle>
-      <circle cx="894" cy="298" r="1.3"></circle>
-      <circle cx="1128" cy="312" r="1.5"></circle>
-    </g>
-  </svg>
-</div>
+{
+  dimensional ? (
+    <div
+      class:list={[
+        'ink-mountains',
+        'ink-mountains--dimensional',
+        compact && 'ink-mountains--compact',
+      ]}
+      aria-hidden="true"
+    >
+      <ink-peaks class="ink-mountains__stage">
+        <svg
+          class="ink-mountains__layer ink-mountains__layer--far"
+          viewBox="0 0 1440 420"
+          preserveAspectRatio="xMidYMax slice"
+        >
+          <path class="ink-mountains__far" d={FAR} />
+        </svg>
+        <svg
+          class="ink-mountains__layer ink-mountains__layer--mid"
+          viewBox="0 0 1440 420"
+          preserveAspectRatio="xMidYMax slice"
+        >
+          <path class="ink-mountains__mid" d={MID} />
+        </svg>
+        <svg
+          class="ink-mountains__layer ink-mountains__layer--near"
+          viewBox="0 0 1440 420"
+          preserveAspectRatio="xMidYMax slice"
+        >
+          <path class="ink-mountains__near" d={NEAR} />
+          <g class="ink-mountains__moss">
+            {MOSS.map(([cx, cy, r]) => (
+              <circle cx={cx} cy={cy} r={r} />
+            ))}
+          </g>
+        </svg>
+      </ink-peaks>
+    </div>
+  ) : (
+    <div
+      class:list={['ink-mountains', compact && 'ink-mountains--compact']}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 1440 420" preserveAspectRatio="xMidYMax slice">
+        <path class="ink-mountains__far" d={FAR} />
+        <path class="ink-mountains__mid" d={MID} />
+        <path class="ink-mountains__near" d={NEAR} />
+        <g class="ink-mountains__moss">
+          {MOSS.map(([cx, cy, r]) => (
+            <circle cx={cx} cy={cy} r={r} />
+          ))}
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+<script>
+  import { onPointer, prefersReducedMotion, type Cleanup } from '../motion/core'
+
+  /** 纸雕山盒：指针驱动的轻微侧转，层间 translateZ 产生纵深视差 */
+  class InkPeaks extends HTMLElement {
+    rx = 0
+    ry = 0
+    trx = 0
+    try_ = 0
+    raf = 0
+    stops: Cleanup[] = []
+
+    connectedCallback() {
+      if (
+        prefersReducedMotion() ||
+        window.matchMedia('(pointer: coarse)').matches
+      ) {
+        return
+      }
+
+      this.stops.push(
+        onPointer(({ x, y }) => {
+          const nx = x / window.innerWidth - 0.5
+          const ny = y / window.innerHeight - 0.5
+          this.try_ = nx * 6.5
+          this.trx = ny * -2.6
+          this.wake()
+        })
+      )
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this.raf)
+      this.raf = 0
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    wake() {
+      if (this.raf) return
+      this.raf = requestAnimationFrame(() => this.tick())
+    }
+
+    tick() {
+      this.rx += (this.trx - this.rx) * 0.06
+      this.ry += (this.try_ - this.ry) * 0.06
+
+      this.style.setProperty('--peak-rx', this.rx.toFixed(3) + 'deg')
+      this.style.setProperty('--peak-ry', this.ry.toFixed(3) + 'deg')
+
+      const settled =
+        Math.abs(this.trx - this.rx) < 0.01 &&
+        Math.abs(this.try_ - this.ry) < 0.01
+      this.raf = settled ? 0 : requestAnimationFrame(() => this.tick())
+    }
+  }
+
+  if (!customElements.get('ink-peaks')) {
+    customElements.define('ink-peaks', InkPeaks)
+  }
+</script>
 
 <style lang="scss">
   .ink-mountains {
@@ -75,6 +193,46 @@ const { compact = false } = Astro.props
     &--compact {
       height: min(22vh, 11rem);
       opacity: 0.9;
+    }
+
+    /* ── 纸雕纵深模式 ── */
+    &--dimensional {
+      perspective: 800px;
+      perspective-origin: 50% 100%;
+    }
+
+    &__stage {
+      position: absolute;
+      inset: 0;
+
+      display: block;
+
+      transform-style: preserve-3d;
+      transform: rotateX(var(--peak-rx, 0deg)) rotateY(var(--peak-ry, 0deg));
+
+      will-change: transform;
+    }
+
+    &__layer {
+      position: absolute;
+      inset: 0 -4%;
+
+      width: 108%;
+      height: 100%;
+
+      /* 远层退深并放大补偿，正视时与静态版几乎一致，
+         侧转时层间错位显出纸雕纵深 */
+      &--far {
+        transform: translateZ(-120px) scale(1.15);
+      }
+
+      &--mid {
+        transform: translateZ(-58px) scale(1.0725);
+      }
+
+      &--near {
+        transform: translateZ(0);
+      }
     }
   }
 
