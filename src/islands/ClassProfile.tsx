@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AUTH_FETCH_OPTIONS } from "./api";
 import {
   ClassComments,
+  ClassEmpty,
   ClassLoginLock,
   ClassOfflineNotice,
   roleLabel,
@@ -56,41 +57,50 @@ export default function ClassProfile({ slug }: { slug: string }) {
   const [profile, setProfile] = useState<ClassProfileDto | null>(null);
   const [visits, setVisits] = useState<Visits | null>(null);
 
-  const loadProfile = useCallback(async () => {
-    if (!slug) {
-      setLoad("notfound");
-      return;
-    }
-    setLoad("loading");
-    try {
-      const response = await fetch(
-        `/api/class/profiles/${encodeURIComponent(slug)}`,
-        { ...AUTH_FETCH_OPTIONS, cache: "no-store" },
-      );
-      if (response.status === 401) {
-        setLoad("out");
-        return;
-      }
-      if (response.status === 404) {
+  const loadProfile = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      if (!slug) {
         setLoad("notfound");
         return;
       }
-      if (response.status === 503) {
-        setLoad("unavailable");
-        return;
+      setLoad("loading");
+      try {
+        const response = await fetch(
+          `/api/class/profiles/${encodeURIComponent(slug)}`,
+          { ...AUTH_FETCH_OPTIONS, cache: "no-store" },
+        );
+        if (signal?.cancelled) return;
+        if (response.status === 401) {
+          setLoad("out");
+          return;
+        }
+        if (response.status === 404) {
+          setLoad("notfound");
+          return;
+        }
+        if (response.status === 503) {
+          setLoad("unavailable");
+          return;
+        }
+        if (!response.ok) throw new Error("failed");
+        const data = (await response.json()) as ClassProfileDto;
+        if (signal?.cancelled) return;
+        setProfile(data);
+        setVisits(data.visits ?? null);
+        setLoad("ready");
+      } catch {
+        if (!signal?.cancelled) setLoad("error");
       }
-      if (!response.ok) throw new Error("failed");
-      const data = (await response.json()) as ClassProfileDto;
-      setProfile(data);
-      setVisits(data.visits ?? null);
-      setLoad("ready");
-    } catch {
-      setLoad("error");
-    }
-  }, [slug]);
+    },
+    [slug],
+  );
 
   useEffect(() => {
-    void loadProfile();
+    const signal = { cancelled: false };
+    void loadProfile(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadProfile]);
 
   // Put the member's name in the tab title once the profile is readable.
@@ -229,13 +239,21 @@ export default function ClassProfile({ slug }: { slug: string }) {
         <section className="p-class-profile__panel">
           <p className="p-card__kicker">bio</p>
           <h3 className="p-class-profile__panel-title">简介</h3>
-          <div className="p-class-profile__copy">
+          <div
+            className={`p-class-profile__copy${
+              paragraphs(profile.bio).length === 0 ? " is-empty" : ""
+            }`}
+          >
             {paragraphs(profile.bio).length > 0 ? (
               paragraphs(profile.bio).map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))
             ) : (
-              <p>这位成员还没有留下简介。</p>
+              <ClassEmpty
+                mark="白"
+                title="还没有简介"
+                message="这位成员还没有留下简介。"
+              />
             )}
           </div>
         </section>
@@ -261,13 +279,21 @@ export default function ClassProfile({ slug }: { slug: string }) {
         <section className="p-class-profile__panel p-class-profile__panel--message">
           <p className="p-card__kicker">message</p>
           <h3 className="p-class-profile__panel-title">留言文本</h3>
-          <div className="p-class-profile__copy">
+          <div
+            className={`p-class-profile__copy${
+              profile.message ? "" : " is-empty"
+            }`}
+          >
             {profile.message ? (
               paragraphs(profile.message).map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))
             ) : (
-              <p>暂无留言文本。</p>
+              <ClassEmpty
+                mark="笺"
+                title="暂无留言文本"
+                message="还没有写给这位成员的固定留言。"
+              />
             )}
           </div>
         </section>

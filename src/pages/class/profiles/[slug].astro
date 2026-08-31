@@ -69,4 +69,44 @@ const { slug = '' } = Astro.params
   .p-lock .p-class__retry {
     margin-top: 0;
   }
+
+  /* 栏内空态：去掉第二层厚框，只留浅虚线笺 */
+  .p-class-profile__copy.is-empty .p-class-empty {
+    border-color: color-mix(in srgb, #{color(secondary)} 28%, transparent);
+    background: transparent;
+  }
+
+  /* 标签：悬停时轻提并翻墨，像关于页的技能签 */
+  .p-class-profile__tag {
+    display: inline-block;
+
+    transition:
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.28s ease,
+      color 0.28s ease;
+  }
+
+  .p-class-profile__tag:hover {
+    transform: translateY(-2px);
+
+    background: color(secondary);
+
+    color: color(primary);
+  }
+
+  /* 到访数字：落纸时自模糊中收干 */
+  .p-class-profile__facts dd {
+    animation: class-count-rise 640ms cubic-bezier(0.16, 1, 0.3, 1) 140ms
+      backwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-class-profile__tag,
+    .p-class-profile__tag:hover,
+    .p-class-profile__facts dd {
+      animation: none;
+      transform: none;
+      transition: none;
+    }
+  }
 </style>

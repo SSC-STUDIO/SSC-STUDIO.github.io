@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUTH_FETCH_OPTIONS } from "./api";
-import { ClassLoginLock } from "./ClassSpace";
+import { ClassEmpty, ClassLoginLock } from "./ClassSpace";
 
 /**
  * Class gallery island — protected media grid with a self-drawn lightbox.
@@ -97,6 +97,7 @@ function GalleryThumb({
       {item.kind === "video" ? (
         <span className="p-class-gallery__badge">▶ 视频</span>
       ) : null}
+      <span className="p-class-gallery__sheen" aria-hidden="true" />
     </button>
   );
 }
@@ -113,18 +114,23 @@ export default function ClassGallery() {
   const [dir, setDir] = useState<-1 | 1>(1);
   // 拖拽位移（px），松手前画面跟着手走
   const [drag, setDrag] = useState(0);
+  // 关箱先播收束，再卸 DOM，避免瞬间消失
+  const [closing, setClosing] = useState(false);
   const dragRef = useRef<{ id: number; x: number } | null>(null);
+  const closingRef = useRef(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
 
-  const loadMedia = useCallback(async () => {
+  const loadMedia = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoad("loading");
+    setUnauthorized(false);
     try {
       const response = await fetch("/api/class/media?limit=120", {
         ...AUTH_FETCH_OPTIONS,
         cache: "no-store",
       });
+      if (signal?.cancelled) return;
       if (response.status === 401) {
         setUnauthorized(true);
         setItems([]);
@@ -133,6 +139,7 @@ export default function ClassGallery() {
       }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as ClassMediaResponse;
+      if (signal?.cancelled) return;
       const apiItems = Array.isArray(data.items) ? data.items : [];
       setItems(
         apiItems.map((item) => ({
@@ -144,28 +151,49 @@ export default function ClassGallery() {
       );
       setLoad("ready");
     } catch {
+      if (signal?.cancelled) return;
       setItems([]);
       setLoad("error");
     }
   }, []);
 
   useEffect(() => {
-    void loadMedia();
+    const signal = { cancelled: false };
+    void loadMedia(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadMedia]);
+
+  const finishClose = useCallback(() => {
+    closingRef.current = false;
+    setClosing(false);
+    setSelected(null);
+    setReadyUrl(null);
+    setDrag(0);
+    lastFocusedRef.current?.focus();
+    lastFocusedRef.current = null;
+  }, []);
 
   const openAt = useCallback((index: number) => {
     lastFocusedRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
+    closingRef.current = false;
+    setClosing(false);
     setSelected(index);
   }, []);
 
   const close = useCallback(() => {
-    setSelected(null);
-    lastFocusedRef.current?.focus();
-    lastFocusedRef.current = null;
-  }, []);
+    if (closingRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      finishClose();
+      return;
+    }
+    closingRef.current = true;
+    setClosing(true);
+  }, [finishClose]);
 
   const step = useCallback(
     (direction: -1 | 1) => {
@@ -182,6 +210,7 @@ export default function ClassGallery() {
   /* 拖拽翻页：一套指针事件同时吃下鼠标与触屏；
      视频上的手势留给原生控件，不抢它的进度条。 */
   const onDragStart = useCallback((event: React.PointerEvent) => {
+    if (closingRef.current) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if ((event.target as HTMLElement).closest("video")) return;
     dragRef.current = { id: event.pointerId, x: event.clientX };
@@ -267,6 +296,13 @@ export default function ClassGallery() {
     };
   }, [lightboxOpen]);
 
+  // 收束播完再卸灯箱；超时兜底，免得动画被中途掐掉后卡在半关。
+  useEffect(() => {
+    if (!closing) return;
+    const timer = window.setTimeout(finishClose, 320);
+    return () => window.clearTimeout(timer);
+  }, [closing, finishClose]);
+
   // Warm the browser cache for the two neighbours so stepping feels instant.
   useEffect(() => {
     if (selected === null || items.length < 2) return;
@@ -287,9 +323,7 @@ export default function ClassGallery() {
     <div className="p-class-gallery">
       {unauthorized ? (
         <ClassLoginLock message="相册需要登录后通过受保护接口加载。未登录不会展示班级照片。" />
-      ) : null}
-
-      {unauthorized ? null : load === "loading" ? (
+      ) : load === "loading" ? (
         <p className="p-class-gallery__state">正在载入相册…</p>
       ) : load === "error" ? (
         <div className="p-class-gallery__state">
@@ -302,6 +336,12 @@ export default function ClassGallery() {
             再试一次
           </button>
         </div>
+      ) : items.length === 0 ? (
+        <ClassEmpty
+          mark="影"
+          title="相册还是空的"
+          message="还没有照片或视频写进这本册子。"
+        />
       ) : (
         <>
           <p className="p-class-gallery__count">
@@ -320,11 +360,16 @@ export default function ClassGallery() {
 
       {current ? (
         <div
-          className="p-class-lightbox"
+          className={`p-class-lightbox${closing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label={current.title}
           ref={dialogRef}
+          onAnimationEnd={(event) => {
+            if (!closing) return;
+            if (event.target !== event.currentTarget) return;
+            finishClose();
+          }}
         >
           <button
             type="button"
@@ -396,6 +441,7 @@ export default function ClassGallery() {
               type="button"
               className="p-class-lightbox__nav p-class-lightbox__nav--prev"
               aria-label="上一张"
+              disabled={closing}
               onClick={() => step(-1)}
             >
               ←
@@ -404,6 +450,7 @@ export default function ClassGallery() {
               type="button"
               className="p-class-lightbox__nav p-class-lightbox__nav--next"
               aria-label="下一张"
+              disabled={closing}
               onClick={() => step(1)}
             >
               →

@@ -147,25 +147,34 @@ export function ClassComments({
   const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
   const [likeBusyId, setLikeBusyId] = useState<string | null>(null);
 
-  const loadComments = useCallback(async () => {
-    setFeed("loading");
-    try {
-      const params = new URLSearchParams({ targetKind, targetId });
-      const response = await fetch(`/api/comments?${params.toString()}`, {
-        ...AUTH_FETCH_OPTIONS,
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error("failed");
-      const data = (await response.json()) as CommentsResponse;
-      setComments(Array.isArray(data.items) ? data.items : []);
-      setFeed("ready");
-    } catch {
-      setFeed("error");
-    }
-  }, [targetKind, targetId]);
+  const loadComments = useCallback(
+    async (signal?: { cancelled: boolean }) => {
+      setFeed("loading");
+      try {
+        const params = new URLSearchParams({ targetKind, targetId });
+        const response = await fetch(`/api/comments?${params.toString()}`, {
+          ...AUTH_FETCH_OPTIONS,
+          cache: "no-store",
+        });
+        if (signal?.cancelled) return;
+        if (!response.ok) throw new Error("failed");
+        const data = (await response.json()) as CommentsResponse;
+        if (signal?.cancelled) return;
+        setComments(Array.isArray(data.items) ? data.items : []);
+        setFeed("ready");
+      } catch {
+        if (!signal?.cancelled) setFeed("error");
+      }
+    },
+    [targetKind, targetId],
+  );
 
   useEffect(() => {
-    void loadComments();
+    const signal = { cancelled: false };
+    void loadComments(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadComments]);
 
   async function handlePost(event: React.FormEvent<HTMLFormElement>) {
@@ -369,9 +378,11 @@ export function ClassComments({
           </button>
         </div>
       ) : comments.length === 0 ? (
-        <p className="p-class-comments__state">
-          {emptyMessage ?? "还没有留言——做第一个写下回忆的人。"}
-        </p>
+        <ClassEmpty
+          mark="言"
+          title="还没有留言"
+          message={emptyMessage ?? "还没有留言——做第一个写下回忆的人。"}
+        />
       ) : (
         <ol className="p-class-comments__list">
           {comments.map((comment) => {
@@ -514,10 +525,25 @@ export function ClassLoginLock({ message }: { message: string }) {
         <a className="p-card__link" href={LOGIN_PATH}>
           登录账号
         </a>
-        <a className="p-card__link p-card__link--ghost" href="/class/gallery">
-          公开画廊预览
-        </a>
       </div>
+    </div>
+  );
+}
+
+/** Quiet empty panel — watermark + two lines, used by all three class pages. */
+export function ClassEmpty({
+  mark = "空",
+  title,
+  message,
+}: {
+  mark?: string;
+  title: string;
+  message: string;
+}) {
+  return (
+    <div className="p-empty p-class-empty" data-mark={mark}>
+      <p className="p-empty__title">{title}</p>
+      <p className="p-empty__message">{message}</p>
     </div>
   );
 }
@@ -542,9 +568,6 @@ export function ClassOfflineNotice({
         <button type="button" className="p-class__retry" onClick={onRetry}>
           再试一次
         </button>
-        <a className="p-card__link p-card__link--ghost" href="/class/gallery">
-          公开画廊预览
-        </a>
       </div>
     </div>
   );
@@ -570,9 +593,6 @@ function ClassStudentNotice() {
         <a className="p-card__link" href="/contact">
           联系站长
         </a>
-        <a className="p-card__link p-card__link--ghost" href="/class/gallery">
-          公开画廊预览
-        </a>
       </div>
     </div>
   );
@@ -590,7 +610,7 @@ export default function ClassSpace() {
   // Bumping this re-runs the session check (retry from the offline card).
   const [sessionAttempt, setSessionAttempt] = useState(0);
 
-  const loadSpace = useCallback(async () => {
+  const loadSpace = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoad("loading");
     try {
       const [summaryResponse, profilesResponse] = await Promise.all([
@@ -603,6 +623,7 @@ export default function ClassSpace() {
           cache: "no-store",
         }),
       ]);
+      if (signal?.cancelled) return;
       if (summaryResponse.status === 401 || profilesResponse.status === 401) {
         setSession("out");
         return;
@@ -614,13 +635,14 @@ export default function ClassSpace() {
       if (!summaryResponse.ok || !profilesResponse.ok) throw new Error("failed");
       const summaryData = (await summaryResponse.json()) as ClassSummary;
       const profilesData = (await profilesResponse.json()) as ProfilesResponse;
+      if (signal?.cancelled) return;
       setSummary(summaryData);
       setProfiles(
         Array.isArray(profilesData.items) ? profilesData.items : [],
       );
       setLoad("ready");
     } catch {
-      setLoad("error");
+      if (!signal?.cancelled) setLoad("error");
     }
   }, []);
 
@@ -674,7 +696,7 @@ export default function ClassSpace() {
     return (
       <div className="p-class">
         <ClassOfflineNotice
-          message="班级空间的后端服务暂时不可用——不是你的问题。可以先看看公开画廊预览，稍后再回来。"
+          message="班级空间的后端服务暂时不可用——不是你的问题，稍后再回来。"
           onRetry={() => setSessionAttempt((attempt) => attempt + 1)}
         />
       </div>
@@ -792,7 +814,11 @@ export default function ClassSpace() {
               <h2 className="p-class__section-title">成员档案</h2>
             </div>
             {profiles.length === 0 ? (
-              <p className="p-class__state">档案还在整理中。</p>
+              <ClassEmpty
+                mark="册"
+                title="档案还在整理"
+                message="同学档案尚未写入，稍后再来翻这一页。"
+              />
             ) : (
               <div className="p-class__profiles">
                 {profiles.map((profile) => (

@@ -125,6 +125,76 @@ import ClassGallery from '@/islands/ClassGallery'
     }
   }
 
+  /* 格子受光：文章卡那一道浅墨，压在编号与角标之下 */
+  .p-class-gallery__sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    background: linear-gradient(
+      108deg,
+      transparent 36%,
+      color-mix(in srgb, #{color(primary)} 30%, transparent) 50%,
+      transparent 64%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-18%);
+    transition:
+      opacity 420ms ease,
+      transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-class-gallery__item:hover .p-class-gallery__sheen,
+  .p-class-gallery__item:focus-visible .p-class-gallery__sheen {
+    opacity: 1;
+    transform: translateX(18%);
+  }
+
+  /* 灯箱开合：册页摊开 / 合上，关箱由 .is-closing 接手 */
+  .p-class-lightbox {
+    animation: class-lightbox-open 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .p-class-lightbox__panel {
+    animation: class-lightbox-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .p-class-lightbox.is-closing {
+    animation: class-lightbox-close 240ms ease both;
+    pointer-events: none;
+  }
+
+  .p-class-lightbox.is-closing .p-class-lightbox__panel {
+    animation: class-lightbox-panel-out 240ms ease both;
+  }
+
+  @keyframes class-lightbox-open {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes class-lightbox-close {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes class-lightbox-panel-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.7rem, 0) scale(0.975);
+    }
+  }
+
+  @keyframes class-lightbox-panel-out {
+    to {
+      opacity: 0;
+      transform: translate3d(0, 0.45rem, 0) scale(0.98);
+    }
+  }
+
   /* ── 灯箱翻页：新帧自来处滑入，如册页翻过一叶 ── */
 
   .p-class-lightbox__figure {
@@ -183,14 +253,24 @@ import ClassGallery from '@/islands/ClassGallery'
   @media (prefers-reduced-motion: reduce) {
     .p-class-gallery__item::after,
     .p-class-gallery__item.is-loaded,
-    .p-class-lightbox__figure .p-class-lightbox__media {
+    .p-class-lightbox__figure .p-class-lightbox__media,
+    .p-class-lightbox,
+    .p-class-lightbox__panel,
+    .p-class-lightbox.is-closing,
+    .p-class-lightbox.is-closing .p-class-lightbox__panel {
       animation: none;
     }
 
     .p-class-gallery__thumb,
-    .p-class-lightbox__media {
+    .p-class-lightbox__media,
+    .p-class-gallery__sheen {
       transition: none;
       opacity: 1;
+    }
+
+    .p-class-gallery__sheen {
+      opacity: 0;
+      transform: none;
     }
 
     .p-class-lightbox__figure {
