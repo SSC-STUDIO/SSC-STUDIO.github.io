@@ -1,9 +1,8 @@
 /**
  * 研墨开卷 —— 首页入场编排
  *
- * 四幕：墨滴落纸 → 森字「木→林→森」错峰长出 → 落款钤印 → 卷帘收起。
- * 全程 Web Animations API，任何一步异常都立刻放行页面，
- * 绝不让访客被卡在开场后面。
+ * 宣纸与「木→林→森」由 CSS 随首屏 is-intro-active 开演，不等人模块。
+ * JS 只负责森成之后钤印、卷帘。任何一步异常都立刻放行页面。
  *
  * 只在本次浏览的首次硬加载播放；站内 SPA 换页不再全屏开场。
  */
@@ -12,14 +11,14 @@ import { prefersReducedMotion } from './core'
 
 const INTRO_SEEN_KEY = 'site-intro-seen'
 
-/** 缓动：落墨（快出缓收）/ 钤印（微回弹）/ 收卷（两头缓）/ 长出（笔锋落纸） */
+/** 缓动：落款 / 钤印（微回弹）/ 收卷（两头缓） */
 const EASE_BLOT = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const EASE_STAMP = 'cubic-bezier(0.34, 1.4, 0.64, 1)'
 const EASE_ROLL = 'cubic-bezier(0.65, 0, 0.35, 1)'
-const EASE_GROW = 'cubic-bezier(0.4, 0.02, 0.2, 1)'
 
-/** 森标 CSS 生长总时长（末笔 880ms + 170ms），给气口 */
-const SEN_GROW_MS = 1120
+/** 对齐导航起点：森成后再钤，避免只看见印 */
+const SEAL_AT_MS = 1220
+const ROLL_AT_MS = 1680
 
 let hardLoadConsumed = false
 
@@ -109,108 +108,32 @@ export async function playInkIntro(): Promise<void> {
   }
 
   try {
-    const blot = sheet.querySelector<HTMLElement>('.js-intro-blot')
-    const mark = sheet.querySelector<HTMLElement>('.js-intro-mark')
-    const sen = sheet.querySelector<HTMLElement>('.js-intro-sen')
     const name = sheet.querySelector<HTMLElement>('.js-intro-name')
     const seal = sheet.querySelector<HTMLElement>('.js-intro-seal')
-    const stages = sheet.querySelectorAll<HTMLElement>('.js-intro-stage [data-glyph]')
-    const specks = sheet.querySelectorAll<HTMLElement>('.js-intro-bleed .ink-intro__speck')
 
-    /* 第一幕：墨滴落纸，洇成一团 */
-    const acts: Promise<unknown>[] = [
-      play(
-        blot,
-        [
-          { opacity: 0, transform: 'scale(0.18) rotate(-8deg)' },
-          { opacity: 0.9, transform: 'scale(1) rotate(0deg)' },
-        ],
-        { duration: 400, easing: EASE_BLOT, fill: 'forwards' }
-      ),
-    ]
+    /* 宣纸 / 墨洇 / 三木生长已由 CSS 从首帧开演。等森成再钤印。 */
+    await wait(Math.max(0, SEAL_AT_MS - performance.now()))
 
-    /* 第二幕：森标淡入（不缩放整字），三木按 CSS 笔顺错峰长出 */
-    acts.push(
-      play(
-        mark,
-        [
-          { opacity: 0 },
-          { opacity: 1 },
-        ],
-        { duration: 200, delay: 70, easing: EASE_GROW, fill: 'forwards' }
-      )
-    )
-
-    sen?.classList.add('sen-mark--grow')
-
-    /* 木 → 林 → 森：题字与墨点跟着三木错峰洇开 */
-    const stageAt = [280, 680, 980]
-    stages.forEach((el, i) => {
-      acts.push(
-        play(
-          el,
-          [
-            { opacity: 0, transform: 'translateY(0.35em)' },
-            { opacity: 1, transform: 'translateY(0)' },
-          ],
-          {
-            duration: 280,
-            delay: stageAt[i] ?? 280,
-            easing: EASE_BLOT,
-            fill: 'forwards',
-          }
-        )
-      )
-    })
-
-    specks.forEach((el, i) => {
-      acts.push(
-        play(
-          el,
-          [
-            { opacity: 0, transform: 'scale(0.2)' },
-            { opacity: 0.72, transform: 'scale(1)' },
-            { opacity: 0.38, transform: 'scale(1.12)' },
-          ],
-          {
-            duration: 520,
-            delay: stageAt[i] ?? 280,
-            easing: EASE_BLOT,
-            fill: 'forwards',
-          }
-        )
-      )
-    })
-
-    /* 第三幕：落款竖排，小印钤在森成之后 */
-    acts.push(
+    await Promise.all([
       play(
         name,
         [
           { opacity: 0, transform: 'translateY(0.4rem)' },
           { opacity: 1, transform: 'translateY(0)' },
         ],
-        { duration: 300, delay: 1000, easing: EASE_BLOT, fill: 'forwards' }
-      )
-    )
-
-    acts.push(
+        { duration: 280, easing: EASE_BLOT, fill: 'forwards' }
+      ),
       play(
         seal,
         [
           { opacity: 0, transform: 'scale(1.18) rotate(6deg)' },
           { opacity: 1, transform: 'scale(1) rotate(-1.4deg)' },
         ],
-        { duration: 300, delay: 1080, easing: EASE_STAMP, fill: 'forwards' }
-      )
-    )
+        { duration: 300, easing: EASE_STAMP, fill: 'forwards' }
+      ),
+    ])
 
-    acts.push(wait(SEN_GROW_MS))
-
-    await Promise.all(acts)
-
-    /* 森成、钤印之后留半息，再收卷，避免刚看清就被卷走 */
-    await wait(220)
+    await wait(Math.max(120, ROLL_AT_MS - performance.now()))
 
     /* 第四幕：卷帘上收。纸面自下而上卷走，轴杆随卷边上行 */
     document.documentElement.classList.add('is-site-ready')

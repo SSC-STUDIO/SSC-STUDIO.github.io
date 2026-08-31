@@ -53,6 +53,7 @@ const strokes = [
 <style>
   .sen-mark {
     display: block;
+    overflow: visible;
   }
 
   .sen-mark--draw path {
@@ -81,9 +82,12 @@ const strokes = [
     }
   }
 
-  /* ── grow：三木错峰按笔顺描出，不用整笔 scale ──
-     每木：竖干先落 → 横枝 → 撇捺开枝。上木成「木」，左下错峰成「林」，右下再成「森」。 */
+  /* ── grow：三木错峰按笔顺长出 ──
+     竖干先落 → 横枝 → 撇捺开枝。描边 + 从笔根放大，避免只靠 dash 时几乎看不见。 */
   .sen-mark--grow path {
+    transform: scale(0.12);
+    transform-box: fill-box;
+    transform-origin: 50% 0%;
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
     opacity: 0;
@@ -94,67 +98,81 @@ const strokes = [
   .sen-mark--grow path:nth-child(2) {
     animation-delay: 0ms;
     animation-duration: 300ms;
+    transform-origin: 50% 0%;
   }
   .sen-mark--grow path:nth-child(1) {
     animation-delay: 160ms;
     animation-duration: 200ms;
+    transform-origin: 50% 50%;
   }
   .sen-mark--grow path:nth-child(3) {
     animation-delay: 300ms;
     animation-duration: 180ms;
+    transform-origin: 100% 0%;
   }
   .sen-mark--grow path:nth-child(4) {
     animation-delay: 340ms;
     animation-duration: 180ms;
+    transform-origin: 0% 0%;
   }
 
   /* 左下木：上木将成时破土 */
   .sen-mark--grow path:nth-child(6) {
     animation-delay: 380ms;
     animation-duration: 260ms;
+    transform-origin: 50% 0%;
   }
   .sen-mark--grow path:nth-child(5) {
     animation-delay: 540ms;
     animation-duration: 180ms;
+    transform-origin: 50% 50%;
   }
   .sen-mark--grow path:nth-child(7) {
     animation-delay: 660ms;
     animation-duration: 170ms;
+    transform-origin: 100% 0%;
   }
   .sen-mark--grow path:nth-child(8) {
     animation-delay: 700ms;
     animation-duration: 170ms;
+    transform-origin: 0% 0%;
   }
 
   /* 右下木：再错一峰，三木成森 */
   .sen-mark--grow path:nth-child(10) {
     animation-delay: 560ms;
     animation-duration: 260ms;
+    transform-origin: 50% 0%;
   }
   .sen-mark--grow path:nth-child(9) {
     animation-delay: 720ms;
     animation-duration: 180ms;
+    transform-origin: 50% 50%;
   }
   .sen-mark--grow path:nth-child(11) {
     animation-delay: 840ms;
     animation-duration: 170ms;
+    transform-origin: 100% 0%;
   }
   .sen-mark--grow path:nth-child(12) {
     animation-delay: 880ms;
     animation-duration: 170ms;
+    transform-origin: 0% 0%;
   }
 
   @keyframes senGrowStroke {
     0% {
       opacity: 0;
       stroke-dashoffset: 1;
+      transform: scale(0.12);
     }
-    16% {
+    18% {
       opacity: 1;
     }
     100% {
       opacity: 1;
       stroke-dashoffset: 0;
+      transform: scale(1);
     }
   }
 
