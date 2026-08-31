@@ -75,10 +75,15 @@
     z-index: 1;
   }
 
-  /* 远山所在的图层：随滚动缓缓下沉，做出纵深 */
+  /* 远山所在的图层：随滚动缓缓下沉，做出纵深。
+     左右各探出一段，吃掉 --hero-px 平移和纸雕侧转，避免画心右缘露缝。
+     多出的部分由 .p-hero 的 overflow:hidden 收掉，裁的是远山而不是印章/花边。 */
   &__range {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: -3.5rem;
+    bottom: 0;
+    left: -3.5rem;
     z-index: 1;
 
     pointer-events: none;

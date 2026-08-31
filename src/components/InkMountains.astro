@@ -239,46 +239,60 @@ const MOSS = [
       opacity: 0.9;
     }
 
-    /* ── 纸雕纵深模式 ── */
+    /* ── 纸雕纵深模式 ──
+       远层 translateZ 会按 perspective-origin 往消失点收缩；
+       再叠 rotateY / 卷首 --hero-px 平移时，右（左）缘会提前收住，
+       和画心黑框之间露出一条直缝。放大补偿与左右出血必须同一套
+       原点（底边中点），并且略大于「刚好补回」——侧转后仍要盖住。
+       overflow 只裁远山自己，不动卷首印章与底边花边。 */
     &--dimensional {
+      overflow: hidden;
+
       perspective: 800px;
       perspective-origin: 50% 100%;
     }
 
     &__stage {
       position: absolute;
-      inset: 0;
+      inset: 0 -10%;
 
       display: block;
 
+      transform-origin: 50% 100%;
       transform-style: preserve-3d;
-      transform: rotateX(var(--peak-rx, 0deg)) rotateY(var(--peak-ry, 0deg));
+      transform: rotateX(var(--peak-rx, 0deg)) rotateY(var(--peak-ry, 0deg))
+        scale(1.08);
 
       will-change: transform;
     }
 
     &__layer {
       position: absolute;
-      inset: 0 -4%;
+      top: 0;
+      right: -8%;
+      bottom: 0;
+      left: -8%;
 
-      width: 108%;
-      height: 100%;
+      width: auto;
+      height: auto;
 
-      /* 远层退深并放大补偿，正视时与静态版几乎一致，
-         侧转时层间错位显出纸雕纵深；--peak-pop 是点按后的近推 */
+      transform-origin: 50% 100%;
+
+      /* 远层退深并放大补偿；系数略大于 800/(800-|z|)，给侧转留余量。
+         --peak-pop 是点按后的近推 */
       &--far {
         transform: translateZ(calc(-120px + var(--peak-pop, 0) * 28px))
-          scale(calc(1.15 + var(--peak-pop, 0) * 0.03));
+          scale(calc(1.22 + var(--peak-pop, 0) * 0.03));
       }
 
       &--mid {
         transform: translateZ(calc(-58px + var(--peak-pop, 0) * 46px))
-          scale(calc(1.0725 + var(--peak-pop, 0) * 0.045));
+          scale(calc(1.14 + var(--peak-pop, 0) * 0.045));
       }
 
       &--near {
         transform: translateZ(calc(var(--peak-pop, 0) * 36px))
-          scale(calc(1 + var(--peak-pop, 0) * 0.07));
+          scale(calc(1.06 + var(--peak-pop, 0) * 0.07));
       }
     }
   }
