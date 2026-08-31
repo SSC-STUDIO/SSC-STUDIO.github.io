@@ -13,12 +13,15 @@ interface Props {
   title: string
   description?: string
   bodyClass?: string
+  /** 默认收录；账号 / 管理 / 私信 / 班级等私密页传 noindex */
+  robots?: string
 }
 
 const {
   title,
   description = '个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。',
   bodyClass,
+  robots = 'index, follow',
 } = Astro.props
 
 const isSubpage = Astro.url.pathname !== '/'
@@ -40,10 +43,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     <title>{title}</title>
 
     <meta name="description" content={description} />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
 
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
 
     <link rel="manifest" href="/icons/site.webmanifest" />
     <link
@@ -119,9 +122,44 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           apply(next)
           // SPA 回首页不要带回 SSR 的开场锁；intro 只在首次硬加载播
           next.classList.remove('is-scroll-blocked', 'is-intro-active')
+          // 换页先摘显影门，等新页 initInkReveal 再挂，避免旧门挡住新页兜底
+          next.classList.remove('is-ink-ready')
         })
+
+        // 模块脚本失败时：内联超时撤掉开场锁，避免整页永远透明
+        setTimeout(function () {
+          var root = document.documentElement
+          var wrapper = document.querySelector('.js-site-wrapper')
+          if (!wrapper || !wrapper.classList.contains('is-preparing')) return
+          wrapper.classList.remove('is-preparing')
+          wrapper.style.opacity = '1'
+          root.classList.add('is-site-ready')
+          root.classList.remove('is-scroll-blocked', 'is-intro-active')
+          var hero = document.querySelector('.s-hero')
+          var head = document.querySelector('.site-head')
+          if (hero) hero.style.opacity = '1'
+          if (head) head.style.opacity = '1'
+        }, 3200)
       })()
     </script>
+
+    <noscript>
+      <style>
+        html.is-scroll-blocked,
+        html.is-intro-active {
+          overflow: auto;
+        }
+        .site-wrapper.is-preparing {
+          opacity: 1 !important;
+          pointer-events: auto;
+        }
+        .site-wrapper.is-preparing .site-head,
+        .site-wrapper.is-preparing .s-hero,
+        .s-hero {
+          opacity: 1 !important;
+        }
+      </style>
+    </noscript>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -207,6 +245,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     class Site {
       timeouts: any = {
         resizeThrottle: null,
+        introSafety: null,
       }
 
       windowWidth: number
@@ -268,7 +307,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
 
       /**
-       * Initialization — one-time boot (SPA 下重复触发会被门闩跳过)
+       * Initialization — one-time boot（Lenis / 量尺）。
+       * 不在这里跑 pageSetup：astro:page-load 每次都会调，避免首载双跑。
        */
       init() {
         if (this.booted) return
@@ -276,7 +316,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         this.initLenis()
         this.onResize()
-        this.pageSetup()
+        this.watchDocumentHeight()
       }
 
       /**
@@ -312,15 +352,15 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
             stored || (dark ? 'dark' : 'light')
         } catch (e) {}
 
+        clearTimeout(this.timeouts.introSafety)
         if (!playIntro) {
           nextFrame(() => this.forceReveal())
         } else {
           nextFrame(() => this.intro())
           // Safety net: never leave the site hidden behind a stuck intro
-          setTimeout(() => this.forceReveal(), 3000)
+          this.timeouts.introSafety = setTimeout(() => this.forceReveal(), 3000)
         }
 
-        this.initReveal()
         this.onScroll()
       }
 
@@ -440,7 +480,23 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.documentElement.classList.add('is-loaded')
         this.onResize()
         markReady()
-        this.initReveal()
+      }
+
+      /**
+       * SPA 换页前：停观察者、闲动画、显影管线，摘 is-ink-ready
+       */
+      teardownPage() {
+        clearTimeout(this.timeouts.introSafety)
+        this.timeouts.introSafety = null
+        this.pageObserver?.disconnect()
+        this.pageObserver = null
+        if (this.stopIdleAnimations) {
+          this.stopIdleAnimations()
+          this.stopIdleAnimations = null
+        }
+        this.stopMotion?.forEach((stop) => stop())
+        this.stopMotion = []
+        document.documentElement.classList.remove('is-ink-ready')
       }
 
       /**
@@ -448,25 +504,16 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * 每次换页重建（旧元素随 swap 销毁）
        */
       initMotion() {
-        // 清理上一页的监听
         this.stopMotion?.forEach((stop) => stop())
         this.stopMotion = []
+        document.documentElement.classList.remove('is-ink-ready')
 
-        const stops = [
+        this.stopMotion = [
           initInkReveal(),
           initSealPress(),
           initLeafFlip(),
           initHandscroll(),
         ]
-
-        this.stopMotion = stops
-      }
-
-      /**
-       * Reveal [data-reveal] elements on scroll
-       */
-      initReveal() {
-        this.initMotion()
       }
 
       /**
@@ -509,12 +556,19 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         window.safeWidth = newWidth
         window.safeHeight = newHeight
 
-        window.maxScrollTop = Math.max(
-          0,
-          document.body.scrollHeight - window.safeHeight
-        )
-
         this.setScrollProgress()
+      }
+
+      /**
+       * 正文被字体 / 懒图撑高后刷新行程，避免 maxScrollTop 陈旧
+       */
+      watchDocumentHeight() {
+        if (typeof ResizeObserver !== 'function') return
+        const ro = new ResizeObserver(() => this.setScrollProgress())
+        ro.observe(document.documentElement)
+        try {
+          document.fonts?.ready?.then(() => this.setScrollProgress())
+        } catch (e) {}
       }
 
       /**
@@ -525,10 +579,15 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
 
       /**
-       * Set scroll progress
+       * 滚动进度：行程用实时几何，不缓存 load 时的文档高度
        */
       setScrollProgress() {
-        window.scrollProgress = window.scrollY / window.maxScrollTop
+        const max = Math.max(
+          0,
+          document.documentElement.scrollHeight - window.innerHeight
+        )
+        window.maxScrollTop = max
+        window.scrollProgress = max > 0 ? window.scrollY / max : 0
       }
 
       /**
@@ -551,6 +610,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
     // SPA 单例：模块脚本在 ClientRouter 下只执行一次
     const site = (window.__site ||= new Site())
+
+    document.addEventListener('astro:before-swap', () => {
+      site.teardownPage()
+    })
 
     // astro:page-load 在首次加载与每次 SPA 换页后都会触发
     document.addEventListener('astro:page-load', () => {

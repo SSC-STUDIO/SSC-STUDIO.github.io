@@ -2,12 +2,10 @@
 /**
  * PageFoot — 内页卷末的「继续逛」导航
  *
- * 顺带把首页那套动效增强包（光标拖尾 / 磁吸 / 册页倾斜）带进内页，
- * 让全站手感一致；导航格自身在入屏时逐格落墨。
+ * 导航格自身在入屏时逐格落墨。全站动效增强包只挂在 BaseLayout。
  */
 import InkRail from '../InkRail.astro'
 import SealMark from '../SealMark.astro'
-import MotionPack from '../MotionPack.astro'
 
 interface Props {
   /** href of the current section, marks the matching eco link */
@@ -51,5 +49,3 @@ const links = [
     }
   </div>
 </nav>
-
-<MotionPack />

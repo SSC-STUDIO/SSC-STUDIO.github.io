@@ -181,6 +181,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     unframe: Cleanup | null = null
     observer: IntersectionObserver | null = null
     destroyed = false
+    awardCleanups: Cleanup[] = []
+    awardTimers: number[] = []
+    heightObserver: ResizeObserver | null = null
 
     /**
      * Constructor
@@ -277,18 +280,34 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       this.awards.forEach((award) => {
         observer.observe(award)
 
-        const awardInteraction = this.onAwardInteraction.bind(this, award)
+        const awardInteraction = () => this.onAwardInteraction(award)
         award.addEventListener('mouseenter', awardInteraction, {
           passive: true,
         })
         award.addEventListener('touchstart', awardInteraction, {
           passive: true,
         })
+        this.awardCleanups.push(() => {
+          award.removeEventListener('mouseenter', awardInteraction)
+          award.removeEventListener('touchstart', awardInteraction)
+        })
       })
 
       this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
+      this.stops.push(() =>
+        this.el.removeEventListener('intersect', this.onIntersect)
+      )
+
+      if (typeof ResizeObserver === 'function') {
+        this.heightObserver = new ResizeObserver(() => {
+          this.setSize()
+          this.setScroll()
+        })
+        this.heightObserver.observe(this.el)
+        this.stops.push(() => this.heightObserver?.disconnect())
+      }
     }
 
     startFrame() {
@@ -310,8 +329,14 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       this.stopFrame()
       this.stops.forEach((stop) => stop())
       this.stops = []
+      this.awardCleanups.forEach((stop) => stop())
+      this.awardCleanups = []
+      this.awardTimers.forEach((id) => clearTimeout(id))
+      this.awardTimers = []
       this.observer?.disconnect()
       this.observer = null
+      this.heightObserver?.disconnect()
+      this.heightObserver = null
       this.charms = []
     }
 
@@ -330,18 +355,16 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     /**
      * Scroll handler
      */
-    onScroll(scrollY) {
+    onScroll(_scrollY?: number) {
       const { scroll } = this
+      if (!this.el) return
 
-      const trigger = scrollY + window.safeHeight
-
-      if (trigger < scroll.start) {
-        scroll.p = 0
-      } else if (trigger > scroll.end) {
-        scroll.p = 1
-      } else {
-        scroll.p = (trigger - scroll.start) / (scroll.end - scroll.start)
-      }
+      const rect = this.el.getBoundingClientRect()
+      const total = rect.height + window.safeHeight
+      scroll.p = Math.min(
+        1,
+        Math.max(0, (window.safeHeight - rect.top) / total)
+      )
     }
 
     /**
@@ -366,9 +389,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       this.throwCharms(award, false)
 
-      setTimeout(() => {
+      const timer = window.setTimeout(() => {
         award.classList.remove('is-active')
       }, 100)
+      this.awardTimers.push(timer)
     }
 
     /**
@@ -376,7 +400,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     throwCharms(award: HTMLElement, once = false) {
       const { el, charms, bounding } = this
-      if (!this.ctx || this.reduced) return
+      if (this.destroyed || !this.ctx || this.reduced) return
       if (once) {
         if (award.dataset.charmBurst === '1') return
         award.dataset.charmBurst = '1'
@@ -419,19 +443,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     /**
-     * Set scroll
+     * Set scroll — 行程用实时几何（对齐 SMyWay），避免字体/懒图撑高后陈旧
      */
     setScroll() {
-      const { bounding } = this
-
-      this.scroll = {
-        start: bounding.top + window.scrollY,
-        end:
-          bounding.top + window.scrollY + bounding.height + window.safeHeight,
-        p: 0,
-        sp: 0,
-      }
-
+      this.scroll = { start: 0, end: 0, p: 0, sp: 0 }
       this.onScroll(window.scrollY)
       this.scroll.sp = this.scroll.p
     }
@@ -657,6 +672,14 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     tick() {
       const { bounding, el, scroll } = this
+
+      if (this.reduced) {
+        if (this.charms.length) {
+          this.moveCharms()
+          this.drawCanvas()
+        }
+        return
+      }
 
       // Smooth scroll
       scroll.sp += (scroll.p - scroll.sp) * 0.2

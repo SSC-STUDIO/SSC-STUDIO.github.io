@@ -502,6 +502,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
   }
 
   const head = ((window as any).__siteHead ||= new Section())
+  document.addEventListener('astro:before-swap', () => {
+    head.stopFrame()
+    head.abort?.abort()
+  })
   document.addEventListener('astro:page-load', () => {
     head.rebind()
   })

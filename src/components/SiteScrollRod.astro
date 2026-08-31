@@ -124,6 +124,11 @@
 
   let teardown: Cleanup | null = null
 
+  document.addEventListener('astro:before-swap', () => {
+    teardown?.()
+    teardown = null
+  })
+
   /* astro:page-load 首载与每次 SPA 换页都触发；换页后元素是新的，重挂一遍 */
   document.addEventListener('astro:page-load', () => {
     teardown?.()

@@ -124,7 +124,7 @@
       }
     }
 
-    /* ── 磁吸：CTA 按钮、名片、内页动作链 ──────────────── */
+    /* ── 磁吸：CTA 按钮、名片、内页动作链（一律登记进 S.listeners） */
     function bindMagnets() {
       var magnets = Array.from(
         document.querySelectorAll(
@@ -132,17 +132,19 @@
         )
       );
       magnets.forEach(function (el) {
-        el.addEventListener('pointermove', function (e) {
+        function onMove(e) {
           var r = el.getBoundingClientRect();
           var dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
           var dy = (e.clientY - (r.top + r.height / 2)) * 0.16;
           el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px');
           el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px');
-        });
-        el.addEventListener('pointerleave', function () {
+        }
+        function onLeave() {
           el.style.removeProperty('--magnet-x');
           el.style.removeProperty('--magnet-y');
-        });
+        }
+        on(el, 'pointermove', onMove);
+        on(el, 'pointerleave', onLeave);
       });
     }
 
@@ -156,17 +158,19 @@
         return !el.hasAttribute('data-leaf');
       });
       tilts.forEach(function (el) {
-        el.addEventListener('pointermove', function (e) {
+        function onMove(e) {
           var r = el.getBoundingClientRect();
           var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4;
           var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5;
           el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg');
           el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg');
-        });
-        el.addEventListener('pointerleave', function () {
+        }
+        function onLeave() {
           el.style.removeProperty('--tilt-x');
           el.style.removeProperty('--tilt-y');
-        });
+        }
+        on(el, 'pointermove', onMove);
+        on(el, 'pointerleave', onLeave);
       });
     }
 

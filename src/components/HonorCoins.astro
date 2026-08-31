@@ -39,8 +39,11 @@
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
     burstOnce = new WeakSet<Element>()
+    destroyed = false
+    burstTimer = 0
 
     connectedCallback() {
+      this.destroyed = false
       this.canvas = this.querySelector('.js-canvas')
       const ctx = this.canvas?.getContext('2d')
       if (!this.canvas || !ctx) return
@@ -59,10 +62,16 @@
 
       this.bindTargets()
 
-      window.setTimeout(() => this.burstFromHero(), 420)
+      this.burstTimer = window.setTimeout(() => {
+        if (this.destroyed) return
+        this.burstFromHero()
+      }, 420)
     }
 
     disconnectedCallback() {
+      this.destroyed = true
+      window.clearTimeout(this.burstTimer)
+      this.burstTimer = 0
       this.suspend()
       this.stops.forEach((stop) => stop())
       this.stops = []
@@ -109,23 +118,23 @@
 
       targets.forEach((el) => {
         observer.observe(el)
-        el.addEventListener(
-          'pointerenter',
-          () => this.burstFrom(el as HTMLElement, false),
-          { passive: true }
-        )
+        const onEnter = () => this.burstFrom(el as HTMLElement, false)
+        el.addEventListener('pointerenter', onEnter, { passive: true })
+        this.stops.push(() => el.removeEventListener('pointerenter', onEnter))
       })
 
       this.stops.push(() => observer.disconnect())
     }
 
     burstFromHero() {
+      if (this.destroyed) return
       const hero = document.querySelector('.p-hero__title') as HTMLElement | null
       if (hero) this.burstFrom(hero, true)
       else this.burstAt(this.width * 0.5, 140, 18, this.height * 0.42)
     }
 
     burstFrom(el: HTMLElement, once: boolean) {
+      if (this.destroyed) return
       if (once) {
         if (this.burstOnce.has(el)) return
         this.burstOnce.add(el)

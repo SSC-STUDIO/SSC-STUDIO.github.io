@@ -29,6 +29,11 @@ html.js:not(.is-ink-ready) [data-reveal] {
   animation: inkFallback 650ms ease 3s both;
 }
 
+/* SPA 换页后 is-ink-ready 已挂、但本页元素尚未 .is-inked 时再留一档超时淡入 */
+html.js.is-ink-ready [data-reveal]:not(.is-inked) {
+  animation: inkFallback 650ms ease 2.4s both;
+}
+
 html.js [data-reveal].is-inked {
   animation: inkSpread 880ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--reveal-delay, 0ms);

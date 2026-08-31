@@ -45,13 +45,6 @@ const frames = [
     src: `/legacy-assets/step/step_${i}.jpg`,
     caption: `成长轨迹 · ${String(i + 1).padStart(2, '0')}<br/>Step · Journey`,
   })),
-  // 素材库编号跳号（没有 4/5/6），用实际存在的文件列表
-  ...['1.jpg', '2.jpg', '3.jpg', '7.jpg', '8.jpg', '9.jpg', '10.jpg', '11.jpg'].map(
-    (file, i) => ({
-      src: `/legacy-assets/my_classmate/${file}`,
-      caption: `班级记忆 · ${String(i + 1).padStart(2, '0')}<br/>Class Space`,
-    })
-  ),
 ]
 
 const ecosystem = [
@@ -245,6 +238,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     onScroll,
     onPointer,
     frameDelta,
+    prefersReducedMotion,
     type Cleanup,
   } from '../motion/core'
   import { createField, type Field2D } from '../motion/field'
@@ -311,6 +305,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
     destroyed = false
+    reduced = false
+    onObjectDragStart = (e: Event) => this.objectDragStart(e)
+    onObjectDragEnd = (e: Event) => this.objectDragEnd(e)
+    onTouchMoveBound = (e: Event) => this.onTouchMove(e)
+    onIntersectBound = (e: Event) => this.onIntersect(e)
 
     /**
      * Constructor
@@ -375,6 +374,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       }
 
       this.isPaused = true
+      this.reduced = prefersReducedMotion()
 
       whenReady(() => this.init())
     }
@@ -405,6 +405,26 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.unframe = null
       this.stops.forEach((stop) => stop())
       this.stops = []
+
+      this.objects.forEach((object) => {
+        object.el.removeEventListener('mousedown', this.onObjectDragStart)
+        object.el.removeEventListener('touchstart', this.onObjectDragStart)
+      })
+      this.ecosystemObjects.forEach((object) => {
+        object.el.removeEventListener('mousedown', this.onObjectDragStart)
+        object.el.removeEventListener('touchstart', this.onObjectDragStart)
+      })
+      this.thrownObjects?.forEach((object) => {
+        object.el.removeEventListener('mousedown', this.onObjectDragStart)
+        object.el.removeEventListener('touchstart', this.onObjectDragStart)
+      })
+      this.el?.removeEventListener('mouseup', this.onObjectDragEnd)
+      this.el?.removeEventListener('touchend', this.onObjectDragEnd)
+      this.objectsWrapper?.removeEventListener(
+        'touchmove',
+        this.onTouchMoveBound
+      )
+      this.el?.removeEventListener('intersect', this.onIntersectBound)
     }
 
     /**
@@ -417,21 +437,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.startFrame()
 
       this.objects.forEach((object) => {
-        object.el.addEventListener('mousedown', this.objectDragStart.bind(this))
-        object.el.addEventListener(
-          'touchstart',
-          this.objectDragStart.bind(this)
-        )
+        object.el.addEventListener('mousedown', this.onObjectDragStart)
+        object.el.addEventListener('touchstart', this.onObjectDragStart)
       })
       this.ecosystemObjects.forEach((object) => {
-        object.el.addEventListener('mousedown', this.objectDragStart.bind(this))
-        object.el.addEventListener(
-          'touchstart',
-          this.objectDragStart.bind(this)
-        )
+        object.el.addEventListener('mousedown', this.onObjectDragStart)
+        object.el.addEventListener('touchstart', this.onObjectDragStart)
       })
-      this.el.addEventListener('mouseup', this.objectDragEnd.bind(this))
-      this.el.addEventListener('touchend', this.objectDragEnd.bind(this))
+      this.el.addEventListener('mouseup', this.onObjectDragEnd)
+      this.el.addEventListener('touchend', this.onObjectDragEnd)
 
       // Esc 关闭正在细看的物件
       const onKey = (e: KeyboardEvent) => {
@@ -440,12 +454,9 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       window.addEventListener('keydown', onKey)
       this.stops.push(() => window.removeEventListener('keydown', onKey))
 
-      this.objectsWrapper.addEventListener(
-        'touchmove',
-        this.onTouchMove.bind(this)
-      )
+      this.objectsWrapper.addEventListener('touchmove', this.onTouchMoveBound)
 
-      this.el.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.el.addEventListener('intersect', this.onIntersectBound, {
         passive: true,
       })
     }
@@ -783,15 +794,18 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       if (this.ecosystemLaunched || this.ecosystemObjects.length === 0) return
 
       this.ecosystemLaunched = true
+      if (this.reduced) return
 
       const objects = [...this.ecosystemObjects]
       this.ecosystemObjects = []
 
       objects.forEach((object, index) => {
-        window.setTimeout(() => {
+        const timer = window.setTimeout(() => {
+          if (this.destroyed) return
           object.set()
           this.thrownObjects.push(object)
         }, index * 320)
+        this.stops.push(() => clearTimeout(timer))
       })
 
       this.lastThrow = performance.now() + objects.length * 320
@@ -802,6 +816,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Initial objects
      */
     firstObjects() {
+      if (this.reduced) return
+
       const totalObjects =  Math.max(Math.min(Math.round(window.safeWidth * 0.025), 5), 2)
 
       for (let i = 0; i < totalObjects; i++) {
@@ -1030,7 +1046,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       if (this.isPaused) return
 
-      if (this.canThrow && time - this.lastThrow > this.throwDelay) {
+      if (
+        !this.reduced &&
+        this.canThrow &&
+        time - this.lastThrow > this.throwDelay
+      ) {
         this.throwObject()
       }
     }

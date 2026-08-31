@@ -346,6 +346,17 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
+      this.stops.push(() =>
+        this.el.removeEventListener('intersect', this.onIntersect)
+      )
+
+      if (typeof ResizeObserver === 'function') {
+        const ro = new ResizeObserver(() => {
+          ScrollTrigger.refresh()
+        })
+        ro.observe(this.el)
+        this.stops.push(() => ro.disconnect())
+      }
     }
 
     startFrame() {
