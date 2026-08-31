@@ -44,6 +44,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 
   <main class="p-page p-page--wide p-articles">
     <PageAura />
+    <span class="p-articles__glyph" aria-hidden="true">文</span>
     <p class="p-articles-count" data-reveal>
       卷内共 <ink-tally class="p-articles-count__n" data-to={total}>{total}</ink-tally
       > 篇 · 依时间倒序陈列
@@ -56,7 +57,13 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
             kicker={article.kicker}
             id={`#ART-${pad(index + 1)}/${pad(total)}`}
             title={article.title}
+            class={article.kicker === 'featured' ? 'p-articles__lead' : undefined}
           >
+            {article.kicker === 'featured' && (
+              <span class="p-articles__first" aria-hidden="true">
+                首
+              </span>
+            )}
             <p>{article.summary}</p>
             <p class="p-card__meta">
               {article.date} · 约 {readingMinutes(article.words)} 分钟读完
@@ -138,6 +145,21 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 </script>
 
 <style lang="scss" is:global>
+  /* 卷底题字：替短目录垫一层纵深，不抢卡片 */
+  .p-articles__glyph {
+    position: absolute;
+    top: 0.35rem;
+    right: clamp(1rem, 4vw, 2.5rem);
+    z-index: -1;
+
+    color: color(secondary);
+    font: 700 clamp(5rem, 16vw, 9rem) / 1 font-family(bigger);
+
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+  }
+
   /* 卷首计数：如册页题记，一行小字压在卡片群之上 */
   .p-articles-count {
     margin: 0 0 1.25rem;
@@ -211,6 +233,61 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     transform: scaleX(var(--gauge, 0.3));
   }
 
+  /* 头篇：右上钤一枚小「首」印 */
+  .p-articles .p-articles__lead {
+    position: relative;
+  }
+
+  .p-articles__first {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.95rem;
+    z-index: 3;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 1.55rem;
+    height: 1.55rem;
+
+    border: 1.5px solid color-mix(in srgb, #{color(accent)} 70%, transparent);
+
+    color: color(accent);
+    font: 700 0.72rem / 1 font-family(bigger);
+
+    opacity: 0.72;
+    pointer-events: none;
+    transform: rotate(-8deg);
+  }
+
+  /* 卡面受光：一道浅光随悬停扫过 */
+  .p-articles .p-card::after {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+
+    background: linear-gradient(
+      105deg,
+      transparent 36%,
+      color-mix(in srgb, #{color(primary)} 28%, transparent) 50%,
+      transparent 64%
+    );
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-18%);
+    transition:
+      opacity 420ms ease,
+      transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-articles .p-card:hover::after,
+  .p-articles .p-card:focus-visible::after {
+    opacity: 1;
+    transform: translateX(18%);
+  }
+
   /* 卷号签：悬停时像被指尖掀了一下 */
   .p-articles .p-card__id {
     display: inline-block;
@@ -229,10 +306,15 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     }
 
     .p-articles .p-card__id,
-    .p-articles-count__n.is-tallied {
+    .p-articles-count__n.is-tallied,
+    .p-articles .p-card::after {
       transform: none;
       transition: none;
       animation: none;
+    }
+
+    .p-articles .p-card::after {
+      opacity: 0;
     }
   }
 </style>

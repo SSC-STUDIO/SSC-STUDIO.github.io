@@ -2,9 +2,11 @@
 /**
  * PageAura — 内页正文的环境层
  *
- * 与首页同族的墨圈自纸底缓缓上浮。定位取 fixed 只画一屏：
+ * 与首页同族的墨圈自纸底缓缓上浮；时辰灯色随指针在纸面游移，
+ * 像一盏小书灯跟着看。定位取 fixed 只画一屏：
  * 长页也不会撑出一张几万像素高的画布，滚动时氛围还连贯。
  * 需挂在自带层叠上下文的容器里（如 .p-page），负层稳压正文之下。
+ * 脚本缺席或 reduced-motion 时只剩静态纸底，正文默认可读。
  */
 import InkBubbles from '../InkBubbles.astro'
 
@@ -17,15 +19,109 @@ const { class: className } = Astro.props
 
 <div class:list={['p-aura', className]} aria-hidden="true">
   <InkBubbles />
+  <page-lamp class="p-aura__lamp"></page-lamp>
 </div>
+
+<script>
+  import {
+    onFrame,
+    onPointer,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../../motion/core'
+
+  const EASE = 0.07
+
+  /** 内页书灯：只写 CSS 变量，静止后停笔 */
+  class PageLamp extends HTMLElement {
+    aura: HTMLElement | null = null
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+
+    aimX = 0.5
+    aimY = 0.32
+    curX = 0.5
+    curY = 0.32
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        return
+      }
+
+      this.aura = this.closest('.p-aura')
+      if (!this.aura) return
+
+      this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+      this.unframe = onFrame(() => this.settle())
+    }
+
+    disconnectedCallback() {
+      this.unframe?.()
+      this.unframe = null
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.aura = null
+    }
+
+    aim(x: number, y: number) {
+      this.aimX = x / Math.max(1, window.innerWidth)
+      this.aimY = y / Math.max(1, window.innerHeight)
+    }
+
+    settle() {
+      const aura = this.aura
+      if (!aura) return
+
+      const dx = this.aimX - this.curX
+      const dy = this.aimY - this.curY
+      if (Math.abs(dx) < 0.0005 && Math.abs(dy) < 0.0005) return
+
+      this.curX += dx * EASE
+      this.curY += dy * EASE
+      aura.style.setProperty('--lamp-x', this.curX.toFixed(4))
+      aura.style.setProperty('--lamp-y', this.curY.toFixed(4))
+    }
+  }
+
+  if (!customElements.get('page-lamp')) {
+    customElements.define('page-lamp', PageLamp)
+  }
+</script>
 
 <style lang="scss">
   .p-aura {
+    --lamp-x: 0.5;
+    --lamp-y: 0.32;
+
     position: fixed;
     inset: 0;
     z-index: -1;
 
     opacity: 0.8;
     pointer-events: none;
+  }
+
+  .p-aura__lamp {
+    position: absolute;
+    inset: 0;
+
+    display: block;
+
+    background: radial-gradient(
+      36rem 26rem at calc(var(--lamp-x) * 100%) calc(var(--lamp-y) * 100%),
+      color-mix(
+        in srgb,
+        var(--daypart-lamp, var(--color-accent)) 12%,
+        transparent
+      ),
+      transparent 70%
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-aura__lamp {
+      display: none;
+    }
   }
 </style>
