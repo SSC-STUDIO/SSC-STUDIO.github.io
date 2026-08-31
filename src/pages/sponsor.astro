@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 ---
 
 <BaseLayout
@@ -16,6 +17,7 @@ import PageCard from '@/components/pages/PageCard.astro'
   />
 
   <main class="p-page p-page--wide p-sponsor">
+    <PageAura />
     <div class="p-stack p-stack--cards">
       <PageCard kicker="why" title="为什么支持">
         <p>
@@ -25,7 +27,7 @@ import PageCard from '@/components/pages/PageCard.astro'
       </PageCard>
       <PageCard kicker="how" title="如何支持">
         <p>目前可通过以下方式表达支持：</p>
-        <ul>
+        <ul data-flow data-intersect>
           <li>
             GitHub Star 与关注 —
             <a
@@ -47,12 +49,13 @@ import PageCard from '@/components/pages/PageCard.astro'
             href="https://github.com/SSC-STUDIO"
             target="_blank"
             rel="noopener"
+            data-seal
           >
             GitHub
           </a>
           <a class="p-card__link p-card__link--ghost"
             href="mailto:3992237161@qq.com"
-           data-copy-email>
+           data-copy-email data-seal>
             邮件联系
           </a>
         </div>
@@ -63,7 +66,8 @@ import PageCard from '@/components/pages/PageCard.astro'
           重要决策仍通过邮件或联系页沟通确认。
         </p>
       </PageCard>
-      <div class="p-sponsor-qr" data-reveal>
+      <div class="p-sponsor-qr" data-reveal data-leaf>
+        <span class="p-sponsor-qr__sheen" aria-hidden="true"></span>
         <img
           src="/images/qr-code.svg"
           alt="网站二维码"
@@ -104,5 +108,167 @@ import PageCard from '@/components/pages/PageCard.astro'
     color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
     font: 400 0.85rem / 1.5 font-family(editorial);
     letter-spacing: 0.06em;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     赞助页动效：卡片错峰落墨、卡内题识依次落定、
+     二维码如一页装裱好的册页随指针轻翻。
+     入场默认态即落定态，fill-mode 一律 backwards。
+     ══════════════════════════════════════════════════════ */
+
+  /* 卡内三段依次落定。延迟接在 --reveal-delay 之后 ——
+     那是洇墨显影按卡片次序写下的错峰量，内层跟着它走，
+     整叠卡片便有了先后翻页的节奏。 */
+  .p-sponsor .p-card.is-inked {
+    .p-card__head {
+      animation: sp-rise 460ms ease backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 180ms);
+    }
+
+    .p-card__title {
+      animation: sp-rise 540ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 250ms);
+    }
+
+    .p-card__body {
+      animation: sp-rise 540ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 330ms);
+    }
+  }
+
+  @keyframes sp-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.55rem, 0);
+    }
+  }
+
+  /* 支持方式列表：每条前多一枚朱砂点，悬停时推近一寸 */
+  .p-sponsor .p-card__body li {
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover {
+      transform: translateX(3px);
+    }
+
+    &::marker {
+      color: color(accent);
+    }
+  }
+
+  /* ── 二维码册页 ──
+     [data-leaf] 会写入 --leaf-rx / --leaf-ry / --leaf-sheen，
+     这里把悬停的提起量并进同一条 transform，
+     免得两者各写各的、后来者把前者整条抹掉。 */
+  .p-sponsor .p-sponsor-qr {
+    --qr-lift: 0px;
+
+    overflow: hidden;
+
+    transform: perspective(60rem) translate3d(0, var(--qr-lift), 0)
+      rotateX(var(--leaf-rx, 0deg)) rotateY(var(--leaf-ry, 0deg));
+
+    transition:
+      transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 320ms ease,
+      border-color 320ms ease;
+
+    &.is-leaf-live {
+      transition:
+        transform 120ms linear,
+        box-shadow 320ms ease,
+        border-color 320ms ease;
+    }
+
+    &:hover,
+    &:focus-within {
+      --qr-lift: -5px;
+
+      border-color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
+      box-shadow:
+        0 16px 34px -14px color-mix(in srgb, var(--color-shadow) 45%, transparent),
+        0 3px 0 color-mix(in srgb, #{color(accent)} 85%, transparent);
+    }
+
+    img {
+      transition:
+        transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+        filter 420ms ease;
+    }
+
+    &:hover img {
+      transform: scale(1.04);
+    }
+  }
+
+  /* 受光：一道随指针左右游走的纸面反光 */
+  .p-sponsor .p-sponsor-qr__sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    background: linear-gradient(
+      105deg,
+      transparent calc(var(--leaf-sheen, 0.5) * 100% - 26%),
+      color-mix(in srgb, var(--daypart-lamp) 26%, transparent)
+        calc(var(--leaf-sheen, 0.5) * 100%),
+      transparent calc(var(--leaf-sheen, 0.5) * 100% + 26%)
+    );
+
+    opacity: 0;
+    pointer-events: none;
+
+    transition: opacity 320ms ease;
+  }
+
+  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__sheen {
+    opacity: 1;
+  }
+
+  /* 谢语在册页翻起时才悄悄透出朱砂 */
+  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__thanks {
+    color: color-mix(in srgb, #{color(accent-strong)} 72%, #{color(secondary)});
+  }
+
+  .p-sponsor .p-sponsor-qr__thanks {
+    position: relative;
+    z-index: 2;
+
+    transition: color 320ms ease;
+  }
+
+  .p-sponsor .p-sponsor-qr img,
+  .p-sponsor .p-sponsor-qr > p {
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-sponsor .p-card.is-inked .p-card__head,
+    .p-sponsor .p-card.is-inked .p-card__title,
+    .p-sponsor .p-card.is-inked .p-card__body {
+      animation: none;
+    }
+
+    .p-sponsor .p-card__body li,
+    .p-sponsor .p-sponsor-qr,
+    .p-sponsor .p-sponsor-qr img,
+    .p-sponsor .p-sponsor-qr__sheen,
+    .p-sponsor .p-sponsor-qr__thanks {
+      transition: none;
+    }
+
+    .p-sponsor .p-card__body li:hover,
+    .p-sponsor .p-sponsor-qr:hover img {
+      transform: none;
+    }
+
+    .p-sponsor .p-sponsor-qr {
+      transform: none;
+    }
+
+    .p-sponsor .p-sponsor-qr__sheen {
+      display: none;
+    }
   }
 </style>
