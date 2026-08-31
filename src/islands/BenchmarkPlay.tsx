@@ -159,6 +159,11 @@ function wordsPerRound(level: number): number {
   return Math.min(3 + Math.floor(level / 2), 8);
 }
 
+/** Word memory: how long the word list stays visible. */
+function wordShowDuration(level: number): number {
+  return 2000 + level * 300;
+}
+
 /** Shared start/restart pad (idle & game-over states). */
 function StartTarget({
   gameover,
@@ -187,17 +192,9 @@ function StartTarget({
       }}
     >
       <div className="benchmark-target__inner">
-        {gameover ? (
-          <>
-            <span>{title}</span>
-            <small>点击重新开始</small>
-          </>
-        ) : (
-          <>
-            <span>{title}</span>
-            <small>{subtitle}</small>
-          </>
-        )}
+        <span>{title}</span>
+        <small>{subtitle}</small>
+        {gameover ? <small>点击重新开始</small> : null}
       </div>
     </div>
   );
@@ -937,7 +934,7 @@ function WordMemoryGame() {
           setIsNewWord(true);
         }
         setPhase("input");
-      }, 2000 + lvl * 300);
+      }, wordShowDuration(lvl));
     },
     [later],
   );
@@ -971,6 +968,18 @@ function WordMemoryGame() {
     [phase, isNewWord, level, seenWords, testWord, startRound, later],
   );
 
+  // 键盘可玩：← 没见过（左按钮） / → 见过（右按钮），与屏幕位置对应。
+  useEffect(() => {
+    if (phase !== "input") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key === "ArrowLeft") handleAnswer(true);
+      else if (e.key === "ArrowRight") handleAnswer(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, handleAnswer]);
+
   const score = bestLevel || (phase === "gameover" ? level - 1 : 0);
 
   async function submitScore() {
@@ -991,13 +1000,17 @@ function WordMemoryGame() {
         <StartTarget
           gameover={phase === "gameover"}
           title={phase === "gameover" ? `第 ${level} 级失败` : "词语记忆"}
-          subtitle="判断词语是否之前出现过"
+          subtitle={
+            phase === "gameover"
+              ? `「${testWord}」其实${isNewWord ? "是新词" : "出现过"}`
+              : "判断词语是否之前出现过"
+          }
           onStart={startGame}
         />
       ) : null}
 
       {phase === "showing" ? (
-        <div className="benchmark-target" data-state="ready">
+        <div className="benchmark-target benchmark-target--pop" data-state="ready">
           <div className="benchmark-target__inner">
             <div className="benchmark-word-list">
               {currentWords.map((w) => (
@@ -1007,13 +1020,19 @@ function WordMemoryGame() {
               ))}
             </div>
             <small>第 {level} 级 — 记住这些词语</small>
+            <span
+              key={level}
+              className="benchmark-timebar"
+              style={{ animationDuration: `${wordShowDuration(level)}ms` }}
+              aria-hidden="true"
+            />
           </div>
         </div>
       ) : null}
 
       {phase === "input" ? (
         <div>
-          <div className="benchmark-target" data-state="waiting">
+          <div className="benchmark-target benchmark-target--pop" data-state="waiting">
             <div className="benchmark-target__inner">
               <span className="benchmark-word-display">{testWord}</span>
               <small>这个词出现过吗？</small>
@@ -1025,21 +1044,21 @@ function WordMemoryGame() {
               className="p-card__link"
               onClick={() => handleAnswer(true)}
             >
-              没见过 (新的)
+              ← 没见过 (新的)
             </button>
             <button
               type="button"
               className="p-card__link p-card__link--ghost"
               onClick={() => handleAnswer(false)}
             >
-              见过 (旧的)
+              见过 (旧的) →
             </button>
           </div>
         </div>
       ) : null}
 
       {phase === "correct" ? (
-        <div className="benchmark-target" data-state="ready">
+        <div className="benchmark-target benchmark-target--pop" data-state="ready">
           <div className="benchmark-target__inner">
             <span>正确！</span>
             <small>进入第 {level} 级...</small>
@@ -1250,7 +1269,7 @@ function SchulteGridGame() {
 
       {phase === "done" && finalMs !== null ? (
         <>
-          <div className="benchmark-target" data-state="result">
+          <div className="benchmark-target benchmark-target--pop" data-state="result">
             <div className="benchmark-target__inner">
               <span>{(finalMs / 1000).toFixed(2)} s</span>
               <small>点亮了全部 25 格，失误 {mistakes} 次</small>
