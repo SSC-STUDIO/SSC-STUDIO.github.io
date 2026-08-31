@@ -38,3 +38,32 @@ const { slug = '' } = Astro.params
 
   <PageFoot current="/class" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 同学档案打磨(仅本页) ── */
+
+  /* 留言文本:信笺语气——朱砂左栏线 + 首行缩进 */
+  .p-class-profile__panel--message .p-class-profile__copy p {
+    padding-left: 0.85rem;
+
+    border-left: 2px solid color-mix(in srgb, #{color(accent)} 70%, transparent);
+
+    text-indent: 2em;
+  }
+
+  /* 留言 composer 接近上限时的剩余字数提示(与班级空间同款) */
+  .p-class-comments__count {
+    margin: -0.5rem 0 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 700 10px / 1.4 font-family(fraktion);
+    letter-spacing: 0.1em;
+    text-align: right;
+    text-transform: none;
+  }
+
+  /* 离线卡中的重试按钮与相邻链接基线对齐 */
+  .p-lock .p-class__retry {
+    margin-top: 0;
+  }
+</style>

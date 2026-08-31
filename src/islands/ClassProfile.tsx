@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { AUTH_FETCH_OPTIONS } from "./api";
-import { ClassComments, ClassLoginLock, roleLabel } from "./ClassSpace";
+import {
+  ClassComments,
+  ClassLoginLock,
+  ClassOfflineNotice,
+  roleLabel,
+} from "./ClassSpace";
 
 /**
  * Class profile island — one member's file inside the class space.
@@ -12,7 +17,13 @@ import { ClassComments, ClassLoginLock, roleLabel } from "./ClassSpace";
  * class space island with targetKind `profile`.
  */
 
-type LoadState = "loading" | "ready" | "out" | "notfound" | "error";
+type LoadState =
+  | "loading"
+  | "ready"
+  | "out"
+  | "notfound"
+  | "unavailable"
+  | "error";
 
 type ClassProfileDto = {
   slug: string;
@@ -73,6 +84,10 @@ export default function ClassProfile({ slug }: { slug: string }) {
         setLoad("notfound");
         return;
       }
+      if (response.status === 503) {
+        setLoad("unavailable");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as ClassProfileDto;
       setProfile(data);
@@ -86,6 +101,16 @@ export default function ClassProfile({ slug }: { slug: string }) {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  // Put the member's name in the tab title once the profile is readable.
+  useEffect(() => {
+    if (!profile) return;
+    const previous = document.title;
+    document.title = `${profile.name} · Class Profile · 陈润森`;
+    return () => {
+      document.title = previous;
+    };
+  }, [profile]);
 
   // Count the visit exactly once per slug per page load.
   useEffect(() => {
@@ -154,11 +179,22 @@ export default function ClassProfile({ slug }: { slug: string }) {
     );
   }
 
+  if (load === "unavailable") {
+    return (
+      <div className="p-class-profile">
+        <ClassOfflineNotice
+          message="档案服务暂时不可用——不是你的问题，稍后再回来看看。"
+          onRetry={() => void loadProfile()}
+        />
+      </div>
+    );
+  }
+
   if (load === "error" || !profile) {
     return (
       <div className="p-class-profile">
         <div className="p-class-profile__state">
-          <p>档案没有载入成功。</p>
+          <p>档案没有载入成功，可能是网络波动。</p>
           <button
             type="button"
             className="p-class-profile__retry"
@@ -231,7 +267,7 @@ export default function ClassProfile({ slug }: { slug: string }) {
           </dl>
         </aside>
 
-        <section className="p-class-profile__panel">
+        <section className="p-class-profile__panel p-class-profile__panel--message">
           <p className="p-card__kicker">message</p>
           <h3 className="p-class-profile__panel-title">留言文本</h3>
           <div className="p-class-profile__copy">
