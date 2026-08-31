@@ -33,6 +33,17 @@ const REGISTER_ERROR_MESSAGES: Record<string, string> = {
   weak_password: "密码至少 6 个字符。",
 };
 
+/**
+ * Resolve the post-login destination: a same-site `?returnTo=` query
+ * (e.g. `/account?returnTo=/messages`) wins over the prop default.
+ */
+function resolveReturnTo(fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const raw = new URLSearchParams(window.location.search).get("returnTo");
+  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return fallback;
+}
+
 function formatDate(value?: string): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
@@ -80,6 +91,12 @@ export default function AccountConsole({
   const [logoutStatus, setLogoutStatus] = useState("");
   const [logoutStatusKind, setLogoutStatusKind] = useState<StatusKind>("");
   const [logoutBusy, setLogoutBusy] = useState(false);
+  // 挂载后再读 URL 上的 returnTo，避免 SSR/hydration 不一致。
+  const [target, setTarget] = useState(returnTo);
+
+  useEffect(() => {
+    setTarget(resolveReturnTo(returnTo));
+  }, [returnTo]);
 
   const showLoginStatus = useCallback((message: string, kind: StatusKind) => {
     setLoginStatus(message);
@@ -164,7 +181,7 @@ export default function AccountConsole({
         );
         return;
       }
-      window.location.href = returnTo;
+      window.location.href = target;
     } catch {
       showLoginStatus("无法连接 API，请确认开发服务已启动。", "error");
     } finally {
@@ -356,7 +373,7 @@ export default function AccountConsole({
                 </span>
               </label>
               <button type="submit" disabled={loginBusy}>
-                登录
+                {loginBusy ? "登录中…" : "登录"}
               </button>
               <p
                 className={`p-form__status${
@@ -424,7 +441,7 @@ export default function AccountConsole({
                 </span>
               </label>
               <button type="submit" disabled={registerBusy}>
-                注册
+                {registerBusy ? "注册中…" : "注册"}
               </button>
               <p
                 className={`p-form__status${
@@ -496,7 +513,7 @@ export default function AccountConsole({
             {inStatus}
           </p>
           <div className="p-card__actions">
-            <a className="p-card__link" href={returnTo}>
+            <a className="p-card__link" href={target}>
               继续
             </a>
             <a className="p-card__link p-card__link--ghost" href="/leaderboard">

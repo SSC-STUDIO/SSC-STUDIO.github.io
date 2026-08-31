@@ -7,17 +7,82 @@ import AccountConsole from '@/islands/AccountConsole'
 
 <BaseLayout
   title="Account · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="账号：登录或注册，解锁排行榜成绩提交、班级空间与私信。"
 >
   <PageHero
-    kicker="account"
-    title="Account"
+    kicker="ACCOUNT · 账号"
+    title="账号"
     summary="会话、邀请与个人访问状态 — 登录后解锁班级空间与分数提交。"
   />
 
-  <main class="p-page p-page--wide">
+  <main class="p-page">
     <AccountConsole client:load />
   </main>
 
-  <PageFoot />
+  <PageFoot current="/account" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  .p-account {
+    max-width: 44rem;
+    margin-inline: auto;
+
+    /* 登录 / 注册切换 —— 共享层未定义，补在页面层 */
+    &__switch {
+      display: inline-flex;
+      margin: 0 0 1.25rem;
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+    }
+
+    &__switch-btn {
+      appearance: none;
+      padding: 0.55rem 1.25rem;
+      border: 0;
+      background: transparent;
+      color: color(secondary);
+      font: 700 11px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+      cursor: pointer;
+      transition:
+        background 0.25s ease(out-cubic),
+        color 0.25s ease(out-cubic);
+
+      &:hover:not(.is-active) {
+        background: color-mix(in srgb, #{color(accent)} 20%, transparent);
+      }
+
+      &.is-active {
+        background: color(secondary);
+        color: color(primary);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: -2px;
+      }
+    }
+
+    &__badge {
+      display: inline-block;
+      margin: 0 0 0.75rem;
+      padding: 0.35rem 0.65rem;
+      background: color(accent);
+      color: color(secondary);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.16em;
+    }
+
+    &__note {
+      color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+      font: 400 0.8rem / 1.5 font-family(editorial);
+      letter-spacing: normal;
+      text-transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-account__switch-btn {
+      transition: none;
+    }
+  }
+</style>
