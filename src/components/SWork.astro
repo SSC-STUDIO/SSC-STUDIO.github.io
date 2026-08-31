@@ -228,6 +228,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     lastWidth: number
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+    destroyed = false
 
     /**
      * Constructor
@@ -299,6 +300,8 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
      * Init
      */
     init() {
+      if (this.destroyed || !this.el) return
+
       this.setCtxStyle()
       this.setSize()
       this.setMask()
@@ -308,6 +311,23 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       this.setTimeline()
 
       this.bindEvents()
+    }
+
+    /**
+     * SPA 换页收尾：帧循环、订阅、滚动时间线（含 ScrollTrigger）全部销毁，
+     * 否则 ScrollTrigger 会逐次累积并在死 DOM 上计算
+     */
+    destroy() {
+      this.destroyed = true
+      this.stopFrame()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+
+      if (this.tl) {
+        this.tl.scrollTrigger?.kill()
+        this.tl.kill()
+        this.tl = null
+      }
     }
 
     /**
@@ -923,7 +943,24 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     }
   }
 
-  new Section()
+  /* ClientRouter 下模块脚本只执行一次：每次换页对新 DOM 重建，先收旧实例 */
+  const mountWork = () => {
+    const prev = (window as any).__sWork
+    try {
+      prev?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sWork = document.querySelector('.s-work')
+      ? new Section()
+      : null
+  }
+
+  document.addEventListener('astro:page-load', mountWork)
+  document.addEventListener('astro:before-swap', () => {
+    try {
+      ;(window as any).__sWork?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sWork = null
+  })
 </script>
 
 <style lang="scss">

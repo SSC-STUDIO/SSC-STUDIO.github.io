@@ -309,6 +309,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     isPaused: boolean
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+    destroyed = false
 
     /**
      * Constructor
@@ -380,6 +381,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Init
      */
     init() {
+      if (this.destroyed || !this.el) return
+
       this.setSize()
       this.setScroll()
       this.setLines()
@@ -389,6 +392,17 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       this.firstObjects()
       this.syncVisibility()
+    }
+
+    /**
+     * SPA 换页收尾：摘掉帧循环与指针/视口/滚动订阅
+     */
+    destroy() {
+      this.destroyed = true
+      this.unframe?.()
+      this.unframe = null
+      this.stops.forEach((stop) => stop())
+      this.stops = []
     }
 
     /**
@@ -1114,7 +1128,24 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
   }
 
-  new Section()
+  /* ClientRouter 下模块脚本只执行一次：每次换页对新 DOM 重建，先收旧实例 */
+  const mountMyWay = () => {
+    const prev = (window as any).__sMyWay
+    try {
+      prev?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sMyWay = document.querySelector('.s-my-way')
+      ? new Section()
+      : null
+  }
+
+  document.addEventListener('astro:page-load', mountMyWay)
+  document.addEventListener('astro:before-swap', () => {
+    try {
+      ;(window as any).__sMyWay?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sMyWay = null
+  })
 </script>
 
 <style lang="scss">

@@ -179,6 +179,8 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     lastWidth: number
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+    observer: IntersectionObserver | null = null
+    destroyed = false
 
     /**
      * Constructor
@@ -215,6 +217,8 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      * Init
      */
     init() {
+      if (this.destroyed || !this.el) return
+
       this.setSize()
       this.setScroll()
       this.setLines()
@@ -254,7 +258,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       this.stops.push(onScroll((scrollY) => this.onScroll(scrollY)))
 
       // Reveal on scroll
-      const observer = new IntersectionObserver(
+      const observer = (this.observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
@@ -268,7 +272,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         {
           threshold: 0.15,
         }
-      )
+      ))
 
       this.awards.forEach((award) => {
         observer.observe(award)
@@ -295,6 +299,20 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     stopFrame() {
       this.unframe?.()
       this.unframe = null
+    }
+
+    /**
+     * SPA 换页收尾：帧循环、信号订阅、观察者全部摘除，
+     * 否则旧实例会永远在已销毁的 DOM 上空转
+     */
+    destroy() {
+      this.destroyed = true
+      this.stopFrame()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.observer?.disconnect()
+      this.observer = null
+      this.charms = []
     }
 
     /**
@@ -665,7 +683,25 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
   }
 
-  new Section()
+  /* ClientRouter 下模块脚本只执行一次：
+     必须在每次 astro:page-load 时对新 DOM 重建实例，并先收掉旧实例 */
+  const mountAbout = () => {
+    const prev = (window as any).__sAbout
+    try {
+      prev?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sAbout = document.querySelector('.s-about')
+      ? new Section()
+      : null
+  }
+
+  document.addEventListener('astro:page-load', mountAbout)
+  document.addEventListener('astro:before-swap', () => {
+    try {
+      ;(window as any).__sAbout?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sAbout = null
+  })
 </script>
 
 <style lang="scss">

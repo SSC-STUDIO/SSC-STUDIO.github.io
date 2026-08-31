@@ -220,6 +220,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       /** 原创动效各模块的清理函数（每次换页重绑前先清掉） */
       stopMotion: Array<() => void> = []
 
+      /** data-intersect 观察者（每次换页重建，旧的必须断开，否则逐页累积） */
+      pageObserver: IntersectionObserver | null = null
+
       /**
        * Constructor
        */
@@ -343,6 +346,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * Bind per-page observers — 每次换页重绑（旧元素随 swap 销毁）
        */
       bindPageObservers() {
+        this.pageObserver?.disconnect()
+
         const observer = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
@@ -382,6 +387,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         document.querySelectorAll('[data-intersect]').forEach((el) => {
           observer.observe(el)
         })
+
+        this.pageObserver = observer
       }
 
       /**

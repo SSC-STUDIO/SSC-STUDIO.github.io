@@ -79,9 +79,12 @@ const term = getSolarTerm(now)
     return `三十${NUMERALS[value % 10]}`
   }
 
-  const root = document.querySelector('[data-date-seal]')
+  /* 每次换页重取元素重写：ClientRouter 下模块只执行一次，
+     否则 SPA 回来的日戳会停在构建期兜底文案上 */
+  function stampDateSeal() {
+    const root = document.querySelector('[data-date-seal]')
+    if (!root) return
 
-  if (root) {
     const now = new Date()
 
     const set = (key: string, text: string) => {
@@ -100,6 +103,9 @@ const term = getSolarTerm(now)
     set('week', `星期${WEEKDAY_CN[now.getDay()]}`)
     set('term', getSolarTerm(now).name)
   }
+
+  stampDateSeal()
+  document.addEventListener('astro:page-load', stampDateSeal)
 </script>
 
 <style lang="scss">

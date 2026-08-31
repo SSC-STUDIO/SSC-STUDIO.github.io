@@ -51,10 +51,11 @@ const term = getSolarTerm()
 <script>
   import { getSolarTerm } from '../utils/solar-terms'
 
-  // 用实时日期覆写构建时的节气兜底
-  const root = document.querySelector('[data-solar-term]')
+  // 用实时日期覆写构建时的节气兜底；SPA 换页后节点是新的，需重写
+  function stampSolarTerm() {
+    const root = document.querySelector('[data-solar-term]')
+    if (!root) return
 
-  if (root) {
     const term = getSolarTerm()
     const name = root.querySelector('[data-term-name]')
     const line = root.querySelector('[data-term-line]')
@@ -64,6 +65,9 @@ const term = getSolarTerm()
     if (name) name.textContent = `今值${term.name}`
     if (line) line.textContent = term.line
   }
+
+  stampSolarTerm()
+  document.addEventListener('astro:page-load', stampSolarTerm)
 </script>
 
 <style lang="scss">

@@ -159,6 +159,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     tl: gsap.core.Timeline
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+    destroyed = false
 
     /**
      * Constructor
@@ -211,12 +212,28 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
      * Init
      */
     init() {
+      if (this.destroyed || !this.el) return
+
       this.setSize()
       this.setGrid()
 
       this.createPulseTimeline()
 
       this.bindEvents()
+    }
+
+    /**
+     * SPA 换页收尾：帧循环、订阅、脉冲时间线与波纹定时器全部收掉
+     */
+    destroy() {
+      this.destroyed = true
+      this.stopFrame()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+
+      if (this.wave) clearTimeout(this.wave.timeout)
+      this.tl?.kill()
+      this.tl = null
     }
 
     /**
@@ -599,7 +616,24 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     }
   }
 
-  new Section()
+  /* ClientRouter 下模块脚本只执行一次：每次换页对新 DOM 重建，先收旧实例 */
+  const mountCTA = () => {
+    const prev = (window as any).__sCTA
+    try {
+      prev?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sCTA = document.querySelector('.s-cta')
+      ? new Section()
+      : null
+  }
+
+  document.addEventListener('astro:page-load', mountCTA)
+  document.addEventListener('astro:before-swap', () => {
+    try {
+      ;(window as any).__sCTA?.destroy?.()
+    } catch (e) {}
+    ;(window as any).__sCTA = null
+  })
 </script>
 
 <style lang="scss">

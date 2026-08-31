@@ -14,11 +14,6 @@
 
 <script>
   (function () {
-    var clock = document.querySelector('.studio-clock');
-    if (!clock) return;
-    var timeEl = clock.querySelector('.studio-clock__time');
-    var partEl = clock.querySelector('.studio-clock__part');
-
     function daypart(hour) {
       if (hour >= 5 && hour < 8) return { key: 'dawn', label: '晨光' };
       if (hour >= 8 && hour < 17) return { key: 'day', label: '白昼' };
@@ -26,13 +21,18 @@
       return { key: 'night', label: '夜灯' };
     }
 
+    /* 每次都重新取元素：ClientRouter 换页后旧节点已销毁，
+       捕获式引用会让新时钟永远停在 SSR 占位文案上 */
     function sync() {
       var now = new Date();
       var part = daypart(now.getHours());
-      timeEl.textContent =
-        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-      partEl.textContent = part.label;
       document.documentElement.setAttribute('data-daypart', part.key);
+
+      var clock = document.querySelector('.studio-clock');
+      if (!clock) return;
+      clock.querySelector('.studio-clock__time').textContent =
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      clock.querySelector('.studio-clock__part').textContent = part.label;
     }
 
     sync();
@@ -41,5 +41,7 @@
       sync();
       setInterval(sync, 60000);
     }, delay);
+
+    document.addEventListener('astro:page-load', sync);
   })();
 </script>
