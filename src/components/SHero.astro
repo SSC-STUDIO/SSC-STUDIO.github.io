@@ -55,9 +55,14 @@ import DateSeal from './DateSeal.astro'
 </div><!-- .s-hero -->
 
 <script>
-  import Emitter from '../utils/Emitter'
-  import Ticker from '../utils/Ticker'
-  import { prefersReducedMotion } from '../utils/motion'
+  import {
+    whenReady,
+    nextFrame,
+    onFrame,
+    onResize,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
 
   import { gsap } from 'gsap'
 
@@ -107,6 +112,8 @@ import DateSeal from './DateSeal.astro'
     isWaiting: boolean
     split: { chars: HTMLElement[]; revert: () => void } | null
     introPlayed: boolean
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
 
     /**
      * Constructor
@@ -127,29 +134,22 @@ import DateSeal from './DateSeal.astro'
       // Init
       this.splitWords()
 
-      document.addEventListener('intro', this.onIntro.bind(this), {
+      document.addEventListener('intro', this.onIntro, {
         once: true,
       })
 
-      if (document.readyState === 'complete') {
-        Ticker.nextTick(this.init, this)
-        Ticker.nextTick(this.ensureIntro, this)
-      } else {
-        Emitter.once(
-          'siteLoaded',
-          () => {
-            Ticker.nextTick(this.init, this)
-            Ticker.nextTick(this.ensureIntro, this)
-          },
-          this
-        )
-      }
+      whenReady(() => {
+        nextFrame(() => {
+          this.init()
+          this.ensureIntro()
+        })
+      })
     }
 
     /**
      * Intro handler
      */
-    onIntro() {
+    onIntro = () => {
       this.intro()
     }
 
@@ -173,34 +173,42 @@ import DateSeal from './DateSeal.astro'
     }
 
     destroy() {
-      Emitter.off('resize', this.onResize, this)
-      Emitter.off('tick', this.tick, this)
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.stopFrame()
+    }
+
+    startFrame() {
+      if (this.unframe) return
+      this.unframe = onFrame(() => this.tick())
+    }
+
+    stopFrame() {
+      this.unframe?.()
+      this.unframe = null
     }
 
     /**
      * Bind events
      */
     bindEvents() {
-      Emitter.on('resize', this.onResize, this)
+      this.stops.push(onResize(() => this.onResize()))
 
-      this.el.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
 
-      Emitter.on('tick', this.tick, this)
+      this.startFrame()
     }
 
     /**
      * Intersect handler
      */
-    onIntersect(e) {
+    onIntersect = (e: CustomEvent) => {
       this.isPaused = !e.detail.isIntersecting
 
-      if (this.isPaused) {
-        Emitter.off('tick', this.tick, this)
-      } else {
-        Emitter.on('tick', this.tick, this)
-      }
+      if (this.isPaused) this.stopFrame()
+      else this.startFrame()
     }
 
     /**

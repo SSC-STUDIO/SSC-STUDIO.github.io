@@ -120,8 +120,14 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 </section>
 
 <script>
-  import Emitter from '../utils/Emitter'
-  import Ticker from '../utils/Ticker'
+  import {
+    whenReady,
+    onFrame,
+    onResize,
+    onScroll,
+    type Cleanup,
+  } from '../motion/core'
+  import { chopAccentColor, drawSenChop } from '../motion/sen-chop'
 
   class Section {
     el: HTMLElement
@@ -131,11 +137,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     canvas: HTMLCanvasElement
     ctx: CanvasRenderingContext2D
     awards: NodeListOf<HTMLElement>
-
-    smileyImages: {
-      main: HTMLImageElement
-      contrasted: HTMLImageElement
-    }
 
     bounding: {
       left: number
@@ -159,6 +160,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
     isPaused: boolean
     isForced: boolean
+    lastWidth: number
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
 
     /**
      * Constructor
@@ -184,21 +188,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       this.isPaused = true
       this.isForced = false
+      this.lastWidth = window.innerWidth
 
-      // Init
-      if (document.readyState === 'complete') {
-        Ticker.nextTick(this.init, this)
-      } else {
-        Emitter.once('siteLoaded', this.init, this)
-      }
+      whenReady(() => this.init())
     }
 
     /**
      * Init
      */
     init() {
-      this.createSmiley()
-
       this.setSize()
       this.setScroll()
 
@@ -206,7 +204,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       if (this.el.classList.contains('is-in-view') && this.isPaused) {
         this.isPaused = false
-        Emitter.on('tick', this.tick, this)
+        this.startFrame()
       }
 
       // Reveal the awards already in the viewport on load
@@ -225,8 +223,14 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      * Bind events
      */
     bindEvents() {
-      Emitter.on('resize', this.onResize, this)
-      Emitter.on('scroll', this.onScroll, this)
+      this.stops.push(
+        onResize(({ width }) => {
+          const widthChanged = width !== this.lastWidth
+          this.lastWidth = width
+          this.onResize(widthChanged)
+        })
+      )
+      this.stops.push(onScroll((scrollY) => this.onScroll(scrollY)))
 
       // Reveal on scroll
       const observer = new IntersectionObserver(
@@ -255,15 +259,25 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         })
       })
 
-      this.el.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
+    }
+
+    startFrame() {
+      if (this.unframe) return
+      this.unframe = onFrame(() => this.tick())
+    }
+
+    stopFrame() {
+      this.unframe?.()
+      this.unframe = null
     }
 
     /**
      * Resize handler
      */
-    onResize(widthChanged, heightChanged) {
+    onResize(widthChanged) {
       if (widthChanged) {
         this.setSize()
         this.setScroll()
@@ -292,18 +306,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     /**
      * Intersect handler
      */
-    onIntersect(e) {
+    onIntersect = (e: CustomEvent) => {
       this.isPaused = !e.detail.isIntersecting
 
       if (e.detail.isIntersecting) {
         this.awards.forEach((award) => award.classList.add('is-revealed'))
       }
 
-      if (this.isPaused) {
-        Emitter.off('tick', this.tick, this)
-      } else {
-        Emitter.on('tick', this.tick, this)
-      }
+      if (this.isPaused) this.stopFrame()
+      else this.startFrame()
     }
 
     /**
@@ -320,21 +331,24 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     /**
-     * Create smiley
+     * Throw 森印
      */
-    createSmiley() {
-      const mainImg = new Image(100, 100)
-      mainImg.src = '/images/asset-smiley--main.svg'
+    throwSmileys(award) {
+      const { el, smileys } = this
 
-      const contrastedImg = new Image(100, 100)
-      contrastedImg.src = '/images/asset-smiley--contrasted.svg'
+      const elBounding = el.getBoundingClientRect()
+      const awardBounding = award.getBoundingClientRect()
 
-      this.smileyImages = {
-        main: mainImg,
-        contrasted: contrastedImg,
+      const x = awardBounding.left + awardBounding.width * 0.5 - elBounding.left
+      const y = awardBounding.top + awardBounding.height * 0.5 - elBounding.top
+
+      const maxSmileys = window.safeWidth > 767 ? 10 : 5
+      for (let i = 0; i < maxSmileys; i++) {
+        const smiley = new SenChip(ctx, x, y)
+
+        smileys.push(smiley)
       }
     }
-
     /**
      * Set size
      */
@@ -569,33 +583,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     /**
-     * Throw smileys
-     */
-    throwSmileys(award) {
-      const { el, ctx, smileyImages, smileys } = this
-
-      const image = document.documentElement.classList.contains(
-        'theme-contrasted'
-      )
-        ? smileyImages.contrasted
-        : smileyImages.main
-
-      const elBounding = el.getBoundingClientRect()
-      const awardBounding = award.getBoundingClientRect()
-
-      const x = awardBounding.left + awardBounding.width * 0.5 - elBounding.left
-      const y = awardBounding.top + awardBounding.height * 0.5 - elBounding.top
-
-      const maxSmileys = window.safeWidth > 767 ? 10 : 5
-      for (let i = 0; i < maxSmileys; i++) {
-        const smiley = new Smiley(ctx, image, x, y)
-
-        smileys.push(smiley)
-      }
-    }
-
-    /**
-     * Move smileys
+     * Move 森印
      */
     moveSmileys() {
       const { bounding, smileys } = this
@@ -614,8 +602,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     drawCanvas() {
       const { bounding, ctx, smileys } = this
-
-      ctx.fillStyle = 'red'
 
       ctx.clearRect(0, 0, bounding.width, bounding.height)
 
@@ -655,12 +641,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
   }
 
-  class Smiley {
+  class SenChip {
     ctx: CanvasRenderingContext2D
-    image: HTMLImageElement
 
     width: number
-    height: number
     x: number
     y: number
     r: number
@@ -670,68 +654,36 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     vy: number
     vr: number
 
-    /**
-     * Constructor
-     */
-    constructor(ctx, image, x, y) {
-      // Elements
+    constructor(ctx: CanvasRenderingContext2D, x: number, y: number) {
       this.ctx = ctx
-      this.image = image
-
-      // Properties
-      this.width = 48
-      this.height = 48
+      this.width = 28 + Math.random() * 22
       this.x = x
       this.y = y
-      this.r = 0
-      this.a = 0.25 + Math.random() * 0.75
+      this.r = Math.random() * 40 - 20
+      this.a = 0.45 + Math.random() * 0.55
       this.vx = (Math.random() * 2 - 1) * 5
       this.vy = Math.random() * -10 - 5
       this.vr = (Math.random() * 2 - 1) * 10
       this.va = Math.random() * 0.01
     }
 
-    /**
-     * Move smiley
-     */
     move() {
       this.vy += 0.45
-
       this.x += this.vx
       this.y += this.vy
       this.r += this.vr
       this.a += this.va
     }
 
-    /**
-     * Draw smiley
-     */
     draw() {
-      const { ctx, image } = this
-
-      ctx.save()
-
-      ctx.translate(
-        this.x + this.width * 0.5 * this.a,
-        this.y + this.height * 0.5 * this.a
-      )
-
-      ctx.rotate((this.r * Math.PI) / 180)
-
-      ctx.translate(
-        -this.x - this.width * 0.5 * this.a,
-        -this.y - this.height * 0.5 * this.a
-      )
-
-      ctx.drawImage(
-        image,
-        this.x,
-        this.y,
-        this.width * this.a,
-        this.height * this.a
-      )
-
-      ctx.restore()
+      drawSenChop(this.ctx, {
+        fill: chopAccentColor(),
+        size: this.width * this.a,
+        x: this.x,
+        y: this.y,
+        rotation: this.r,
+        alpha: Math.min(1, this.a),
+      })
     }
   }
 

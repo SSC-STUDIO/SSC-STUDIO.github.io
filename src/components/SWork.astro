@@ -166,9 +166,15 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 </section>
 
 <script>
-  import Emitter from '../utils/Emitter'
-  import Ticker from '../utils/Ticker'
-  import { prefersReducedMotion } from '../utils/motion'
+  import {
+    whenReady,
+    nextFrame,
+    onFrame,
+    onResize,
+    onThemeFlip,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
 
   import { gsap } from 'gsap'
   import { SlowMo } from 'gsap/EasePack'
@@ -219,6 +225,9 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     speed: number
     isPaused: boolean
     loadIsStarted: boolean
+    lastWidth: number
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
 
     /**
      * Constructor
@@ -281,13 +290,9 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       this.isPaused = true
       this.loadIsStarted = false
+      this.lastWidth = window.innerWidth
 
-      // Init
-      if (document.readyState === 'complete') {
-        Ticker.nextTick(this.init, this)
-      } else {
-        Emitter.once('siteLoaded', this.init, this)
-      }
+      whenReady(() => nextFrame(() => this.init()))
     }
 
     /**
@@ -309,12 +314,28 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
      * Bind events
      */
     bindEvents() {
-      Emitter.on('contrastchange', this.setCtxStyle, this)
-      Emitter.on('resize', this.onResize, this)
+      this.stops.push(onThemeFlip(() => this.setCtxStyle()))
+      this.stops.push(
+        onResize(({ width }) => {
+          const widthChanged = width !== this.lastWidth
+          this.lastWidth = width
+          this.onResize(widthChanged)
+        })
+      )
 
-      this.el.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
+    }
+
+    startFrame() {
+      if (this.unframe) return
+      this.unframe = onFrame(() => this.tick())
+    }
+
+    stopFrame() {
+      this.unframe?.()
+      this.unframe = null
     }
 
     /**
@@ -335,14 +356,11 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     /**
      * Intersect handler
      */
-    onIntersect(e) {
+    onIntersect = (e: CustomEvent) => {
       this.isPaused = !e.detail.isIntersecting
 
-      if (this.isPaused) {
-        Emitter.off('tick', this.tick, this)
-      } else {
-        Emitter.on('tick', this.tick, this)
-      }
+      if (this.isPaused) this.stopFrame()
+      else this.startFrame()
 
       if (!this.loadIsStarted) {
         this.loadIsStarted = true
@@ -357,7 +375,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
         '--color-primary'
       )
 
-      Ticker.nextTick(() => {
+      nextFrame(() => {
         this.ctx.strokeStyle = color
       })
     }

@@ -107,9 +107,13 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 </section>
 
 <script>
-  import Emitter from '../utils/Emitter'
-  import Ticker from '../utils/Ticker'
-  import { prefersReducedMotion } from '../utils/motion'
+  import {
+    whenReady,
+    onFrame,
+    onResize,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
 
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -153,6 +157,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     buttonIsHovered: boolean
     isPaused: boolean
     tl: gsap.core.Timeline
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
 
     /**
      * Constructor
@@ -198,12 +204,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       this.buttonIsHovered = false
       this.isPaused = true
 
-      // Init
-      if (document.readyState === 'complete') {
-        Ticker.nextTick(this.init, this)
-      } else {
-        Emitter.once('siteLoaded', this.init, this)
-      }
+      whenReady(() => this.init())
     }
 
     /**
@@ -222,7 +223,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
      * Bind events
      */
     bindEvents() {
-      Emitter.on('resize', this.onResize, this)
+      this.stops.push(onResize(() => this.onResize()))
 
       // 整个 CTA 区域（含大圆）都可触发，而不是只有 96px 的按钮格
       this.container.addEventListener('mouseenter', this.onHover.bind(this))
@@ -235,9 +236,19 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         passive: true,
       })
 
-      this.el.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
+    }
+
+    startFrame() {
+      if (this.unframe) return
+      this.unframe = onFrame((time) => this.tick(time))
+    }
+
+    stopFrame() {
+      this.unframe?.()
+      this.unframe = null
     }
 
     /**
@@ -251,14 +262,11 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     /**
      * Intersect handler
      */
-    onIntersect(e) {
+    onIntersect = (e: CustomEvent) => {
       this.isPaused = !e.detail.isIntersecting
 
-      if (this.isPaused) {
-        Emitter.off('tick', this.tick, this)
-      } else {
-        Emitter.on('tick', this.tick, this)
-      }
+      if (this.isPaused) this.stopFrame()
+      else this.startFrame()
     }
 
     /**
