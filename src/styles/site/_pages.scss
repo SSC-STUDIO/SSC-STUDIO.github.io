@@ -1533,13 +1533,16 @@ a.p-card {
 
 /* Honors */
 
+/* 站内 mq() 断点是 max-width 制（案几由宽及窄），
+   这几处栅格原按 min-width 的思路写，宽屏反而落成一列，
+   奖状因此叠成一条上万像素的长龙。改回显式 min-width。 */
 .p-honor-counters {
   display: grid;
   gap: 1rem;
 
   margin-bottom: 2rem;
 
-  @include mq(tablet) {
+  @media (min-width: 768px) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -1581,16 +1584,13 @@ a.p-card {
     gap: 1rem;
     grid-template-columns: minmax(0, 1fr);
 
-    @include mq(phone-sm) {
+    @media (min-width: 640px) {
       gap: 1.15rem;
-    }
-
-    @include mq(tablet) {
-      gap: 1.25rem;
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    @include mq(desktop-xs) {
+    @media (min-width: 1080px) {
+      gap: 1.25rem;
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }

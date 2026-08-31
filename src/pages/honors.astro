@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import Timeline from '@/islands/Timeline'
 import HonorCoins from '@/components/HonorCoins.astro'
 
@@ -113,16 +114,18 @@ const certs = [
     summary="奖项与节点像路标，记录努力被看见的那些瞬间。"
   />
 
-  <main class="p-page p-page--wide">
+  <main class="p-page p-page--wide p-honors">
+    <PageAura />
+
     <div class="p-detail-meta" data-reveal>
       <span>5 个成长节点</span>
       <span>11 条奖项记录</span>
     </div>
 
-    <div class="p-honor-counters" data-reveal>
+    <div class="p-honor-counters" data-flow data-intersect>
       {
         counters.map((counter) => (
-          <div class="p-honor-counter">
+          <div class="p-honor-counter" data-lift>
             <p class="p-honor-counter__label">{counter.label}</p>
             {counter.lines.map((line) => (
               <p class="p-honor-counter__line">{line}</p>
@@ -153,10 +156,10 @@ const certs = [
 
     <section class="p-honor-certs" data-reveal>
       <h2 class="p-honor-certs__title">奖状存档</h2>
-      <div class="p-honor-certs__grid">
+      <div class="p-honor-certs__grid" data-flow data-intersect>
         {
           certs.map((cert) => (
-            <article class="p-honor-cert">
+            <article class="p-honor-cert" data-leaf>
               <img
                 class="p-honor-cert__image"
                 src={cert.image}
@@ -179,3 +182,126 @@ const certs = [
 
   <PageFoot current="/honors" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 荣誉页动效（仅本页） ── */
+
+  /* 节点卡按栅格顺序落墨；ink-reveal 写的是行内延迟，需压过它 */
+  @for $i from 1 through 8 {
+    .p-honors .p-grid > :nth-child(#{$i}) {
+      --reveal-delay: #{($i - 1) * 62}ms !important;
+    }
+  }
+
+  /* 奖状：随指针沿中缝轻翻，同时提起半格——
+     data-leaf 与 data-lift 抢同一条 transform，故在此合成一条。 */
+  .p-honor-cert[data-leaf] {
+    --lift: 0px;
+
+    position: relative;
+    overflow: hidden;
+
+    transform: perspective(60rem) rotateX(var(--leaf-rx))
+      rotateY(var(--leaf-ry)) translate3d(0, var(--lift), 0);
+
+    transition:
+      transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 320ms ease,
+      border-color 320ms ease;
+
+    &:hover,
+    &:focus-within {
+      --lift: -4px;
+
+      border-color: color(accent);
+      box-shadow: 0 0.45rem 0 color-mix(in srgb, #{color(accent)} 65%, transparent);
+    }
+
+    &.is-leaf-live {
+      transition:
+        transform 120ms linear,
+        box-shadow 320ms ease,
+        border-color 320ms ease;
+    }
+  }
+
+  /* 相纸受光：一道随指针横移的浅光掠过奖状 */
+  .p-honor-cert__image {
+    transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-honor-cert:hover .p-honor-cert__image {
+    transform: scale(1.045);
+  }
+
+  .p-honor-cert::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+
+    background: linear-gradient(
+      100deg,
+      transparent calc(var(--leaf-sheen, 0.5) * 100% - 22%),
+      color-mix(in srgb, #{color(primary)} 30%, transparent)
+        calc(var(--leaf-sheen, 0.5) * 100%),
+      transparent calc(var(--leaf-sheen, 0.5) * 100% + 22%)
+    );
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+
+    transition: opacity 0.4s ease(out-quint);
+  }
+
+  .p-honor-cert:hover::after {
+    opacity: 1;
+  }
+
+  /* 年份钤在左上角，悬停时朱砂托起 */
+  .p-honor-cert__year {
+    transition:
+      color 0.3s ease,
+      letter-spacing 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-honor-cert:hover .p-honor-cert__year {
+    color: color(accent-strong);
+    letter-spacing: 0.2em;
+  }
+
+  /* 计数卡悬停：朱砂托底 */
+  .p-honor-counter[data-lift] {
+    transition:
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease,
+      border-color 260ms ease;
+
+    &:hover {
+      border-color: color(accent);
+      box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 60%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-honor-cert[data-leaf],
+    .p-honor-cert[data-leaf].is-leaf-live,
+    .p-honor-cert__image,
+    .p-honor-cert::after,
+    .p-honor-cert__year,
+    .p-honor-counter[data-lift] {
+      transition: none;
+    }
+
+    .p-honor-cert[data-leaf] {
+      transform: none;
+    }
+
+    .p-honor-cert:hover .p-honor-cert__image {
+      transform: none;
+    }
+
+    .p-honor-cert:hover .p-honor-cert__year {
+      letter-spacing: 0.12em;
+    }
+  }
+</style>
