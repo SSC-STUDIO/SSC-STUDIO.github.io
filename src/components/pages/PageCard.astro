@@ -18,6 +18,7 @@ const Tag = href ? 'a' : 'article'
 <Tag
   class:list={['p-card', className]}
   data-reveal="true"
+  data-seal
   {...(href ? { href } : {})}
   {...(href && external
     ? { target: '_blank', rel: 'noopener noreferrer' }

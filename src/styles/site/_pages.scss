@@ -12,6 +12,11 @@
 /* Page hero */
 
 .p-hero {
+  /* 由 <hero-drift> 写入：退场进度 0→1、指针横纵偏移 ±0.5 */
+  --hero-out: 0;
+  --hero-px: 0;
+  --hero-py: 0;
+
   position: relative;
   z-index: 2;
   overflow: hidden;
@@ -22,6 +27,70 @@
   background: color(primary);
 
   animation: p-hero-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  /* 时辰灯色：一团随指针游走的暖光，与首页 .s-hero::before 同源 */
+  &::before {
+    position: absolute;
+    inset: -12% -6%;
+    z-index: 1;
+
+    background:
+      radial-gradient(
+        ellipse 34% 46% at calc(78% + var(--hero-px) * 14%)
+          calc(22% + var(--hero-py) * 16%),
+        color-mix(in srgb, var(--daypart-lamp) 16%, transparent),
+        transparent 68%
+      ),
+      radial-gradient(
+        ellipse 40% 34% at calc(12% - var(--hero-px) * 10%)
+          calc(78% - var(--hero-py) * 10%),
+        color-mix(in srgb, #{color(secondary)} 9%, transparent),
+        transparent 70%
+      );
+
+    content: '';
+    pointer-events: none;
+  }
+
+  /* 云气呼吸：极缓的明暗涨落，只动 opacity */
+  &::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    background: radial-gradient(
+      ellipse 46% 40% at calc(62% + var(--hero-px) * 10%) 88%,
+      color-mix(in srgb, var(--color-mist) 16%, transparent),
+      transparent 72%
+    );
+
+    content: '';
+    pointer-events: none;
+
+    animation: p-hero-halo 11s ease-in-out infinite;
+  }
+
+  /* 墨圈冒泡：与首页同族，压在远山之下 */
+  &__bubbles {
+    z-index: 1;
+  }
+
+  /* 远山所在的图层：随滚动缓缓下沉，做出纵深 */
+  &__range {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    pointer-events: none;
+
+    transform: translate3d(
+      calc(var(--hero-px) * -0.9rem),
+      calc(var(--hero-out) * 3.2rem),
+      0
+    );
+
+    will-change: transform;
+  }
 
   &__kicker,
   &__title,
@@ -63,6 +132,23 @@
     font: 700 clamp(3rem, 12vw, 7.5rem) / 1.08 font-family(bigger);
     letter-spacing: 0.04em;
     text-transform: none;
+
+    /* 词内不断行，长英文标题不会被拆成两截 */
+    .word {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    /* 落墨与墨光的编排在 site/_transitions.scss，这里只管排布与悬停 */
+    .char {
+      display: inline-block;
+
+      transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .char:hover {
+      transform: translateY(-6%) rotate(-1.5deg) scale(1.05);
+    }
   }
 
   &__summary {
@@ -71,6 +157,9 @@
 
     color: color-mix(in srgb, #{color(secondary)} 80%, transparent);
     font: 400 clamp(1rem, 2.5vw, 1.25rem) / 1.55 font-family(editorial);
+
+    /* 卷首退场时正文比标题走得更快一点，拉开层次 */
+    transform: translate3d(0, calc(var(--hero-out) * -1.1rem), 0);
   }
 
   /* 飞白笔触：标题下的一划枯墨 */
@@ -81,6 +170,12 @@
   /* 四君子条饰：淡紫入韵的收梢 */
   &__gentlemen {
     margin: 1.4rem 0 0;
+
+    transform: translate3d(
+      calc(var(--hero-px) * 1.3rem),
+      calc(var(--hero-out) * -0.5rem),
+      0
+    );
   }
 
   /* 水波涟漪：君子条饰右下方一圈春水，「疏影横斜水清浅」 */
@@ -88,6 +183,12 @@
     bottom: clamp(0.75rem, 2vw, 1.75rem);
     left: clamp(18rem, 42vw, 34rem);
     z-index: 1;
+
+    transform: translate3d(
+      calc(var(--hero-px) * 1.8rem),
+      calc(var(--hero-py) * 1rem + var(--hero-out) * 1.4rem),
+      0
+    );
 
     @include mq(tablet-sm) {
       left: auto;
@@ -99,9 +200,17 @@
     position: absolute;
     top: 50%;
     right: clamp(1.5rem, 5vw, 4.5rem);
-    transform: translateY(-50%);
     z-index: 2;
     pointer-events: none;
+
+    transform: translate3d(
+        calc(var(--hero-px) * -0.7rem),
+        calc(var(--hero-out) * -2.4rem),
+        0
+      )
+      translateY(-50%);
+
+    will-change: transform;
 
     @include mq(tablet) {
       display: none;
@@ -139,7 +248,31 @@
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+
+    &::after,
+    .char {
+      animation: none;
+    }
+
+    &__range,
+    &__side,
+    &__summary,
+    &__gentlemen,
+    &__ripple,
+    .char:hover {
+      transform: none;
+      will-change: auto;
+    }
+
+    &__side {
+      transform: translateY(-50%);
+    }
   }
+}
+
+/* 驱动器本体不占位 */
+hero-drift {
+  display: none;
 }
 
 @keyframes p-hero-enter {
@@ -151,6 +284,30 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes p-hero-halo {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 逐字墨光：短暂泛起朱砂再退回松墨，形成沿标题游走的一道亮痕 */
+@keyframes p-hero-char-wave {
+  0%,
+  86%,
+  100% {
+    color: color(secondary);
+  }
+
+  91% {
+    color: color-mix(in srgb, #{color(accent)} 62%, #{color(secondary)});
   }
 }
 
@@ -337,16 +494,13 @@
     box-shadow 0.25s ease,
     border-color 0.25s ease;
 
+  /* 浮起量走 --card-lift（编排见 site/_transitions.scss），
+     好让指针倾斜与悬停提起共用同一条 transform */
   &:hover {
     border-color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
     box-shadow:
       0 8px 20px -6px color-mix(in srgb, #{color(secondary)} 18%, transparent),
       0 3px 0 color-mix(in srgb, #{color(accent)} 85%, transparent);
-    transform: translateY(-3px);
-
-    @media (prefers-reduced-motion: reduce) {
-      transform: none;
-    }
   }
 
   &:focus-visible {

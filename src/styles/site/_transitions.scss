@@ -110,9 +110,17 @@ html.theme-animating :where(
   animation: ph-kicker 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.p-hero__title {
-  animation: ph-rise 720ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both,
-    ph-ink-blur 720ms 130ms ease both;
+/* 标题逐字落墨：每个字自带一记上抬 + 洇开，按 --char-i 错峰。
+   落定后不留 forwards 填充，好把 transform 交还给悬停时的逐字跃起。 */
+.p-hero__title .char {
+  animation:
+    ph-char 680ms cubic-bezier(0.16, 1, 0.3, 1) backwards,
+    ph-ink-blur 680ms ease backwards,
+    p-hero-char-wave 9s ease-in-out infinite;
+  animation-delay:
+    calc(130ms + var(--char-i, 0) * 52ms),
+    calc(130ms + var(--char-i, 0) * 52ms),
+    calc(2.4s + var(--char-i, 0) * 90ms);
 }
 
 .p-hero__summary {
@@ -126,16 +134,14 @@ html.theme-animating :where(
   }
 }
 
-@keyframes ph-rise {
+@keyframes ph-char {
   from {
     opacity: 0;
-    transform: translateY(1.4rem);
-    clip-path: inset(0 0 100% 0);
+    transform: translateY(0.42em) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
-    clip-path: inset(0 0 -8% 0);
+    transform: none;
   }
 }
 
@@ -181,7 +187,7 @@ html.theme-animating :where(
 /* [data-reveal] 的洇墨显影规则统一收在 site/_motion.scss，
    这里残留的 translateY + transition 会在动画结束后留下 0.9rem 位移，故删除 */
 
-/* p-hero 标题：单元素一次性模糊显影（洇墨感） */
+/* 标题逐字模糊显影（洇墨感） */
 @keyframes ph-ink-blur {
   from {
     filter: blur(4px);
@@ -195,6 +201,21 @@ html.theme-animating :where(
 /* ══════════════════════════════════════════════════════
    阶段 3 — 交互动效细节
    ══════════════════════════════════════════════════════ */
+
+/* p-eco 导航格：入屏后逐格落下。
+   默认态就是「已落定」，观察者不触发也照常可读；
+   fill-mode 用 backwards，落定后 transform 交还给悬停。 */
+.p-eco.is-in-view .p-eco__link {
+  animation: eco-drop 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--eco-i, 0) * 36ms);
+}
+
+@keyframes eco-drop {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem) scale(0.97);
+  }
+}
 
 /* p-eco 导航链接：下划线扫入 */
 .p-eco__link {
@@ -225,8 +246,16 @@ html.theme-animating :where(
   }
 }
 
-/* p-card：悬停时 accent 左边线扫入 + 轻微浮起 */
+/* p-card：悬停时 accent 左边线扫入 + 轻微浮起
+   浮起写进 --card-lift 而不是直接改 transform——
+   同一条 transform 上还叠着 MotionPack 写入的册页倾斜（--tilt-x/y），
+   两者若各写各的，后来者会把前者整条抹掉。 */
 .p-card {
+  --card-lift: 0px;
+
+  transform: perspective(900px) translate3d(0, var(--card-lift), 0)
+    rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+
   transition:
     transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 260ms ease;
@@ -242,11 +271,20 @@ html.theme-animating :where(
     transform: scaleY(0);
     transform-origin: top center;
     transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 3;
   }
 
   &:hover {
-    transform: translateY(-3px);
+    --card-lift: -4px;
+
     box-shadow: 0 12px 32px color-mix(in srgb, var(--color-shadow) 18%, transparent);
+  }
+
+  /* 按下如落印：整张卡贴回纸面 */
+  &.is-pressed {
+    --card-lift: 0px;
+
+    transition: transform 90ms ease-out;
   }
 
   &:hover::before {
@@ -297,7 +335,7 @@ html.theme-animating :where(
 /* ── 减弱动效降级 ── */
 @media (prefers-reduced-motion: reduce) {
   .p-hero__kicker,
-  .p-hero__title,
+  .p-hero__title .char,
   .p-hero__summary,
   .p-hero .seal-mark--watermark,
   .p-hero .seal-mark--watermark .seal-mark__splash,
@@ -306,8 +344,16 @@ html.theme-animating :where(
     animation: none;
   }
 
+  .p-card {
+    transform: none;
+  }
+
   .p-hero .seal-mark--watermark .seal-mark__splash {
     opacity: 0;
+  }
+
+  .p-eco.is-in-view .p-eco__link {
+    animation: none;
   }
 
   .p-eco__link,

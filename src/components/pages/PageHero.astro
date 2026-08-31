@@ -1,4 +1,13 @@
 ---
+/**
+ * PageHero — 内页卷首
+ *
+ * 与首页同一套动效语言：纸面墨圈自卷底上浮（InkBubbles）、
+ * 时辰灯色随指针游移、远山与题识随滚动分层后退、
+ * 标题逐字落墨并周期性走一道墨光。
+ * 所有动效交给 <hero-drift> 自定义元素驱动（SPA 与离屏自理），
+ * 脚本缺席时标题与正文照常可读。
+ */
 import InkRail from '../InkRail.astro'
 import SealMark from '../SealMark.astro'
 import InkMountains from '../InkMountains.astro'
@@ -6,6 +15,7 @@ import InkMeander from '../InkMeander.astro'
 import InkBrush from '../InkBrush.astro'
 import InkGentlemen from '../InkGentlemen.astro'
 import InkRipple from '../InkRipple.astro'
+import InkBubbles from '../InkBubbles.astro'
 
 interface Props {
   kicker: string
@@ -14,25 +24,174 @@ interface Props {
 }
 
 const { kicker, title, summary } = Astro.props
+
+/** 标题先按词分组（词内不断行），再拆成字，逐字错峰落墨；延迟档位封顶避免长标题拖沓 */
+let charSeq = 0
+const words = title.split(' ').map((word) =>
+  Array.from(word).map((char) => ({ char, step: Math.min(charSeq++, 14) }))
+)
 ---
 
 <header class="p-hero" data-intersect>
-  <InkMountains compact />
-  <div class="p-hero__side" aria-hidden="true">
+  <InkBubbles class="p-hero__bubbles" />
+  <div class="p-hero__range" data-hero-layer="far">
+    <InkMountains compact />
+  </div>
+  <div class="p-hero__side" aria-hidden="true" data-hero-layer="side">
     <span class="p-hero__motto">格物 · 致知 · 日新</span>
   </div>
   <p class="p-hero__kicker">{kicker}</p>
-  <h1 class="p-hero__title">{title}</h1>
+  <h1 class="p-hero__title" aria-label={title}>
+    <span class="p-hero__title__ink" aria-hidden="true">
+      {
+        words.map((chars, wordIndex) => (
+          <>
+            {wordIndex > 0 && <span class="p-hero__title__gap"> </span>}
+            <span class="word">
+              {chars.map(({ char, step }) => (
+                <span class="char" style={`--char-i:${step}`}>
+                  {char}
+                </span>
+              ))}
+            </span>
+          </>
+        ))
+      }
+    </span>
+  </h1>
   <p class="p-hero__brush" aria-hidden="true">
     <InkBrush height={10} width="min(14rem, 42%)" class="ink-brush--draw" />
   </p>
   <p class="p-hero__summary">{summary}</p>
-  <p class="p-hero__gentlemen" aria-hidden="true">
+  <p class="p-hero__gentlemen" aria-hidden="true" data-hero-layer="near">
     <InkGentlemen height={20} width="min(15rem, 52vw)" />
   </p>
   <InkRipple size={110} class="p-hero__ripple" />
   <SealMark variant="watermark" />
   <InkMeander height={8} width="46%" class="p-hero__meander" />
+  <hero-drift aria-hidden="true"></hero-drift>
 </header>
 
 <InkRail style="accent" />
+
+<script>
+  import {
+    onFrame,
+    onPointer,
+    onScroll,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../../motion/core'
+
+  /** 指针跟随的追赶系数：越小越黏滞 */
+  const EASE = 0.075
+
+  /**
+   * hero-drift —— 卷首的滚动纵深与指针游移
+   *
+   * 只写 CSS 变量，不直接改 transform：具体哪一层走多远交给样式决定。
+   * 自定义元素生命周期天然对齐 SPA 换页；宿主离屏时停帧。
+   */
+  class HeroDrift extends HTMLElement {
+    hero: HTMLElement | null = null
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+
+    aimX = 0
+    aimY = 0
+    curX = 0
+    curY = 0
+    inView = true
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+
+      this.hero = this.closest('.p-hero')
+      if (!this.hero) return
+
+      this.stops.push(onScroll(() => this.measure()))
+      this.measure()
+
+      this.hero.addEventListener('intersect', this.onIntersect as EventListener, {
+        passive: true,
+      })
+
+      // 指针游移只在真指针设备上生效
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+        this.resume()
+      }
+    }
+
+    disconnectedCallback() {
+      this.suspend()
+      this.hero?.removeEventListener(
+        'intersect',
+        this.onIntersect as EventListener
+      )
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.hero = null
+    }
+
+    onIntersect = (event: CustomEvent) => {
+      this.inView = !!event.detail?.isIntersecting
+      if (this.inView) this.resume()
+      else this.suspend()
+    }
+
+    resume() {
+      if (this.unframe) return
+      this.unframe = onFrame(() => this.settle())
+    }
+
+    suspend() {
+      this.unframe?.()
+      this.unframe = null
+    }
+
+    /** 卷首退场进度：0 = 尚未滚动，1 = 已完全滚过 */
+    measure() {
+      const hero = this.hero
+      if (!hero) return
+
+      const rect = hero.getBoundingClientRect()
+      const out = Math.min(Math.max(-rect.top / Math.max(1, rect.height), 0), 1)
+
+      hero.style.setProperty('--hero-out', out.toFixed(4))
+    }
+
+    aim(x: number, y: number) {
+      const hero = this.hero
+      if (!hero) return
+
+      const rect = hero.getBoundingClientRect()
+      if (rect.bottom < 0) return
+
+      this.aimX = Math.min(
+        Math.max((x - rect.left) / Math.max(1, rect.width) - 0.5, -0.5),
+        0.5
+      )
+      this.aimY = Math.min(
+        Math.max((y - rect.top) / Math.max(1, rect.height) - 0.5, -0.5),
+        0.5
+      )
+    }
+
+    /** 追赶指针：只在还有可见位移时写样式，静止后自动闲下来 */
+    settle() {
+      const hero = this.hero
+      if (!hero) return
+
+      this.curX += (this.aimX - this.curX) * EASE
+      this.curY += (this.aimY - this.curY) * EASE
+
+      hero.style.setProperty('--hero-px', this.curX.toFixed(4))
+      hero.style.setProperty('--hero-py', this.curY.toFixed(4))
+    }
+  }
+
+  if (!customElements.get('hero-drift')) {
+    customElements.define('hero-drift', HeroDrift)
+  }
+</script>

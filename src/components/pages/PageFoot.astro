@@ -1,6 +1,13 @@
 ---
+/**
+ * PageFoot — 内页卷末的「继续逛」导航
+ *
+ * 顺带把首页那套动效增强包（光标拖尾 / 磁吸 / 册页倾斜）带进内页，
+ * 让全站手感一致；导航格自身在入屏时逐格落墨。
+ */
 import InkRail from '../InkRail.astro'
 import SealMark from '../SealMark.astro'
+import MotionPack from '../MotionPack.astro'
 
 interface Props {
   /** href of the current section, marks the matching eco link */
@@ -26,14 +33,16 @@ const links = [
 
 <InkRail style="secondary" />
 
-<nav class="p-eco" aria-label="站点导航">
+<nav class="p-eco" aria-label="站点导航" data-intersect>
   <p class="p-eco__label">继续逛</p>
   <div class="p-eco__grid">
     {
-      links.map((link) => (
+      links.map((link, index) => (
         <a
           class:list={['p-eco__link', { 'is-current': link.href === current }]}
           href={link.href}
+          data-seal
+          style={`--eco-i:${index}`}
         >
           {link.href === current && <SealMark variant="dot" />}
           {link.label}
@@ -42,3 +51,5 @@ const links = [
     }
   </div>
 </nav>
+
+<MotionPack />
