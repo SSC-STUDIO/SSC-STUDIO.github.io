@@ -117,11 +117,35 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         apply(document.documentElement)
 
+        function unlockPreparing(root, doc) {
+          if (!root) return
+          root.classList.remove('is-scroll-blocked', 'is-intro-active')
+          root.classList.add('is-site-ready')
+          var wrap = (doc || document).querySelector('.js-site-wrapper')
+          if (wrap) {
+            wrap.classList.remove('is-preparing')
+            wrap.style.opacity = '1'
+          }
+        }
+
+        // 看过开场或回访：尽早摘锁，避免刷新时闪一帧全屏层
+        try {
+          if (sessionStorage.getItem('site-intro-seen') === '1') {
+            unlockPreparing(document.documentElement, document)
+            document.addEventListener('DOMContentLoaded', function () {
+              unlockPreparing(document.documentElement, document)
+            })
+          }
+        } catch (e) {}
+
         document.addEventListener('astro:before-swap', function (event) {
-          var next = event.newDocument.documentElement
+          var nextDoc = event.newDocument
+          var next = nextDoc.documentElement
           apply(next)
           // SPA 回首页不要带回 SSR 的开场锁；intro 只在首次硬加载播
           next.classList.remove('is-scroll-blocked', 'is-intro-active')
+          var nextWrap = nextDoc.querySelector('.js-site-wrapper')
+          if (nextWrap) nextWrap.classList.remove('is-preparing')
           // 换页先摘显影门，等新页 initInkReveal 再挂，避免旧门挡住新页兜底
           next.classList.remove('is-ink-ready')
         })
@@ -148,6 +172,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         html.is-scroll-blocked,
         html.is-intro-active {
           overflow: auto;
+        }
+        .ink-intro,
+        .js-intro {
+          display: none !important;
         }
         .site-wrapper.is-preparing {
           opacity: 1 !important;
@@ -219,6 +247,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       playInkIntro,
       revealSiteNow,
       hasSeenIntro,
+      consumeHardLoad,
     } from '../motion/ink-intro'
 
     import Lenis from 'lenis'
@@ -328,7 +357,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         ).matches
         const introSeen = hasSeenIntro()
         const hasIntro = !!document.querySelector('.js-intro')
-        const playIntro = !reducedMotion && !introSeen && hasIntro
+        // 必须先消耗硬载资格，避免从内页 SPA 回首页时误播全屏森字
+        const isHardLoad = consumeHardLoad()
+        const playIntro =
+          !reducedMotion && !introSeen && hasIntro && isHardLoad
 
         // SPA 换页时 <html> 的属性不会被替换，按页维护
         document.documentElement.classList.toggle(

@@ -2,10 +2,11 @@
 /**
  * SiteInkIntro — 研墨开卷（首页入场层）
  *
- * 三幕布景：墨滴洇开、「润森」印钤下与竖排落款、卷帘上收。
- * 编排逻辑在 src/motion/ink-intro.ts，由壳层在首次硬加载时调用；
+ * 纸面落墨、森字「木→林→森」错峰长出、落款钤印、卷帘上收。
+ * 编排在 src/motion/ink-intro.ts，只在首次硬加载播放；
  * 看过一次（sessionStorage）或减少动态时整层直接撤走。
  */
+import SenMark from './SenMark.astro'
 import SealMark from './SealMark.astro'
 ---
 
@@ -13,8 +14,24 @@ import SealMark from './SealMark.astro'
   <div class="ink-intro__sheet js-intro-sheet">
     <div class="ink-intro__blot js-intro-blot"></div>
 
+    <div class="ink-intro__bleed js-intro-bleed">
+      <i class="ink-intro__speck ink-intro__speck--mu"></i>
+      <i class="ink-intro__speck ink-intro__speck--lin"></i>
+      <i class="ink-intro__speck ink-intro__speck--sen"></i>
+    </div>
+
     <div class="ink-intro__mark js-intro-mark">
-      <SealMark size={72} variant="hero" />
+      <SenMark size={128} class="js-intro-sen" />
+    </div>
+
+    <p class="ink-intro__stage js-intro-stage">
+      <span data-glyph="mu">木</span>
+      <span data-glyph="lin">林</span>
+      <span data-glyph="sen">森</span>
+    </p>
+
+    <div class="ink-intro__seal js-intro-seal">
+      <SealMark size={44} variant="hero" />
     </div>
 
     <p class="ink-intro__name js-intro-name">陈润森</p>
@@ -27,7 +44,20 @@ import SealMark from './SealMark.astro'
   .ink-intro {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 80;
+
+    /* 未开场或 SPA 换回首页时不挡内容；html.is-intro-active 才露出 */
+    visibility: hidden;
+    pointer-events: none;
+
+    :global(html.is-intro-active) & {
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      display: none !important;
+    }
 
     /* 卷帘（sheet）与轴杆（rod）分离：clip-path 只裁纸面，杆不受裁切 */
 
@@ -35,17 +65,18 @@ import SealMark from './SealMark.astro'
       position: absolute;
       inset: 0;
 
+      /* 开卷永远是白日宣纸，不跟翻色；卷起后才露出主题页 */
       background:
         radial-gradient(
           90% 70% at 50% 115%,
-          color-mix(in srgb, #{color(accent)} 12%, transparent) 0%,
+          rgba(194, 58, 43, 0.1) 0%,
           transparent 62%
         ),
         linear-gradient(
           180deg,
-          color(primary) 0%,
-          color(primary) 72%,
-          color-mix(in srgb, #{color(secondary)} 6%, transparent) 100%
+          #f4ead8 0%,
+          #f4ead8 72%,
+          rgba(28, 42, 34, 0.06) 100%
         );
 
       will-change: clip-path;
@@ -53,7 +84,7 @@ import SealMark from './SealMark.astro'
 
     /* 墨团：径向渐变淡出边缘 + 不规则圆角，像一滴墨洇开 */
     &__blot {
-      --blot-size: min(44vmin, 320px);
+      --blot-size: min(48vmin, 360px);
 
       position: absolute;
       top: 50%;
@@ -64,21 +95,19 @@ import SealMark from './SealMark.astro'
 
       background: radial-gradient(
         closest-side,
-        color-mix(in srgb, #{color(secondary)} 48%, transparent) 0%,
-        color-mix(in srgb, #{color(secondary)} 28%, transparent) 42%,
-        color-mix(in srgb, #{color(indigo)} 18%, transparent) 68%,
+        rgba(28, 42, 34, 0.42) 0%,
+        rgba(28, 42, 34, 0.24) 42%,
+        rgba(61, 90, 102, 0.16) 68%,
         transparent 100%
       );
       border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%;
       mix-blend-mode: multiply;
 
-      /* 居中用 translate 属性，transform 留给 WAAPI 的缩放 */
       translate: -50% -50%;
       opacity: 0;
 
       will-change: transform, opacity;
 
-      /* 一小滴溅出的副墨点，破掉正圆的呆气 */
       &::after {
         position: absolute;
         top: 8%;
@@ -89,7 +118,7 @@ import SealMark from './SealMark.astro'
 
         background: radial-gradient(
           closest-side,
-          color-mix(in srgb, #{color(secondary)} 78%, transparent) 0%,
+          rgba(28, 42, 34, 0.72) 0%,
           transparent 88%
         );
         border-radius: 62% 38% 54% 46% / 52% 60% 40% 48%;
@@ -98,40 +127,135 @@ import SealMark from './SealMark.astro'
       }
     }
 
-    &__mark {
+    /* 三木落点的副墨：跟着 木 / 林 / 森 错峰洇开 */
+    &__bleed {
       position: absolute;
       top: 50%;
       left: 50%;
 
-      translate: -50% -50%;
+      width: min(44vmin, 320px);
+      height: min(44vmin, 320px);
+
+      pointer-events: none;
+      translate: -50% -52%;
+    }
+
+    &__speck {
+      position: absolute;
+
+      border-radius: 62% 38% 54% 46% / 48% 58% 42% 52%;
+      background: radial-gradient(
+        closest-side,
+        rgba(28, 42, 34, 0.4) 0%,
+        transparent 78%
+      );
+      mix-blend-mode: multiply;
       opacity: 0;
 
       will-change: transform, opacity;
+
+      &--mu {
+        top: 8%;
+        left: 38%;
+        width: 28%;
+        height: 24%;
+      }
+
+      &--lin {
+        top: 52%;
+        left: 8%;
+        width: 26%;
+        height: 28%;
+        border-radius: 48% 52% 40% 60% / 56% 38% 62% 44%;
+      }
+
+      &--sen {
+        top: 50%;
+        right: 6%;
+        width: 26%;
+        height: 28%;
+        border-radius: 40% 60% 55% 45% / 50% 42% 58% 48%;
+      }
     }
 
-    /* 竖排落款，如画上题名 */
-    &__name {
+    &__mark {
       position: absolute;
-      top: calc(50% + 3.4rem);
-      left: calc(50% + 3.1rem);
+      top: 48%;
+      left: 50%;
 
+      color: #1c2a22;
+
+      translate: -50% -54%;
+      opacity: 0;
+
+      will-change: opacity;
+    }
+
+    /* 木 / 林 / 森 叙事字，随三木错峰亮起 */
+    &__stage {
+      position: absolute;
+      top: calc(50% + 4.6rem);
+      left: 50%;
+
+      display: flex;
+      gap: 0.85em;
       margin: 0;
 
-      color: color(primary);
-      font: 400 0.8rem / 1 font-family(editorial);
-      letter-spacing: 0.42em;
-      writing-mode: vertical-rl;
+      color: rgba(28, 42, 34, 0.62);
+      font: 400 0.92rem / 1 font-family(editorial);
+      letter-spacing: 0.28em;
 
-      /* 衬在墨团上，取纸色反白 */
+      translate: -50% 0;
+      pointer-events: none;
+
+      @include mq(phone) {
+        top: calc(50% + 3.6rem);
+        font-size: 0.78rem;
+      }
+
+      span {
+        opacity: 0;
+      }
+    }
+
+    /* 小印：森成之后钤在右下，不抢森标 */
+    &__seal {
+      position: absolute;
+      top: calc(50% + 1.1rem);
+      left: calc(50% + 4.6rem);
+
       opacity: 0;
 
       will-change: transform, opacity;
 
       @include mq(phone) {
-        top: calc(50% + 2.6rem);
-        left: calc(50% + 2.4rem);
+        top: calc(50% + 0.6rem);
+        left: calc(50% + 3.4rem);
+      }
+    }
 
-        font-size: 0.72rem;
+    /* 竖排落款，如画上题名 */
+    &__name {
+      position: absolute;
+      top: calc(50% + 3.8rem);
+      left: calc(50% + 5.4rem);
+
+      margin: 0;
+
+      color: #1c2a22;
+      font: 400 0.76rem / 1 font-family(editorial);
+      letter-spacing: 0.42em;
+      writing-mode: vertical-rl;
+
+      opacity: 0;
+
+      will-change: transform, opacity;
+
+      @include mq(phone) {
+        top: calc(50% + 2.8rem);
+        left: calc(50% + 4.1rem);
+
+        font-size: 0.68rem;
       }
     }
 

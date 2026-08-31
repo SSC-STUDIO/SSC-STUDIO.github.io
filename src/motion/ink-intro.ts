@@ -1,19 +1,27 @@
 /**
  * 研墨开卷 —— 首页入场编排
  *
- * 三幕：墨滴落纸洇开 → 「润森」印钤下并落款 → 卷帘收起放出正文。
+ * 四幕：墨滴落纸 → 森字「木→林→森」错峰长出 → 落款钤印 → 卷帘收起。
  * 全程 Web Animations API，任何一步异常都立刻放行页面，
  * 绝不让访客被卡在开场后面。
+ *
+ * 只在本次浏览的首次硬加载播放；站内 SPA 换页不再全屏开场。
  */
 
 import { prefersReducedMotion } from './core'
 
 const INTRO_SEEN_KEY = 'site-intro-seen'
 
-/** 缓动曲线：落墨（快出缓收）/ 钤印（带一点回弹）/ 收卷（两头缓） */
+/** 缓动：落墨（快出缓收）/ 钤印（微回弹）/ 收卷（两头缓）/ 长出（笔锋落纸） */
 const EASE_BLOT = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const EASE_STAMP = 'cubic-bezier(0.34, 1.4, 0.64, 1)'
 const EASE_ROLL = 'cubic-bezier(0.65, 0, 0.35, 1)'
+const EASE_GROW = 'cubic-bezier(0.4, 0.02, 0.2, 1)'
+
+/** 森标 CSS 生长总时长（末笔 880ms + 170ms），给气口 */
+const SEN_GROW_MS = 1120
+
+let hardLoadConsumed = false
 
 export function hasSeenIntro(): boolean {
   try {
@@ -23,12 +31,26 @@ export function hasSeenIntro(): boolean {
   }
 }
 
+/**
+ * 消耗「本次浏览的硬加载」资格。astro:page-load 首次为硬载，之后皆为 SPA。
+ * 必须无条件调用一次，避免短路上首页时误播全屏森字。
+ */
+export function consumeHardLoad(): boolean {
+  if (hardLoadConsumed) return false
+  hardLoadConsumed = true
+  return true
+}
+
 function rememberIntro(): void {
   try {
     sessionStorage.setItem(INTRO_SEEN_KEY, '1')
   } catch {
     /* 隐私模式下记不住就每次都播，无伤 */
   }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -89,34 +111,78 @@ export async function playInkIntro(): Promise<void> {
   try {
     const blot = sheet.querySelector<HTMLElement>('.js-intro-blot')
     const mark = sheet.querySelector<HTMLElement>('.js-intro-mark')
+    const sen = sheet.querySelector<HTMLElement>('.js-intro-sen')
     const name = sheet.querySelector<HTMLElement>('.js-intro-name')
+    const seal = sheet.querySelector<HTMLElement>('.js-intro-seal')
+    const stages = sheet.querySelectorAll<HTMLElement>('.js-intro-stage [data-glyph]')
+    const specks = sheet.querySelectorAll<HTMLElement>('.js-intro-bleed .ink-intro__speck')
 
     /* 第一幕：墨滴落纸，洇成一团 */
-    const acts: Promise<unknown>[] = []
-
-    acts.push(
+    const acts: Promise<unknown>[] = [
       play(
         blot,
         [
-          { opacity: 0, transform: 'scale(0.18) rotate(-10deg)' },
-          { opacity: 0.92, transform: 'scale(1) rotate(0deg)' },
+          { opacity: 0, transform: 'scale(0.18) rotate(-8deg)' },
+          { opacity: 0.9, transform: 'scale(1) rotate(0deg)' },
         ],
-        { duration: 420, easing: EASE_BLOT, fill: 'forwards' }
-      )
-    )
+        { duration: 400, easing: EASE_BLOT, fill: 'forwards' }
+      ),
+    ]
 
-    /* 第二幕：印章钤下（略大按小，微微回正），落款竖排浮现 */
+    /* 第二幕：森标淡入（不缩放整字），三木按 CSS 笔顺错峰长出 */
     acts.push(
       play(
         mark,
         [
-          { opacity: 0, transform: 'scale(1.32) rotate(4deg)' },
-          { opacity: 1, transform: 'scale(1) rotate(-1.2deg)' },
+          { opacity: 0 },
+          { opacity: 1 },
         ],
-        { duration: 360, delay: 160, easing: EASE_STAMP, fill: 'forwards' }
+        { duration: 200, delay: 70, easing: EASE_GROW, fill: 'forwards' }
       )
     )
 
+    sen?.classList.add('sen-mark--grow')
+
+    /* 木 → 林 → 森：题字与墨点跟着三木错峰洇开 */
+    const stageAt = [280, 680, 980]
+    stages.forEach((el, i) => {
+      acts.push(
+        play(
+          el,
+          [
+            { opacity: 0, transform: 'translateY(0.35em)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          {
+            duration: 280,
+            delay: stageAt[i] ?? 280,
+            easing: EASE_BLOT,
+            fill: 'forwards',
+          }
+        )
+      )
+    })
+
+    specks.forEach((el, i) => {
+      acts.push(
+        play(
+          el,
+          [
+            { opacity: 0, transform: 'scale(0.2)' },
+            { opacity: 0.72, transform: 'scale(1)' },
+            { opacity: 0.38, transform: 'scale(1.12)' },
+          ],
+          {
+            duration: 520,
+            delay: stageAt[i] ?? 280,
+            easing: EASE_BLOT,
+            fill: 'forwards',
+          }
+        )
+      )
+    })
+
+    /* 第三幕：落款竖排，小印钤在森成之后 */
     acts.push(
       play(
         name,
@@ -124,17 +190,29 @@ export async function playInkIntro(): Promise<void> {
           { opacity: 0, transform: 'translateY(0.4rem)' },
           { opacity: 1, transform: 'translateY(0)' },
         ],
-        { duration: 320, delay: 300, easing: EASE_BLOT, fill: 'forwards' }
+        { duration: 300, delay: 1000, easing: EASE_BLOT, fill: 'forwards' }
       )
     )
 
+    acts.push(
+      play(
+        seal,
+        [
+          { opacity: 0, transform: 'scale(1.18) rotate(6deg)' },
+          { opacity: 1, transform: 'scale(1) rotate(-1.4deg)' },
+        ],
+        { duration: 300, delay: 1080, easing: EASE_STAMP, fill: 'forwards' }
+      )
+    )
+
+    acts.push(wait(SEN_GROW_MS))
+
     await Promise.all(acts)
 
-    /* 幕间气口 */
-    await new Promise((resolve) => setTimeout(resolve, 180))
+    /* 森成、钤印之后留半息，再收卷，避免刚看清就被卷走 */
+    await wait(220)
 
-    /* 第三幕：卷帘上收。纸面自下而上卷走，轴杆随卷边上行；
-       正文在纸后同步显影 */
+    /* 第四幕：卷帘上收。纸面自下而上卷走，轴杆随卷边上行 */
     document.documentElement.classList.add('is-site-ready')
 
     const wrapper = document.querySelector<HTMLElement>('.js-site-wrapper')
@@ -151,8 +229,8 @@ export async function playInkIntro(): Promise<void> {
 
     fadeTargets.forEach((el) => {
       play(el, [{ opacity: 0 }, { opacity: 1 }], {
-        duration: 520,
-        delay: 140,
+        duration: 480,
+        delay: 120,
         easing: 'ease-out',
         fill: 'forwards',
       }).then(() => {
@@ -160,7 +238,7 @@ export async function playInkIntro(): Promise<void> {
       })
     })
 
-    const ROLL_MS = 520
+    const ROLL_MS = 480
 
     await Promise.all([
       play(
