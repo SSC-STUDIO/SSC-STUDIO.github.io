@@ -49,6 +49,13 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return
 
+        // 比首屏还高的区块永远凑不满比例阈值（一屏只占它的几分之一），
+        // 死守 threshold 会让它一辈子显影不了、内容永久隐身。
+        // 对这类元素改判「已经进屏」，比例交给下面的短元素分支。
+        const taller = entry.boundingClientRect.height > window.innerHeight
+
+        if (!taller && entry.intersectionRatio < threshold) return
+
         const el = entry.target as HTMLElement
 
         el.classList.add(INK_CLASS)
@@ -62,7 +69,8 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
         )
       })
     },
-    { threshold, rootMargin }
+    // 0 这一档专为超高区块而设：它们只可能在此处触发
+    { threshold: [0, threshold], rootMargin }
   )
 
   elements.forEach((el, index) => {

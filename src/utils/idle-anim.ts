@@ -22,6 +22,18 @@ const SKIP_TAGS = new Set(['HTML', 'BODY'])
 type Cleanup = () => void
 
 /**
+ * 元素是否落在尚未水合的孤岛里。
+ *
+ * 骨架屏由服务端一并渲染，动画此刻就已在跑；若抢在 React 水合前
+ * 往上写行内 animation-play-state，水合比对会判定服务端与客户端不一致
+ * 并在控制台报错。Astro 水合后会摘掉 <astro-island> 上的 ssr 标记，
+ * 所以这一轮先放过，交给 1 秒后的复扫。
+ */
+function isPendingIsland(el: HTMLElement): boolean {
+  return el.closest('astro-island[ssr]') !== null
+}
+
+/**
  * 收集页面上所有无限循环动画的宿主元素
  */
 function collectInfiniteHosts(): Set<HTMLElement> {
@@ -79,6 +91,7 @@ export function watchIdleAnimations(
 
     for (const host of collectInfiniteHosts()) {
       if (observed.has(host)) continue
+      if (isPendingIsland(host)) continue
 
       observed.add(host)
       observer.observe(host)
