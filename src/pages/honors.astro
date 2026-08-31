@@ -4,6 +4,7 @@ import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import Timeline from '@/islands/Timeline'
+import HonorCoins from '@/components/HonorCoins.astro'
 
 const counters = [
   { label: '信息学', lines: ['CSP-J 贰等', 'NOC 一等奖'] },
@@ -104,6 +105,8 @@ const certs = [
   title="荣誉 · 陈润森"
   description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
 >
+  <HonorCoins />
+
   <PageHero
     kicker="growth"
     title="荣誉"

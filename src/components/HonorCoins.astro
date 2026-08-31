@@ -1,0 +1,202 @@
+---
+/**
+ * HonorCoins — 荣誉页抛彩头
+ *
+ * 入场时自题额炸开一簇，奖状与计数卡入视/指针扫过再弹一回。
+ * 笑脸为主角，混入铜钱 / 梅花 / 朱砂印 / 墨星，带重力与回弹。
+ */
+---
+
+<honor-coins aria-hidden="true">
+  <canvas class="js-canvas"></canvas>
+</honor-coins>
+
+<script>
+  import {
+    onFrame,
+    onResize,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+  import {
+    loadCharmImages,
+    spawnCharmBurst,
+    stepCharm,
+    drawCharm,
+    isContrastedTheme,
+    type CharmBody,
+    type CharmImages,
+  } from '../motion/charms'
+
+  class HonorCoins extends HTMLElement {
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+    coins: CharmBody[] = []
+    charmImages: CharmImages | null = null
+    width = 0
+    height = 0
+    reduced = false
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+    burstOnce = new WeakSet<Element>()
+
+    connectedCallback() {
+      this.canvas = this.querySelector('.js-canvas')
+      const ctx = this.canvas?.getContext('2d')
+      if (!this.canvas || !ctx) return
+
+      this.ctx = ctx
+      this.reduced = prefersReducedMotion()
+      if (this.reduced) return
+
+      this.charmImages = loadCharmImages()
+      this.resize()
+
+      const ro = new ResizeObserver(() => this.resize())
+      ro.observe(this)
+      this.stops.push(() => ro.disconnect())
+      this.stops.push(onResize(() => this.resize()))
+
+      this.bindTargets()
+
+      window.setTimeout(() => this.burstFromHero(), 420)
+    }
+
+    disconnectedCallback() {
+      this.suspend()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    resume() {
+      if (this.unframe) return
+      this.unframe = onFrame(() => this.paint())
+    }
+
+    suspend() {
+      this.unframe?.()
+      this.unframe = null
+    }
+
+    resize() {
+      const width = this.clientWidth || window.innerWidth
+      const height = this.clientHeight || window.innerHeight
+      if (!width || !height) return
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      this.canvas.width = Math.round(width * dpr)
+      this.canvas.height = Math.round(height * dpr)
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      this.width = width
+      this.height = height
+    }
+
+    bindTargets() {
+      const targets = document.querySelectorAll(
+        '.p-honor-counter, .p-honor-cert, .p-card, .tl__card, .p-hero__title'
+      )
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return
+            this.burstFrom(entry.target as HTMLElement, true)
+            observer.unobserve(entry.target)
+          })
+        },
+        { threshold: 0.28 }
+      )
+
+      targets.forEach((el) => {
+        observer.observe(el)
+        el.addEventListener(
+          'pointerenter',
+          () => this.burstFrom(el as HTMLElement, false),
+          { passive: true }
+        )
+      })
+
+      this.stops.push(() => observer.disconnect())
+    }
+
+    burstFromHero() {
+      const hero = document.querySelector('.p-hero__title') as HTMLElement | null
+      if (hero) this.burstFrom(hero, true)
+      else this.burstAt(this.width * 0.5, 140, 18, this.height * 0.42)
+    }
+
+    burstFrom(el: HTMLElement, once: boolean) {
+      if (once) {
+        if (this.burstOnce.has(el)) return
+        this.burstOnce.add(el)
+      }
+
+      const host = this.getBoundingClientRect()
+      const rect = el.getBoundingClientRect()
+      const x = rect.left + rect.width * 0.5 - host.left
+      const y = rect.top + rect.height * 0.28 - host.top
+      const floor = Math.min(
+        this.height - 24,
+        rect.bottom - host.top + 12
+      )
+      const count = once
+        ? window.innerWidth > 767
+          ? 14
+          : 8
+        : window.innerWidth > 767
+          ? 9
+          : 5
+
+      this.burstAt(x, y, count, floor)
+    }
+
+    burstAt(x: number, y: number, count: number, floor: number) {
+      this.coins.push(...spawnCharmBurst(x, y, count, floor))
+      this.resume()
+    }
+
+    paint() {
+      const { ctx, width, height, coins, charmImages } = this
+      if (!width || !height || !charmImages) return
+
+      for (let i = coins.length - 1; i >= 0; i--) {
+        if (!stepCharm(coins[i])) coins.splice(i, 1)
+      }
+
+      ctx.clearRect(0, 0, width, height)
+
+      if (!coins.length) {
+        this.suspend()
+        return
+      }
+
+      const contrasted = isContrastedTheme()
+      coins.forEach((coin) => {
+        drawCharm(ctx, coin, charmImages, contrasted)
+      })
+    }
+  }
+
+  if (!customElements.get('honor-coins')) {
+    customElements.define('honor-coins', HonorCoins)
+  }
+</script>
+
+<style lang="scss">
+  honor-coins {
+    position: fixed;
+    inset: 0;
+    z-index: 12;
+
+    display: block;
+
+    overflow: hidden;
+    pointer-events: none;
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+</style>

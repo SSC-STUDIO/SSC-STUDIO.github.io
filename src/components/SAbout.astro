@@ -109,6 +109,11 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           </li>
 
       </ul><!-- .s__content -->
+
+      <a class="s__awards-more" href="/honors">
+        <span class="s__awards-more__label">奖状原件与完整记录</span>
+        <span class="s__awards-more__arrow" aria-hidden="true">荣誉页 →</span>
+      </a>
     </div><!-- .s__block -->
   </div><!-- .s__inner -->
 
@@ -125,9 +130,18 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     onFrame,
     onResize,
     onScroll,
+    prefersReducedMotion,
     type Cleanup,
   } from '../motion/core'
-  import { chopAccentColor, drawSenChop } from '../motion/sen-chop'
+  import {
+    loadCharmImages,
+    spawnCharmBurst,
+    stepCharm,
+    drawCharm,
+    isContrastedTheme,
+    type CharmBody,
+    type CharmImages,
+  } from '../motion/charms'
 
   class Section {
     el: HTMLElement
@@ -156,7 +170,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     lines: any[]
-    smileys: any[]
+    charms: CharmBody[]
+    charmImages: CharmImages
+    reduced: boolean
 
     isPaused: boolean
     isForced: boolean
@@ -184,7 +200,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       // Properties
       this.lines = []
-      this.smileys = []
+      this.charms = []
+      this.charmImages = loadCharmImages()
+      this.reduced = prefersReducedMotion()
 
       this.isPaused = true
       this.isForced = false
@@ -199,6 +217,8 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     init() {
       this.setSize()
       this.setScroll()
+      this.setLines()
+      this.drawLines()
 
       this.bindEvents()
 
@@ -214,6 +234,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
           if (bounding.top < window.innerHeight && bounding.bottom > 0) {
             award.classList.add('is-revealed')
+            this.throwCharms(award, true)
           }
         })
       })
@@ -237,8 +258,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              entry.target.classList.add('is-revealed')
-              observer.unobserve(entry.target)
+              const award = entry.target as HTMLElement
+              award.classList.add('is-revealed')
+              this.throwCharms(award, true)
+              observer.unobserve(award)
             }
           })
         },
@@ -323,7 +346,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     onAwardInteraction(award) {
       award.classList.add('is-active')
 
-      this.throwSmileys(award)
+      this.throwCharms(award, false)
 
       setTimeout(() => {
         award.classList.remove('is-active')
@@ -331,23 +354,26 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     /**
-     * Throw 森印
+     * 抛彩头：笑脸为主，混入铜钱 / 梅花 / 朱砂印 / 墨星
      */
-    throwSmileys(award) {
-      const { el, smileys } = this
+    throwCharms(award: HTMLElement, once = false) {
+      const { el, charms, bounding } = this
+      if (!this.ctx || this.reduced) return
+      if (once) {
+        if (award.dataset.charmBurst === '1') return
+        award.dataset.charmBurst = '1'
+      }
 
       const elBounding = el.getBoundingClientRect()
       const awardBounding = award.getBoundingClientRect()
 
       const x = awardBounding.left + awardBounding.width * 0.5 - elBounding.left
-      const y = awardBounding.top + awardBounding.height * 0.5 - elBounding.top
+      const y = awardBounding.top + awardBounding.height * 0.35 - elBounding.top
+      const floor = awardBounding.bottom - elBounding.top + 8
+      const count = window.safeWidth > 767 ? 10 : 6
 
-      const maxSmileys = window.safeWidth > 767 ? 10 : 5
-      for (let i = 0; i < maxSmileys; i++) {
-        const smiley = new SenChip(ctx, x, y)
-
-        smileys.push(smiley)
-      }
+      charms.push(...spawnCharmBurst(x, y, count, floor || bounding.height * 0.7))
+      this.startFrame()
     }
     /**
      * Set size
@@ -583,30 +609,28 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     /**
-     * Move 森印
+     * Move 彩头
      */
-    moveSmileys() {
-      const { bounding, smileys } = this
+    moveCharms() {
+      const { charms } = this
 
-      smileys.forEach((smiley) => {
-        smiley.move()
-
-        if (smiley.y > bounding.height) {
-          smileys.splice(smileys.indexOf(smiley), 1)
-        }
-      })
+      for (let i = charms.length - 1; i >= 0; i--) {
+        if (!stepCharm(charms[i])) charms.splice(i, 1)
+      }
     }
 
     /**
      * Draw canvas
      */
     drawCanvas() {
-      const { bounding, ctx, smileys } = this
+      const { bounding, ctx, charms, charmImages } = this
+      if (!ctx) return
 
       ctx.clearRect(0, 0, bounding.width, bounding.height)
 
-      smileys.forEach((smiley) => {
-        smiley.draw()
+      const contrasted = isContrastedTheme()
+      charms.forEach((charm) => {
+        drawCharm(ctx, charm, charmImages, contrasted)
       })
     }
 
@@ -631,59 +655,13 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         this.drawLines()
       }
 
-      // Smileys
-      if (this.smileys.length) {
-        this.moveSmileys()
+      // 彩头
+      if (this.charms.length) {
+        this.moveCharms()
         this.drawCanvas()
       }
 
       this.isForced = false
-    }
-  }
-
-  class SenChip {
-    ctx: CanvasRenderingContext2D
-
-    width: number
-    x: number
-    y: number
-    r: number
-    a: number
-    va: number
-    vx: number
-    vy: number
-    vr: number
-
-    constructor(ctx: CanvasRenderingContext2D, x: number, y: number) {
-      this.ctx = ctx
-      this.width = 28 + Math.random() * 22
-      this.x = x
-      this.y = y
-      this.r = Math.random() * 40 - 20
-      this.a = 0.45 + Math.random() * 0.55
-      this.vx = (Math.random() * 2 - 1) * 5
-      this.vy = Math.random() * -10 - 5
-      this.vr = (Math.random() * 2 - 1) * 10
-      this.va = Math.random() * 0.01
-    }
-
-    move() {
-      this.vy += 0.45
-      this.x += this.vx
-      this.y += this.vy
-      this.r += this.vr
-      this.a += this.va
-    }
-
-    draw() {
-      drawSenChop(this.ctx, {
-        fill: chopAccentColor(),
-        size: this.width * this.a,
-        x: this.x,
-        y: this.y,
-        rotation: this.r,
-        alpha: Math.min(1, this.a),
-      })
     }
   }
 
@@ -1239,6 +1217,30 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           }
         }
 
+        transition: background 0.35s ease(out-cubic);
+
+        /* hover：边线染朱砂、底色微暖、字面轻抬——给「会弹彩头」一个前置暗示 */
+        &:not(.s__award--blank):hover {
+          &:before {
+            box-shadow: inset 0 0 0 1.5px
+              color-mix(in srgb, #{color(accent)} 55%, transparent);
+          }
+
+          background: color-mix(
+            in srgb,
+            #{color(accent-muted)} 42%,
+            var(--color-primary)
+          );
+
+          .s__award__inner {
+            translate: 0 -3px;
+
+            transition:
+              translate 0.3s ease(out-cubic),
+              scale 1.5s ease(in-out-quint);
+          }
+        }
+
         &.is-active {
           .s__award__inner {
             scale: 0.9;
@@ -1259,6 +1261,43 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
               transform: translate3d(50%, 0, 0);
             }
           }
+        }
+      }
+    }
+
+    /* 尾条：通往荣誉页的完整档案 */
+    .s__awards-more {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.8rem 1rem;
+
+      border-top: 1px solid
+        color-mix(in srgb, #{color(secondary)} 40%, transparent);
+
+      background: color(primary);
+
+      color: color(secondary);
+      font: 700 12px / 1 font-family(fraktion);
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      text-transform: none;
+
+      transition: background 0.3s ease(out-cubic);
+
+      .s__awards-more__arrow {
+        color: color(accent);
+
+        transition: translate 0.3s ease(out-cubic);
+      }
+
+      &:hover,
+      &:focus-visible {
+        background: color(accent-muted);
+
+        .s__awards-more__arrow {
+          translate: 0.25rem 0;
         }
       }
     }

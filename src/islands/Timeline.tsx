@@ -24,6 +24,45 @@ const STEP_PHOTOS = [
   "/legacy-assets/step/step_3.jpg",
 ];
 
+/** 本地节点：API 未通时仍能画出河流与入场 */
+const FALLBACK_ITEMS: Milestone[] = [
+  {
+    id: "HON-01",
+    title: "CSP-J 入门级贰等",
+    description: "中国计算机学会",
+    date: "2024-10",
+    image: "/legacy-assets/step/step_0.jpg",
+  },
+  {
+    id: "HON-02",
+    title: "人工智能算法设计二等奖",
+    description: "上海市中小学生人工智能算法设计活动 · Python 初中组",
+    date: "2024-11",
+    image: "/legacy-assets/step/step_1.jpg",
+  },
+  {
+    id: "HON-03",
+    title: "创客新星大赛三等奖",
+    description: "第十届上海创客新星大赛浦东区赛 · 趣味智造初中组",
+    date: "2024-12",
+    image: "/legacy-assets/step/step_2.jpg",
+  },
+  {
+    id: "HON-04",
+    title: "希望颂书画艺术大展一等奖",
+    description: "中国国际书画艺术研究会 · 软笔书法初中组",
+    date: "2025-03",
+    image: "/legacy-assets/step/step_3.jpg",
+  },
+  {
+    id: "HON-05",
+    title: "车辆模型竞赛二等奖",
+    description: "驾驭未来全国青少年车辆模型教育竞赛 · 四驱车拼装竞速中学组",
+    date: "2024-08",
+    image: "/legacy-assets/step/step_1.jpg",
+  },
+];
+
 /** Wavy river inside a 40x100 viewBox, stretched to the body height. */
 const RIVER_PATH =
   "M20 0 C34 8 34 17 20 25 C6 33 6 42 20 50 C34 58 34 67 20 75 C6 83 6 92 20 100";
@@ -63,10 +102,17 @@ export default function Timeline() {
         const sorted = [...(data.items ?? [])].sort((a, b) =>
           (a.date ?? "").localeCompare(b.date ?? ""),
         );
+        if (sorted.length === 0) throw new Error("empty");
         setItems(sorted);
         setStatus("ready");
       } catch {
-        if (!cancelled) setStatus("error");
+        if (cancelled) return;
+        setItems(
+          [...FALLBACK_ITEMS].sort((a, b) =>
+            (a.date ?? "").localeCompare(b.date ?? ""),
+          ),
+        );
+        setStatus("ready");
       }
     }
 
