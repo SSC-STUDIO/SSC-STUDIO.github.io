@@ -26,10 +26,12 @@ export default function SubmitSection({
           disabled={state === "submitting" || state === "submitted"}
         >
           {state === "submitted"
-            ? "已提交"
+            ? "已提交 ✓"
             : state === "submitting"
               ? "提交中..."
-              : "提交到排行榜"}
+              : state === "error"
+                ? "重试提交"
+                : "提交到排行榜"}
         </button>
         <a href="/leaderboard" className="p-card__link p-card__link--ghost">
           查看排行榜
@@ -37,12 +39,12 @@ export default function SubmitSection({
       </div>
       {state === "auth_required" ? (
         <p className="benchmark-note">
-          提交成绩需要先 <a href="/account">登录账号</a>。
+          这个成绩不错 — <a href="/account">登录账号</a>后即可提交上榜。
         </p>
       ) : null}
       {state === "error" ? (
         <p className="benchmark-note benchmark-note--error">
-          提交失败，请稍后重试。
+          暂时没提交上去，可能是排行榜服务在维护 — 成绩还留在本页，稍后可点「重试提交」。
         </p>
       ) : null}
     </>

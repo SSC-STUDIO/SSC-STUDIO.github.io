@@ -54,8 +54,12 @@ function formatScore(score: number, unit: "ms" | "level"): string {
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState<string>(BENCHMARK_TABS[0].id);
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
-  const [scoreMap, setScoreMap] = useState<Record<string, ScoreItem[]>>({});
+  // null 表示该榜拉取失败 — 与「空榜」区分开，降级文案不能误导成没人玩过。
+  const [scoreMap, setScoreMap] = useState<Record<string, ScoreItem[] | null>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +80,7 @@ export default function Leaderboard() {
             return [tab.id, data.items ?? []] as const;
           } catch {
             // A failing table must not take the whole board down with it.
-            return [tab.id, []] as const;
+            return [tab.id, null] as const;
           }
         }),
       );
@@ -89,10 +93,11 @@ export default function Leaderboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const activeMeta =
     BENCHMARK_TABS.find((t) => t.id === activeTab) ?? BENCHMARK_TABS[0];
+  const unavailable = scoreMap[activeTab] === null;
   const scores = scoreMap[activeTab] ?? [];
   const visibleScores = scores.slice(0, displayCount);
   const hasMore = scores.length > displayCount;
@@ -125,13 +130,17 @@ export default function Leaderboard() {
             ? "⏱ 反应时间 — 越低越好"
             : `🏆 ${activeMeta.unit === "ms" ? "最低耗时" : "最高等级"} 排名`}
         </p>
-        <p>共 {scores.length} 条</p>
+        <p>{unavailable ? "连接失败" : `共 ${scores.length} 条`}</p>
       </div>
 
       <div className="lb-table" key={activeTab}>
         <div className="island-fade-in">
           {loading ? (
             <p className="lb-empty">载入中…</p>
+          ) : unavailable ? (
+            <p className="lb-empty">
+              排行榜暂时连接不上，可能是服务在维护 — 分数不会丢，稍后再来看看。
+            </p>
           ) : scores.length === 0 ? (
             <p className="lb-empty">暂无分数 — 虚位以待，去做一次挑战吧。</p>
           ) : (
@@ -161,7 +170,24 @@ export default function Leaderboard() {
             </>
           )}
         </div>
-        {!loading && scores.length === 0 ? (
+        {!loading && unavailable ? (
+          <div className="p-card__actions lb-empty-actions">
+            <button
+              type="button"
+              className="p-card__link"
+              onClick={() => setReloadKey((k) => k + 1)}
+            >
+              重新加载
+            </button>
+            <a
+              className="p-card__link p-card__link--ghost"
+              href={`/benchmarks/${activeMeta.id}`}
+            >
+              先去挑战
+            </a>
+          </div>
+        ) : null}
+        {!loading && !unavailable && scores.length === 0 ? (
           <div className="p-card__actions lb-empty-actions">
             <a className="p-card__link" href={`/benchmarks/${activeMeta.id}`}>
               去挑战
