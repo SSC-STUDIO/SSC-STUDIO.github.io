@@ -153,6 +153,7 @@ function CommentItem({
       data-lift
       style={{ "--gb-i": Math.min(index, FLOW_CAP) } as React.CSSProperties}
     >
+      <span className="p-guestbook__sheen" aria-hidden="true" />
       <div className="p-guestbook__meta">
         <span className="p-guestbook__author">{comment.authorName}</span>
         <time className="p-guestbook__time" dateTime={comment.createdAt}>
