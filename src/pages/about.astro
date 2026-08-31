@@ -4,6 +4,7 @@ import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
+import InkSeal3D from '@/components/InkSeal3D.astro'
 ---
 
 <BaseLayout
@@ -72,6 +73,10 @@ import PageAura from '@/components/pages/PageAura.astro'
         <p>创客、竞赛与校级节点 — 努力被看见的那些瞬间。</p>
       </PageCard>
     </div>
+
+    <aside class="p-about__colophon" aria-label="落款">
+      <InkSeal3D />
+    </aside>
   </main>
 
   <PageFoot current="/about" />
@@ -179,6 +184,28 @@ import PageAura from '@/components/pages/PageAura.astro'
 
   .p-about .p-chip:hover::before {
     color: color(accent);
+  }
+
+  /* 落款印玺：正文收束处右下钤一枚，略小于首页卷尾 */
+  .p-about__colophon {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 2.25rem;
+
+    .ink-seal3d {
+      --body-w: 3.6rem;
+      --body-h: 2.7rem;
+      --knob-w: 1.5rem;
+      --knob-h: 1.55rem;
+      --hover-gap: 2.6rem;
+
+      width: 8.6rem;
+    }
+
+    .ink-seal3d .scene {
+      height: 10.4rem;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
