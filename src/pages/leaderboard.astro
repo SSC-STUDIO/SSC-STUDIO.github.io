@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import Leaderboard from '@/islands/Leaderboard'
 ---
 
@@ -15,9 +16,293 @@ import Leaderboard from '@/islands/Leaderboard'
     summary="实验与游戏的分数排行 — 看看谁把反应和记忆推到了极限。"
   />
 
-  <main class="p-page p-page--wide">
+  <main
+    class="p-page p-page--wide p-board"
+    data-handscroll
+    data-handscroll-parallax="8"
+  >
+    <PageAura />
+    <span class="p-board__glyph" aria-hidden="true">榜</span>
     <Leaderboard client:load />
   </main>
 
   <PageFoot current="/leaderboard" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 排行榜：榜行落墨、前三金石印记、分数墨痕按比例展开 ──
+     榜身由 React 孤岛渲染，晚于壳层的动效初始化，
+     所以这里一律走纯 CSS（挂载即播）而不依赖 data-reveal / data-seal；
+     换榜时 .lb-table 带 key 重新挂载，动画自然重播。
+     [data-lift] 例外 —— 它本身就是纯 CSS，孤岛里直接加属性即生效。 */
+
+  .p-board {
+    /* 卷底题字：随滚动反向游移，替长榜垫出一层纵深 */
+    .p-board__glyph {
+      position: absolute;
+      top: 0.5rem;
+      right: clamp(1rem, 4vw, 2.5rem);
+      z-index: -1;
+
+      color: color(secondary);
+      font: 700 clamp(5rem, 16vw, 9rem) / 1 font-family(bigger);
+
+      opacity: 0.05;
+      pointer-events: none;
+      user-select: none;
+
+      transform: translate3d(0, calc(var(--scroll-shift, 0vh) * -1.4), 0);
+    }
+
+    /* ── 分类页签 ── */
+
+    .lb-tabs button {
+      animation: board-tab-drop 440ms ease(out-quint) backwards;
+      animation-delay: calc(var(--tab-i, 0) * 45ms);
+
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* 压脚一线朱砂：选中的一枚自左扫满 */
+      &::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+
+        height: 2px;
+
+        background: color(accent);
+
+        content: '';
+
+        transform: scaleX(0);
+        transform-origin: left center;
+        transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      &[data-active]::after {
+        transform: scaleX(1);
+      }
+
+      &:hover {
+        transform: translate3d(0, -2px, 0);
+      }
+
+      &:active {
+        transform: translate3d(0, 1px, 0);
+      }
+    }
+
+    @for $i from 1 through 8 {
+      .lb-tabs button:nth-child(#{$i}) {
+        --tab-i: #{$i - 1};
+      }
+    }
+
+    /* ── 榜行 ── */
+
+    .lb-row {
+      position: relative;
+
+      /* 逐条自左侧落墨。默认态即落定态，fill-mode 用 backwards，
+         落定后把 transform 交还给 [data-lift] 的轻提。 */
+      animation: board-row-ink 540ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--row-i, 0) * 52ms);
+    }
+
+    /* transform 与 [data-lift] 同一条缓动，全站手感统一 */
+    .lb-row {
+      transition:
+        transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 220ms ease,
+        box-shadow 260ms ease;
+    }
+
+    .lb-row:hover,
+    .lb-row:focus-within {
+      background-color: color-mix(in srgb, #{color(accent)} 8%, transparent);
+    }
+
+    .lb-row:hover .lb-score {
+      color: color(accent-strong);
+    }
+
+    .lb-score {
+      transition: color 220ms ease;
+    }
+
+    /* 前三行：纸面压深一层，如榜首三格另裱一纸 */
+    .lb-row--podium {
+      background-color: color-mix(in srgb, #{color(accent)} 5%, transparent);
+    }
+
+    /* ── 前三名的金石印记 ── */
+
+    .lb-rank--gold,
+    .lb-rank--silver,
+    .lb-rank--bronze {
+      /* 斜下一道高光 + 内嵌描边：印面的凿刻感 */
+      background-image: linear-gradient(
+        140deg,
+        color-mix(in srgb, #{color(white)} 26%, transparent),
+        transparent 58%
+      );
+      box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, #{color(secondary)} 28%, transparent),
+        0 1px 0 color-mix(in srgb, #{color(accent-strong)} 50%, transparent);
+
+      /* 落印：自纸面上方压下来，微微歪着收住 */
+      animation: board-seal-stamp 640ms cubic-bezier(0.2, 1.35, 0.32, 1)
+        backwards;
+      animation-delay: calc(260ms + var(--row-i, 0) * 90ms);
+    }
+
+    /* ── 分数墨痕 ── */
+
+    .lb-bar {
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 3rem;
+
+      height: 2px;
+
+      background: linear-gradient(
+        90deg,
+        color(accent-strong),
+        color-mix(in srgb, #{color(accent)} 14%, transparent)
+      );
+
+      pointer-events: none;
+
+      /* 静止态就是最终长度；动画只负责从 0 展开 */
+      transform: scaleX(var(--bar, 0));
+      transform-origin: left center;
+
+      animation: board-bar-grow 820ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(180ms + var(--row-i, 0) * 52ms);
+    }
+
+    /* ── 空态与按钮 ── */
+
+    /* 载入中：句末一点墨在呼吸。
+       次数有限而非 infinite —— 这一行是孤岛的 SSR 产物，
+       壳层的离屏暂停器只盯 infinite 动画，一旦盯上就往元素写
+       行内 animation-play-state，抢在 React 补水之前造成 mismatch。 */
+    .lb-empty--loading::after {
+      display: inline-block;
+
+      margin-left: 0.5rem;
+      width: 0.4rem;
+      height: 0.4rem;
+
+      border-radius: 50%;
+      background: color(accent);
+
+      content: '';
+      vertical-align: 0.1em;
+
+      animation: board-dot-breathe 1.5s ease(in-out-sine) 10;
+    }
+
+    .lb-more,
+    .lb-empty-actions .p-card__link {
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.2s ease;
+    }
+
+    .lb-more:hover,
+    .lb-empty-actions .p-card__link:hover {
+      transform: translate3d(0, -2px, 0);
+      box-shadow: 0 3px 0 color-mix(in srgb, #{color(accent)} 72%, transparent);
+    }
+
+    .lb-more:active,
+    .lb-empty-actions .p-card__link:active {
+      transform: translate3d(0, 1px, 0);
+      box-shadow: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lb-tabs button,
+      .lb-row,
+      .lb-rank--gold,
+      .lb-rank--silver,
+      .lb-rank--bronze,
+      .lb-bar,
+      .lb-empty--loading::after {
+        animation: none;
+      }
+
+      .p-board__glyph,
+      .lb-tabs button:hover,
+      .lb-tabs button:active,
+      .lb-more:hover,
+      .lb-more:active,
+      .lb-empty-actions .p-card__link:hover,
+      .lb-empty-actions .p-card__link:active {
+        transform: none;
+      }
+
+      .lb-tabs button,
+      .lb-tabs button::after,
+      .lb-row,
+      .lb-score,
+      .lb-more,
+      .lb-empty-actions .p-card__link {
+        transition: none;
+      }
+    }
+  }
+
+  @keyframes board-tab-drop {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -0.5rem, 0);
+    }
+  }
+
+  @keyframes board-row-ink {
+    from {
+      opacity: 0;
+      transform: translate3d(-0.7rem, 0, 0);
+    }
+  }
+
+  @keyframes board-seal-stamp {
+    from {
+      opacity: 0;
+      transform: scale(1.7) rotate(-9deg);
+    }
+
+    58% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes board-bar-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes board-dot-breathe {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: scale(0.7);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>

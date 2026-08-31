@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type ScoreItem = {
   id: string;
@@ -42,8 +42,26 @@ const RANK_CLASSES: Record<number, string> = {
   3: "lb-rank--bronze",
 };
 
+/** 落墨错峰的最大档位 — 长榜不该让末几行等上好几秒。 */
+const MAX_STAGGER_STEP = 11;
+
 function formatScore(score: number, unit: "ms" | "level"): string {
   return unit === "ms" ? `${score}ms` : `等级 ${score}`;
+}
+
+/**
+ * 分数墨痕的长度比：始终「越强越长」。
+ * 反应时间越低越强，故取「榜首 / 本条」；等级类反之。
+ * 留 6% 起底，垫底的一条也还看得见一笔。
+ */
+function barRatio(
+  score: number,
+  best: number,
+  lowerIsBetter: boolean,
+): number {
+  if (!best || !score) return 0;
+  const ratio = lowerIsBetter ? best / score : score / best;
+  return Math.max(0.06, Math.min(1, ratio));
 }
 
 /**
@@ -101,6 +119,12 @@ export default function Leaderboard() {
   const scores = scoreMap[activeTab] ?? [];
   const visibleScores = scores.slice(0, displayCount);
   const hasMore = scores.length > displayCount;
+  const lowerIsBetter = activeMeta.sort === "asc";
+  const topScore = scores.length
+    ? lowerIsBetter
+      ? Math.min(...scores.map((s) => s.score))
+      : Math.max(...scores.map((s) => s.score))
+    : 0;
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -136,7 +160,7 @@ export default function Leaderboard() {
       <div className="lb-table" key={activeTab}>
         <div className="island-fade-in">
           {loading ? (
-            <p className="lb-empty">载入中…</p>
+            <p className="lb-empty lb-empty--loading">载入中…</p>
           ) : unavailable ? (
             <p className="lb-empty">
               排行榜暂时连接不上，可能是服务在维护 — 分数不会丢，稍后再来看看。
@@ -146,7 +170,17 @@ export default function Leaderboard() {
           ) : (
             <>
               {visibleScores.map((score, index) => (
-                <div className="lb-row" key={score.id}>
+                <div
+                  className={`lb-row${index < 3 ? " lb-row--podium" : ""}`}
+                  key={score.id}
+                  data-lift
+                  style={
+                    {
+                      "--row-i": Math.min(index, MAX_STAGGER_STEP),
+                      "--bar": barRatio(score.score, topScore, lowerIsBetter),
+                    } as CSSProperties
+                  }
+                >
                   <span className={`lb-rank ${RANK_CLASSES[index + 1] ?? ""}`}>
                     #{index + 1}
                   </span>
@@ -154,6 +188,8 @@ export default function Leaderboard() {
                   <span className="lb-score">
                     {formatScore(score.score, activeMeta.unit)}
                   </span>
+                  {/* 分数墨痕：行底一道朱砂，长度即与榜首之比 */}
+                  <span className="lb-bar" aria-hidden="true" />
                 </div>
               ))}
               {hasMore ? (
