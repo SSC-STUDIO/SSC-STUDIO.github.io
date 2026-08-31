@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
 <BaseLayout
@@ -14,7 +15,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     summary="把灵感写慢，把问题写透 — LLM 网关、CV 实验与工程复盘的文字记录。"
   />
 
-  <main class="p-page">
+  <main class="p-page p-detail">
     <nav class="p-crumbs" data-reveal aria-label="所在位置">
       <a href="/">首页</a>
       <span class="p-crumbs__sep">/</span>
@@ -22,23 +23,25 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <span class="p-crumbs__sep">/</span>
       <span aria-current="page">Articles & Notes</span>
     </nav>
-    <div class="p-detail-meta" data-reveal>
+    <div class="p-detail-meta" data-flow data-intersect>
       <span class="p-detail-meta__badge">active</span>
       <span>2025 · 持续写作</span>
       <span>project 07 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal>
-      <img
-        class="p-detail-cover"
-        src="/images/work-covers/articles.svg"
-        alt="Articles & Notes"
-        width="1082"
-        height="636"
-        loading="lazy"
-      />
+    <figure class="p-detail-figure" data-reveal data-leaf>
+      <span class="p-detail-figure__plate">
+        <img
+          class="p-detail-cover"
+          src="/images/work-covers/articles.svg"
+          alt="Articles & Notes"
+          width="1082"
+          height="636"
+          loading="lazy"
+        />
+      </span>
       <figcaption>FIG.01 · Articles & Notes</figcaption>
     </figure>
-    <div class="p-prose" data-reveal>
+    <div class="p-prose" data-intersect>
       <h2>为什么写</h2>
       <p>
         文章是这个站的「慢部分」：把一次实验的弯路、一个架构选择的权衡、
@@ -55,160 +58,38 @@ import PageFoot from '@/components/pages/PageFoot.astro'
         >。
       </p>
     </div>
-    <div class="p-chips" data-reveal>
+    <div class="p-chips" data-flow data-intersect>
       <span class="p-card__tag">Markdown</span>
       <span class="p-card__tag">TypeScript</span>
     </div>
-    <div class="p-card__actions" data-reveal>
-      <a class="p-card__link" href="/articles"> 全部文章 </a>
-      <a class="p-card__link" href="/rss.xml"> RSS 订阅 </a>
+    <div class="p-card__actions" data-flow data-intersect>
+      <a class="p-card__link" href="/articles" data-seal> 全部文章 </a>
+      <a class="p-card__link" href="/rss.xml" data-seal> RSS 订阅 </a>
     </div>
-    <nav class="p-projnav" data-reveal aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/class-space">
+    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/class-space" data-seal>
         <span class="p-projnav__dir">← 上一个</span>
         <span class="p-projnav__name">Class Space</span>
       </a>
-      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+      <a
+        class="p-projnav__link p-projnav__link--index"
+        href="/projects"
+        data-seal
+      >
         全部项目
       </a>
-      <a class="p-projnav__link p-projnav__link--next" href="/projects/honors">
+      <a
+        class="p-projnav__link p-projnav__link--next"
+        href="/projects/honors"
+        data-seal
+      >
         <span class="p-projnav__dir">下一个 →</span>
         <span class="p-projnav__name">Honors & Growth</span>
       </a>
     </nav>
+
+    <ProjectDetailMotion />
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
-
-<style lang="scss" is:global>
-  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
-   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
-   */
-
-  .p-crumbs {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem;
-
-    margin: 0 0 1.35rem;
-
-    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
-    font: 700 10px / 1 font-family(fraktion);
-    letter-spacing: 0.16em;
-    text-transform: none;
-
-    a {
-      color: inherit;
-      text-decoration: none;
-      transition: color 0.2s ease;
-
-      &:hover,
-      &:focus-visible {
-        color: color(accent);
-      }
-    }
-
-    [aria-current='page'] {
-      color: color(secondary);
-    }
-
-    &__sep {
-      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
-    }
-  }
-
-  .p-projnav {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 0.75rem;
-
-    margin-top: 2.5rem;
-    padding-top: 1.5rem;
-
-    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
-
-    &__link {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-
-      padding: 0.9rem 1rem;
-
-      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
-
-      text-decoration: none;
-
-      transition:
-        transform 0.45s ease(out-quint),
-        border-color 0.2s ease;
-
-      &:hover,
-      &:focus-visible {
-        border-color: color(accent);
-        transform: translateY(-2px);
-      }
-
-      &:focus-visible {
-        outline: 2px solid color(accent);
-        outline-offset: 2px;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        &:hover,
-        &:focus-visible {
-          transform: none;
-        }
-      }
-    }
-
-    &__link--next {
-      text-align: right;
-      align-items: flex-end;
-    }
-
-    &__link--index {
-      align-self: center;
-
-      padding: 0.6rem 0.9rem;
-
-      border: 0;
-
-      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
-      font: 700 10px / 1 font-family(fraktion);
-      letter-spacing: 0.14em;
-
-      &:hover,
-      &:focus-visible {
-        color: color(accent);
-      }
-    }
-
-    &__dir {
-      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
-      font: 700 9px / 1 font-family(fraktion);
-      letter-spacing: 0.18em;
-      text-transform: none;
-    }
-
-    &__name {
-      color: color(secondary);
-      font: 400 0.95rem / 1.35 font-family(editorial);
-    }
-
-    @include mq(phone) {
-      grid-template-columns: 1fr;
-
-      &__link--next {
-        text-align: left;
-        align-items: flex-start;
-      }
-
-      &__link--index {
-        order: 3;
-        justify-self: center;
-      }
-    }
-  }
-</style>

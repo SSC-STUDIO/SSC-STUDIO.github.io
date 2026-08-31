@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import reposData from '@/data/github-repos.json'
 
 /** GitHub 数据由 `npm run sync:repos` 生成（构建期静态，不占用运行时配额） */
@@ -97,7 +98,9 @@ const projects = [
   />
 
   <main class="p-page p-page--wide">
-    <section class="p-projects" aria-label="作品集">
+    <PageAura />
+
+    <section class="p-projects" aria-label="作品集" data-intersect>
       <p class="p-projects__label">selected works · 八件作品</p>
       <div class="p-grid p-grid--stagger">
         {
@@ -108,7 +111,11 @@ const projects = [
               id={project.id}
               title={project.title}
             >
-              <span class="p-projects__figure">
+              <span
+                class="p-projects__figure"
+                data-handscroll
+                data-handscroll-parallax="2"
+              >
                 <img
                   class="p-detail-cover"
                   src={project.cover}
@@ -132,7 +139,7 @@ const projects = [
     </section>
 
     <section class="p-gh" data-reveal>
-      <div class="p-gh__head">
+      <div class="p-gh__head" data-flow data-intersect>
         <span class="p-gh__kicker">open source · 开源</span>
         <h2 class="p-gh__title">GitHub 仓库</h2>
         <p class="p-gh__summary">
@@ -149,8 +156,6 @@ const projects = [
         {
           repos.map((repo) => (
             <PageCard
-              href={repo.url}
-              external
               kicker={repo.archived ? 'archived · 已归档' : 'github'}
               id={`★ ${repo.stars}`}
               title={repo.title}
@@ -162,20 +167,32 @@ const projects = [
                 <span>更新于 {repo.pushedAt}</span>
                 {repo.license && <span>{repo.license}</span>}
               </p>
-              {repo.homepage && (
-                <a
-                  class="p-gh__home"
-                  href={repo.homepage}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  项目主页 ↗
-                </a>
-              )}
               <div class="p-card__tags">
                 {repo.tags.map((tag) => (
                   <span class="p-card__tag">{tag}</span>
                 ))}
+              </div>
+              {/* 去向做成显式的两枚牌：卡片本身不再是链接，
+                  内层 <a> 才不会被解析器抬出外层 <a> 而把卡片撕成两半 */}
+              <div class="p-card__actions">
+                <a
+                  class="p-card__link"
+                  href={repo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  仓库 ↗
+                </a>
+                {repo.homepage && (
+                  <a
+                    class="p-card__link p-card__link--ghost"
+                    href={repo.homepage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    项目主页 ↗
+                  </a>
+                )}
               </div>
             </PageCard>
           ))
@@ -188,12 +205,24 @@ const projects = [
 </BaseLayout>
 
 <style lang="scss" is:global>
-  /* ── 作品集网格:册页陈列,悬停时封面轻推、朱砂勾脚 ── */
+  /* ══════════════════════════════════════════════════════
+     作品集索引 —— 封面裱进窗框，随滚动在框内缓缓上移；
+     悬停时推近半步并沉入旧宣纸的色调。
+     ══════════════════════════════════════════════════════ */
+
+  /* 推近量注册成真正的数值属性：这样悬停能补间，
+     而承载滚动视差的 transform 不必挂 transition
+     （每帧都在改的属性一挂过渡就要逐帧重启动画）。 */
+  @property --cover-zoom {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 1;
+  }
 
   .p-projects {
     margin-bottom: 3.5rem;
 
-    /* 区块小引:细字压行,朱砂淡入收尾 */
+    /* 区块小引：细字压行，朱砂淡入收尾 */
     &__label {
       display: flex;
       align-items: center;
@@ -216,28 +245,39 @@ const projects = [
           color-mix(in srgb, #{color(accent)} 70%, transparent),
           transparent
         );
+
+        transform-origin: left center;
       }
     }
 
-    /* 封面裱进画框,hover 时如轻轻推近一步 */
+    /* 窗框：一格定比例的取景框，封面在框内游移。
+       overflow 裁住溢出的画心，::after 补一圈内影作纵深。 */
     &__figure {
+      position: relative;
       display: block;
       overflow: hidden;
 
       margin: 0 0 1rem;
+      aspect-ratio: 16 / 9;
 
       border: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
 
-      .p-detail-cover {
-        margin: 0;
-        border: 0;
+      transition: border-color 0.32s ease;
 
-        transform-origin: center;
-        transition: transform 0.6s ease(out-quint);
+      &::after {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+
+        box-shadow: inset 0 0 1.35rem
+          color-mix(in srgb, #{color(secondary)} 15%, transparent);
+
+        content: '';
+        pointer-events: none;
       }
     }
 
-    /* 去向提示:默认静默,悬停时箭头前行 */
+    /* 去向提示：默认静默，悬停时箭头前行 */
     &__go {
       display: inline-flex;
       align-items: center;
@@ -259,8 +299,8 @@ const projects = [
     .p-card {
       &:hover,
       &:focus-visible {
-        .p-detail-cover {
-          transform: scale(1.035);
+        .p-projects__figure {
+          border-color: color-mix(in srgb, #{color(accent)} 72%, transparent);
         }
 
         .p-projects__go {
@@ -277,7 +317,7 @@ const projects = [
         }
       }
 
-      /* 标题脚下一划朱丝,悬停时展满 */
+      /* 标题脚下一划朱丝，悬停时展满 */
       .p-card__title::after {
         content: '';
         display: block;
@@ -299,27 +339,162 @@ const projects = [
       @media (prefers-reduced-motion: reduce) {
         &:hover,
         &:focus-visible {
-          .p-detail-cover {
-            transform: none;
-          }
-
           .p-projects__go::after {
             transform: none;
           }
         }
       }
     }
+  }
 
-    /* 洇墨错落:八张卡片依次入场 */
-    @for $i from 1 through 8 {
-      .p-grid > :nth-child(#{$i}) {
-        --reveal-delay: #{($i - 1) * 55}ms;
+  /* 画心：比窗框高出一成，--scroll-shift 由 [data-handscroll] 每帧写入，
+     随滚动在框内上下游移，做出「透过窗看」的纵深。
+     取 8/5 而非窗框的 16/9：既留出游移的余量，
+     又只裁掉封面左右各三个百分点，边上的题字不至于被切。
+     （height 属性会把 SVG 压成 1.09 的怪比例，这里交还给取景比例。） */
+  .p-projects .p-projects__figure .p-detail-cover {
+    --cover-zoom: 1.05;
+
+    display: block;
+
+    width: 100%;
+    height: auto;
+    margin: 0;
+
+    border: 0;
+    aspect-ratio: 8 / 5;
+    object-fit: cover;
+
+    transform: translate3d(0, calc(-5% + var(--scroll-shift, 0vh)), 0)
+      scale(var(--cover-zoom));
+    transform-origin: center;
+
+    transition-property: --cover-zoom, filter;
+    transition-duration: 0.62s, 0.62s;
+    transition-timing-function: ease(out-quint), ease;
+  }
+
+  /* 悬停：推近半步，并沉入旧宣纸的色调（与首页 ScrollLeaf 同一手感） */
+  .p-projects .p-card:hover .p-detail-cover,
+  .p-projects .p-card:focus-visible .p-detail-cover {
+    --cover-zoom: 1.1;
+
+    filter: sepia(0.22) saturate(1.06) contrast(1.02);
+  }
+
+  /* 区块入屏后，小引右侧那道朱丝自左描出 */
+  html.js .p-projects .p-projects__label::after {
+    transform: scaleX(0);
+    transition: transform 0.86s ease(out-quint);
+  }
+
+  html.js .p-projects.is-in-view .p-projects__label::after {
+    transform: scaleX(1);
+  }
+
+  /* 洇墨错落：八张卡片按栅格顺序依次落墨。
+     [data-reveal] 的延迟由 ink-reveal 写成行内样式（每 6 个一轮），
+     要压过它才能读成「一行一行铺开」，故此处用 !important。 */
+  @for $i from 1 through 8 {
+    .p-projects .p-grid > :nth-child(#{$i}) {
+      --reveal-delay: #{($i - 1) * 62}ms !important;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     GitHub 陈列 —— 卷首三级错峰，仓库卡逐张落墨、悬停有回应
+     ══════════════════════════════════════════════════════ */
+
+  .p-gh {
+    padding-top: 0;
+
+    /* 题签 / 大字 / 引言三级依次落下 */
+    &__head {
+      --flow-step: 76ms;
+    }
+
+    /* 仓库全名与元信息：平时退到纸背，悬停时浮上来 */
+    &__name,
+    &__meta {
+      transition: color 0.24s ease;
+    }
+
+    .p-card:hover &__name {
+      color: color-mix(in srgb, #{color(secondary)} 78%, transparent);
+    }
+
+    .p-card:hover &__meta {
+      color: color-mix(in srgb, #{color(secondary)} 75%, transparent);
+    }
+
+    /* ★ 星数：悬停时轻轻一顿 */
+    .p-card__id {
+      transition: transform 0.3s cubic-bezier(0.2, 1.35, 0.32, 1);
+    }
+
+    .p-card:hover .p-card__id {
+      transform: translate3d(0, -1px, 0) scale(1.06);
+    }
+
+    /* 外链去向：标题右肩一记角标，悬停时朝外递一步 */
+    .p-card__title::after {
+      content: '↗';
+      display: inline-block;
+
+      margin-left: 0.3em;
+
+      color: color-mix(in srgb, #{color(secondary)} 38%, transparent);
+      font-family: font-family(fraktion);
+      font-size: 0.6em;
+      vertical-align: 0.34em;
+
+      transition:
+        transform 0.32s ease(out-quint),
+        color 0.24s ease;
+    }
+
+    .p-card:hover .p-card__title::after {
+      color: color(accent);
+      transform: translate3d(3px, -3px, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .p-card:hover .p-card__id,
+      .p-card:hover .p-card__title::after {
+        transform: none;
       }
     }
   }
 
-  /* GitHub 陈列与作品集之间留一段呼吸 */
-  .p-gh {
-    padding-top: 0;
+  /* 仓库卡按栅格顺序落墨，理由同上 */
+  @for $i from 1 through 12 {
+    .p-gh .p-grid > :nth-child(#{$i}) {
+      --reveal-delay: #{($i - 1) * 52}ms !important;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     减弱动效 —— 视差与推近一律落定
+     ══════════════════════════════════════════════════════ */
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-projects .p-projects__figure .p-detail-cover {
+      transform: translate3d(0, -5%, 0) scale(1.05);
+      transition: none;
+    }
+
+    .p-projects .p-card:hover .p-detail-cover,
+    .p-projects .p-card:focus-visible .p-detail-cover {
+      --cover-zoom: 1.05;
+    }
+
+    .p-projects .p-projects__figure {
+      transition: none;
+    }
+
+    html.js .p-projects .p-projects__label::after {
+      transform: scaleX(1);
+      transition: none;
+    }
   }
 </style>
