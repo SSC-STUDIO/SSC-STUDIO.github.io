@@ -209,6 +209,8 @@ import DateSeal from './DateSeal.astro'
       this.tl?.kill()
       this.tl = null
       this.el?.removeEventListener('intersect', this.onIntersect)
+      this.el?.style.removeProperty('--par-x')
+      this.el?.style.removeProperty('--par-y')
     }
 
     /**
@@ -255,13 +257,18 @@ import DateSeal from './DateSeal.astro'
     bindEvents() {
       this.stops.push(onResize(() => this.onResize()))
 
-      /* 背景装饰的指针视差：只在非 reduced-motion 下开启 */
-      if (!prefersReducedMotion()) {
+      /* 视差对齐内页卷首：只跟精细指针，静止后停帧 */
+      if (
+        !prefersReducedMotion() &&
+        window.matchMedia('(hover: hover) and (pointer: fine)').matches
+      ) {
         this.stops.push(
           onPointer(({ x, y }) => {
+            if (this.destroyed || this.isPaused) return
             this.par.x = (x / window.innerWidth) * 2 - 1
             this.par.y = (y / window.innerHeight) * 2 - 1
             this.par.active = true
+            this.startFrame()
           })
         )
       }
@@ -276,7 +283,6 @@ import DateSeal from './DateSeal.astro'
       this.el.addEventListener('click', this.onHeroClick)
       this.stops.push(() => this.el.removeEventListener('click', this.onHeroClick))
 
-      this.startFrame()
       this.startIdle()
     }
 
@@ -290,7 +296,6 @@ import DateSeal from './DateSeal.astro'
         this.stopFrame()
         this.stopIdle()
       } else {
-        this.startFrame()
         this.startIdle()
       }
     }
@@ -317,6 +322,26 @@ import DateSeal from './DateSeal.astro'
 
       if (t.closest('[data-date-seal]')) {
         if (!prefersReducedMotion()) this.pressDate()
+        return
+      }
+
+      if (t.closest('.s__moon')) {
+        if (!prefersReducedMotion()) this.stir('.s__moon', 900)
+        return
+      }
+
+      if (t.closest('.s__fish')) {
+        if (!prefersReducedMotion()) this.stir('.s__fish', 1100)
+        return
+      }
+
+      if (t.closest('.s__bamboo')) {
+        if (!prefersReducedMotion()) this.stir('.s__bamboo', 800)
+        return
+      }
+
+      if (t.closest('.s__titling')) {
+        if (!prefersReducedMotion()) this.stir('.s__titling', 640)
         return
       }
 
@@ -362,6 +387,21 @@ import DateSeal from './DateSeal.astro'
       this.charTimers.push(timer)
     }
 
+    /** 点月 / 鱼 / 竹 / 题签：加一记短促搅动，不改共享装饰默认态 */
+    stir(selector: string, ms: number) {
+      const el = this.el.querySelector(selector)
+      if (!el) return
+
+      el.classList.remove('is-stirred')
+      void (el as HTMLElement).offsetWidth
+      el.classList.add('is-stirred')
+
+      const timer = window.setTimeout(() => {
+        el.classList.remove('is-stirred')
+      }, ms)
+      this.charTimers.push(timer)
+    }
+
     /** 点日戳：如随手重钤一方 */
     pressDate() {
       const seal = this.el.querySelector('[data-date-seal]')
@@ -388,7 +428,7 @@ import DateSeal from './DateSeal.astro'
      * Intro
      */
     intro() {
-      if (this.introPlayed) return
+      if (this.destroyed || this.introPlayed) return
       this.introPlayed = true
 
       if (!this.split || this.split.chars.length === 0) {
@@ -600,13 +640,21 @@ import DateSeal from './DateSeal.astro'
      */
     tickParallax() {
       const { par } = this
-      if (!par.active) return
+      const dx = par.x - par.sx
+      const dy = par.y - par.sy
 
-      par.sx += (par.x - par.sx) * 0.06
-      par.sy += (par.y - par.sy) * 0.06
+      if (Math.abs(dx) < 0.0008 && Math.abs(dy) < 0.0008) {
+        par.sx = par.x
+        par.sy = par.y
+        par.active = false
+        return false
+      }
 
+      par.sx += dx * 0.06
+      par.sy += dy * 0.06
       this.el.style.setProperty('--par-x', par.sx.toFixed(4))
       this.el.style.setProperty('--par-y', par.sy.toFixed(4))
+      return true
     }
 
     /**
@@ -614,7 +662,7 @@ import DateSeal from './DateSeal.astro'
      */
     tick() {
       if (this.destroyed) return
-      this.tickParallax()
+      if (!this.tickParallax()) this.stopFrame()
     }
   }
 
@@ -713,7 +761,15 @@ import DateSeal from './DateSeal.astro'
       font: 600 0.82rem / 1.15 font-family(songti);
       letter-spacing: 0.46em;
 
-      pointer-events: none;
+      cursor: pointer;
+      pointer-events: auto;
+
+      translate: calc(var(--par-x, 0) * -6px) calc(var(--par-y, 0) * -4px);
+      animation: s-hero-titling-breath 8s ease-in-out infinite;
+
+      &.is-stirred {
+        animation: s-hero-titling-dab 640ms ease;
+      }
 
       &__name {
         padding-bottom: 0.35em;
@@ -736,6 +792,26 @@ import DateSeal from './DateSeal.astro'
 
       @include mq(phone) {
         display: none;
+      }
+    }
+
+    @keyframes s-hero-titling-breath {
+      0%,
+      100% {
+        opacity: 0.78;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes s-hero-titling-dab {
+      0%,
+      100% {
+        color: color(songyan);
+      }
+      40% {
+        color: color(zhusha);
       }
     }
 
@@ -768,8 +844,14 @@ import DateSeal from './DateSeal.astro'
       z-index: 1;
 
       opacity: 0.85;
+      cursor: pointer;
+      pointer-events: auto;
 
       translate: calc(var(--par-x, 0) * 18px) calc(var(--par-y, 0) * 10px);
+
+      &.is-stirred {
+        animation: s-hero-bamboo-rustle 800ms ease;
+      }
     }
 
     /* 望月窗：左侧开窗，与右侧竹影对望 */
@@ -779,6 +861,8 @@ import DateSeal from './DateSeal.astro'
       z-index: 1;
 
       opacity: 0.9;
+      cursor: pointer;
+      pointer-events: auto;
 
       translate: calc(var(--par-x, 0) * 8px) calc(var(--par-y, 0) * 5px);
 
@@ -793,6 +877,10 @@ import DateSeal from './DateSeal.astro'
       @include mq(phone) {
         display: none;
       }
+
+      &.is-stirred {
+        animation: s-hero-moon-stir 900ms ease;
+      }
     }
 
     /* 游鱼：贴着水波缓游 */
@@ -802,6 +890,8 @@ import DateSeal from './DateSeal.astro'
       z-index: 2;
 
       opacity: 0.9;
+      cursor: pointer;
+      pointer-events: auto;
 
       translate: calc(var(--par-x, 0) * 13px) calc(var(--par-y, 0) * 7px);
 
@@ -812,6 +902,46 @@ import DateSeal from './DateSeal.astro'
 
       @include mq(phone) {
         display: none;
+      }
+
+      &.is-stirred {
+        animation: s-hero-fish-dart 1100ms ease;
+      }
+    }
+
+    @keyframes s-hero-moon-stir {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      40% {
+        transform: scale(1.08) rotate(-4deg);
+      }
+    }
+
+    @keyframes s-hero-fish-dart {
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0);
+      }
+      35% {
+        transform: translate3d(18px, -8px, 0);
+      }
+      70% {
+        transform: translate3d(-8px, 4px, 0);
+      }
+    }
+
+    @keyframes s-hero-bamboo-rustle {
+      0%,
+      100% {
+        transform: rotate(0deg);
+      }
+      30% {
+        transform: rotate(-3deg);
+      }
+      60% {
+        transform: rotate(2.4deg);
       }
     }
 
@@ -857,6 +987,15 @@ import DateSeal from './DateSeal.astro'
       :global(.date-seal.is-chopped) {
         cursor: default;
         animation: none;
+      }
+
+      .s__titling,
+      .s__moon,
+      .s__fish,
+      .s__bamboo {
+        cursor: default;
+        animation: none;
+        pointer-events: none;
       }
     }
 
