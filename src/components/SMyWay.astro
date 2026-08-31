@@ -1881,9 +1881,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
         &,
         .a__inner {
+          /* 注意：不能在 mask-mode 之后再写 -webkit-mask 简写——
+             简写会把 mask-mode 重置回 alpha，白底黑点遮罩会整体失效 */
           mask: url('/images/ink-vanish.svg') left / 3000% 100%;
           mask-mode: luminance;
-          -webkit-mask: url('/images/ink-vanish.svg') left / 3000% 100%;
           animation: vanish 0.75s steps(29, end) 1 both;
         }
 
