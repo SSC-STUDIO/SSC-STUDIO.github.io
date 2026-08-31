@@ -124,10 +124,12 @@
       }
     }
 
-    /* ── 磁吸：CTA 按钮与名片 ──────────────────────────── */
+    /* ── 磁吸：CTA 按钮、名片、内页动作链 ──────────────── */
     function bindMagnets() {
       var magnets = Array.from(
-        document.querySelectorAll('.s-cta .s__button, .studio-card, .sb-menu a')
+        document.querySelectorAll(
+          '.s-cta .s__button, .studio-card, .sb-menu a, .p-card__link, .p-card__actions a'
+        )
       );
       magnets.forEach(function (el) {
         el.addEventListener('pointermove', function (e) {
@@ -144,9 +146,15 @@
       });
     }
 
-    /* ── 倾斜视差：作品卡 ──────────────────────────────── */
+    /* ── 倾斜视差：作品卡 / 内页卡片（已有册页翻页的不叠第二套） */
     function bindTilts() {
-      var tilts = Array.from(document.querySelectorAll('scroll-leaf, .p-card'));
+      var tilts = Array.from(
+        document.querySelectorAll(
+          'scroll-leaf, .p-card, [data-lift], .p-class__metric'
+        )
+      ).filter(function (el) {
+        return !el.hasAttribute('data-leaf');
+      });
       tilts.forEach(function (el) {
         el.addEventListener('pointermove', function (e) {
           var r = el.getBoundingClientRect();
@@ -207,5 +215,6 @@
     }
 
     document.addEventListener('astro:page-load', mount);
+    document.addEventListener('astro:before-swap', destroy);
   })();
 </script>

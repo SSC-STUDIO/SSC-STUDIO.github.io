@@ -509,14 +509,15 @@ html.theme-contrasted[data-daypart='dusk'] {
 
 .s-cta .s__button,
 .studio-card,
-.sb-menu a {
+.sb-menu a,
+.p-card__link,
+.p-card__actions a {
   transform: translate3d(var(--magnet-x, 0), var(--magnet-y, 0), 0);
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-scroll-leaf,
-.p-card {
+scroll-leaf {
   transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;

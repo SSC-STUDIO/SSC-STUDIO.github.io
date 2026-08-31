@@ -4,6 +4,7 @@ import SiteFoot from '../components/SiteFoot.astro'
 import SiteScrollRod from '../components/SiteScrollRod.astro'
 import SiteInkIntro from '../components/SiteInkIntro.astro'
 import CopyEmail from '../components/CopyEmail.astro'
+import MotionPack from '../components/MotionPack.astro'
 import { ClientRouter } from 'astro:transitions'
 
 import '../styles/global.scss'
@@ -165,6 +166,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     <SiteScrollRod />
 
     <CopyEmail />
+
+    <MotionPack />
   </body>
 
   <script>

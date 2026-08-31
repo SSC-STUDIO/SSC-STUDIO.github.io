@@ -17,9 +17,13 @@ import PageAura from './PageAura.astro'
   /* ── 入场：数据取回后逐块落定 ── */
 
   .p-class__metric {
+    --lift: 0px;
+
     position: relative;
 
     animation: class-settle 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    transform: perspective(900px) translate3d(0, var(--lift), 0)
+      rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
     transition:
       transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
       box-shadow 0.3s ease;
@@ -34,7 +38,7 @@ import PageAura from './PageAura.astro'
   }
 
   .p-class__metric:hover {
-    transform: translateY(-3px);
+    --lift: -3px;
     box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 70%, transparent);
   }
 
@@ -122,12 +126,10 @@ import PageAura from './PageAura.astro'
       animation: none;
     }
 
-    .p-class__metric {
-      transition: none;
-    }
-
+    .p-class__metric,
     .p-class__metric:hover {
       transform: none;
+      transition: none;
     }
   }
 </style>
