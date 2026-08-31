@@ -65,6 +65,7 @@ import DateSeal from './DateSeal.astro'
     nextFrame,
     onFrame,
     onResize,
+    onPointer,
     prefersReducedMotion,
     type Cleanup,
   } from '../motion/core'
@@ -119,6 +120,9 @@ import DateSeal from './DateSeal.astro'
     introPlayed: boolean
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
+
+    /** 指针视差：归一化目标值与平滑值（-1 ~ 1，视口中心为 0） */
+    par = { x: 0, y: 0, sx: 0, sy: 0, active: false }
 
     /**
      * Constructor
@@ -199,6 +203,17 @@ import DateSeal from './DateSeal.astro'
     bindEvents() {
       this.stops.push(onResize(() => this.onResize()))
 
+      /* 背景装饰的指针视差：只在非 reduced-motion 下开启 */
+      if (!prefersReducedMotion()) {
+        this.stops.push(
+          onPointer(({ x, y }) => {
+            this.par.x = (x / window.innerWidth) * 2 - 1
+            this.par.y = (y / window.innerHeight) * 2 - 1
+            this.par.active = true
+          })
+        )
+      }
+
       this.el.addEventListener('intersect', this.onIntersect, {
         passive: true,
       })
@@ -258,7 +273,7 @@ import DateSeal from './DateSeal.astro'
       try {
         const tl = gsap.timeline()
 
-        /* 远山显影自理（InkRidges 收到信号后自行升起） */
+        /* 竖向线场显影自理（InkRidges 收到信号后自行淡入） */
         tl.call(
           () => {
             waves.dispatchEvent(new CustomEvent('introend'))
@@ -313,6 +328,25 @@ import DateSeal from './DateSeal.astro'
           },
           0.5
         )
+
+        /* 背景装饰错峰入场：雾-月-鱼-竹自远及近浮现，拉开纵深 */
+        const decos = this.el.querySelectorAll(
+          '.s__mist, .s__moon, .s__fish, .s__bamboo'
+        )
+        if (decos.length) {
+          tl.from(
+            decos,
+            {
+              opacity: 0,
+              y: 14,
+              duration: 1.4,
+              ease: 'expo.out',
+              stagger: 0.16,
+              clearProps: 'transform',
+            },
+            0.55
+          )
+        }
 
         tl.fromTo(
           chars,
@@ -376,16 +410,14 @@ import DateSeal from './DateSeal.astro'
         this.split.chars[Math.floor(Math.random() * this.split.chars.length)]
 
       if (
-        char.classList.contains('to-top') ||
         char.classList.contains('to-right') ||
-        char.classList.contains('to-bottom') ||
         char.classList.contains('to-left')
       )
         return
 
-      const direction = Math.floor(Math.random() * 4)
-
-      const className = 'to-' + ['bottom', 'left', 'top', 'right'][direction]
+      /* 只做水平滚动：字形贴边裁剪 + 对侧克隆补位，
+         垂直方向在 0.82 行高下必然裁字头或叠邻行，砍掉 */
+      const className = 'to-' + (Math.random() < 0.5 ? 'left' : 'right')
 
       char.classList.add(className)
 
@@ -395,10 +427,26 @@ import DateSeal from './DateSeal.astro'
     }
 
     /**
+     * 视差平滑：把指针位置滤波后写到 CSS 变量，
+     * 装饰层用独立 translate 属性各取系数（纯合成层，不触发布局）
+     */
+    tickParallax() {
+      const { par } = this
+      if (!par.active) return
+
+      par.sx += (par.x - par.sx) * 0.06
+      par.sy += (par.y - par.sy) * 0.06
+
+      this.el.style.setProperty('--par-x', par.sx.toFixed(4))
+      this.el.style.setProperty('--par-y', par.sy.toFixed(4))
+    }
+
+    /**
      * Tick
      */
     tick() {
       this.animateChar()
+      this.tickParallax()
     }
   }
 
@@ -525,8 +573,12 @@ import DateSeal from './DateSeal.astro'
       flex: 1 1 0%;
     }
 
+    /* 指针视差：自远及近位移递增（雾 < 月 < 鱼 < 竹），
+       用独立 translate 属性叠加，不干扰各装饰自带的 transform 动画 */
     .s__mist {
       z-index: 1;
+
+      translate: calc(var(--par-x, 0) * -5px) calc(var(--par-y, 0) * -3px);
     }
 
     .s__bamboo {
@@ -535,6 +587,8 @@ import DateSeal from './DateSeal.astro'
       z-index: 1;
 
       opacity: 0.85;
+
+      translate: calc(var(--par-x, 0) * 18px) calc(var(--par-y, 0) * 10px);
     }
 
     /* 望月窗：左侧开窗，与右侧竹影对望 */
@@ -544,6 +598,8 @@ import DateSeal from './DateSeal.astro'
       z-index: 1;
 
       opacity: 0.9;
+
+      translate: calc(var(--par-x, 0) * 8px) calc(var(--par-y, 0) * 5px);
 
       @include mq(tablet) {
         top: auto;
@@ -565,6 +621,8 @@ import DateSeal from './DateSeal.astro'
       z-index: 2;
 
       opacity: 0.9;
+
+      translate: calc(var(--par-x, 0) * 13px) calc(var(--par-y, 0) * 7px);
 
       @include mq(tablet-sm) {
         left: 2rem;
@@ -746,30 +804,11 @@ import DateSeal from './DateSeal.astro'
         }
       }
 
-      @keyframes s-hero-move-to-top {
-        0% {
-          transform: translate3d(0, 0, 0);
-        }
-
-        100% {
-          transform: translate3d(0, -100%, 0);
-        }
-      }
-
-      @keyframes s-hero-move-to-bottom {
-        0% {
-          transform: translate3d(0, 0, 0);
-        }
-
-        100% {
-          transform: translate3d(0, 100%, 0);
-        }
-      }
-
+      /* 滚动字母：水平贴边裁剪（防叠邻字），垂直放宽保住字形上下缘 */
       :global(.char) {
         display: inline-block;
 
-        clip-path: none;
+        clip-path: inset(-0.35em 0);
 
         color: color(secondary);
       }
@@ -784,10 +823,14 @@ import DateSeal from './DateSeal.astro'
 
         will-change: transform;
 
-        &:before,
-        &:after {
+        /* 克隆字形：随本体一起滑动，从对侧补进原位 */
+        &:before {
+          position: absolute;
+          top: 0;
+
           display: none;
-          content: none;
+
+          content: attr(data-letter);
         }
       }
 
@@ -795,20 +838,35 @@ import DateSeal from './DateSeal.astro'
         margin-left: 0;
       }
 
-      :global(.to-top .char__inner) {
-        animation: s-hero-move-to-top 1s ease(in-out-quint) 1 forwards;
-      }
-
       :global(.to-right .char__inner) {
         animation: s-hero-move-to-right 1s ease(in-out-quint) 1 forwards;
-      }
 
-      :global(.to-bottom .char__inner) {
-        animation: s-hero-move-to-bottom 1s ease(in-out-quint) 1 forwards;
+        &:before {
+          left: 100%;
+
+          display: block;
+        }
       }
 
       :global(.to-left .char__inner) {
         animation: s-hero-move-to-left 1s ease(in-out-quint) 1 forwards;
+
+        &:before {
+          right: 100%;
+
+          display: block;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :global(.to-right .char__inner),
+        :global(.to-left .char__inner) {
+          animation: none;
+
+          &:before {
+            display: none;
+          }
+        }
       }
     }
   }

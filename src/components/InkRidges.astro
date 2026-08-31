@@ -1,10 +1,9 @@
 ---
 /**
- * InkRidges — 水墨远山 + 满幅丝缕
+ * InkRidges — 满幅竖向线场
  *
- * 上半幅是竖直的丝缕场（值噪声扭出的雨丝/等高线），下半幅是四叠远山。
- * 指针如风拂过：丝缕横向让开、脊线被轻轻托起。点按激起一圈山风。
- * 显影由 SHero 的 introend 触发：丝缕先落、山自雾底升起。
+ * 密、连、有张力的竖直 polyline：值噪声扭出缓慢的地形起伏，
+ * 指针径向推开并按速度拖拽，近处描边发亮。远山只作极淡垫底。
  */
 const { class: className } = Astro.props
 ---
@@ -24,26 +23,36 @@ const { class: className } = Astro.props
   } from '../motion/core'
   import { createField, type Field2D } from '../motion/field'
 
-  /**
-   * 山层（远 → 近）
-   * base = 山脚基线；amp = 峰高；scale = 横向山团密度
-   */
+  const SPRING = 0.006
+  const FRICTION = 0.9
+  const STRENGTH = 2.4
+  const MAX_DISP = 120
+  const REVEAL_MS = 1400
+  const STEP = 7
+  const RIDGE_SPRING = 0.045
+  const RIDGE_DAMP = 0.9
+  const RIDGE_MAX = 46
+
+  /** 远山仍在，只作淡垫；指针拂过脊线会轻轻托起 */
   const LAYERS = [
-    { base: 0.4, amp: 0.16, scale: 1.8, drift: 0.32, alpha: 0.14, line: 1 },
-    { base: 0.54, amp: 0.18, scale: 2.3, drift: 0.5, alpha: 0.22, line: 1.15 },
-    { base: 0.7, amp: 0.2, scale: 2.9, drift: 0.75, alpha: 0.32, line: 1.3 },
-    { base: 0.88, amp: 0.22, scale: 3.6, drift: 1.05, alpha: 0.46, line: 1.45 },
+    { base: 0.48, amp: 0.12, scale: 1.8, drift: 0.32, alpha: 0.05, line: 0.9 },
+    { base: 0.62, amp: 0.13, scale: 2.3, drift: 0.5, alpha: 0.07, line: 1 },
+    { base: 0.76, amp: 0.14, scale: 2.9, drift: 0.75, alpha: 0.09, line: 1.1 },
+    { base: 0.9, amp: 0.12, scale: 3.6, drift: 1.05, alpha: 0.11, line: 1.2 },
   ]
 
-  const STEP = 7
-  const THREAD_GAP = 16
-  const THREAD_STEP_Y = 12
-  const SPRING = 0.045
-  const DAMPING = 0.9
-  const MAX_DISP = 46
-  const REVEAL_MS = 1500
-
   type RGB = { r: number; g: number; b: number }
+
+  type Point = {
+    x: number
+    y: number
+    wx: number
+    wy: number
+    cx: number
+    cy: number
+    vx: number
+    vy: number
+  }
 
   function hexToRgb(hex: string): RGB | null {
     const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
@@ -64,14 +73,14 @@ const { class: className } = Astro.props
 
     width = 0
     height = 0
-    cols = 0
-    threadCount = 0
-    threadRows = 0
+    xGap = 16
+    yGap = 36
 
-    disp: Float32Array[] = []
-    vel: Float32Array[] = []
-    threadDisp = new Float32Array(0)
-    threadVel = new Float32Array(0)
+    lines: Point[][] = []
+    cols = 0
+    lastTime = 0
+    ridgeDisp: Float32Array[] = []
+    ridgeVel: Float32Array[] = []
 
     ink: RGB = { r: 28, g: 42, b: 34 }
     paper: RGB = { r: 244, g: 234, b: 216 }
@@ -83,9 +92,21 @@ const { class: className } = Astro.props
     revealing = false
     reveal = 0
     revealStart = 0
-    lastTime = 0
+    hovering = false
+    interactive = false
+    frame = 0
 
-    pointer = { x: -9999, y: -9999, lx: -9999, ly: -9999, px: -9999, py: 0 }
+    mouse = {
+      x: -10,
+      y: 0,
+      lx: 0,
+      ly: 0,
+      sx: -10,
+      sy: 0,
+      vs: 0,
+      a: 0,
+      set: false,
+    }
 
     stops: Cleanup[] = []
     stopFrame: Cleanup | null = null
@@ -117,7 +138,16 @@ const { class: className } = Astro.props
       )
 
       if (!this.reduced) {
-        this.stops.push(onPointer(({ x, y }) => this.stir(x, y)))
+        this.stops.push(onPointer(({ x, y }) => this.updateMouse(x, y)))
+        this.addEventListener('pointermove', this.onPointerMove, {
+          passive: true,
+        })
+        this.addEventListener('pointerenter', this.onPointerEnter, {
+          passive: true,
+        })
+        this.addEventListener('pointerleave', this.onPointerLeave, {
+          passive: true,
+        })
         this.addEventListener('pointerdown', this.onTap, { passive: true })
       }
 
@@ -157,9 +187,42 @@ const { class: className } = Astro.props
       else this.resume()
     }
 
+    onPointerEnter = () => {
+      this.hovering = true
+      this.enableInteraction()
+    }
+
+    onPointerLeave = () => {
+      this.hovering = false
+    }
+
+    onPointerMove = (e: PointerEvent) => {
+      const prevX = this.mouse.x
+      const prevY = this.mouse.y
+      this.updateMouse(e.clientX, e.clientY)
+      this.enableInteraction()
+
+      const speed = Math.min(
+        Math.hypot(this.mouse.x - prevX, this.mouse.y - prevY),
+        42
+      )
+      if (speed >= 0.6 && this.mouse.set) {
+        this.pokeRidge(this.mouse.x, this.mouse.y, speed * 0.14, 110)
+      }
+    }
+
     onTap = (e: PointerEvent) => {
+      this.updateMouse(e.clientX, e.clientY)
+      this.enableInteraction()
+      this.mouse.vs = Math.min(100, this.mouse.vs + 46)
       const rect = this.getBoundingClientRect()
-      this.poke(e.clientX - rect.left, e.clientY - rect.top, 8.5, 170)
+      this.pokeRidge(e.clientX - rect.left, e.clientY - rect.top, 8.5, 170)
+    }
+
+    enableInteraction() {
+      if (this.interactive) return
+      this.interactive = true
+      this.classList.add('is-interactive')
     }
 
     beginReveal() {
@@ -168,7 +231,7 @@ const { class: className } = Astro.props
       window.clearTimeout(this.revealFallback)
       this.revealing = true
       this.revealStart = performance.now()
-      this.classList.add('is-interactive')
+      this.enableInteraction()
 
       if (this.reduced) {
         this.reveal = 1
@@ -189,6 +252,22 @@ const { class: className } = Astro.props
       this.stopFrame = null
     }
 
+    updateMouse(clientX: number, clientY: number) {
+      const rect = this.getBoundingClientRect()
+      const { mouse } = this
+
+      mouse.x = clientX - rect.left
+      mouse.y = clientY - rect.top
+
+      if (!mouse.set) {
+        mouse.sx = mouse.x
+        mouse.sy = mouse.y
+        mouse.lx = mouse.x
+        mouse.ly = mouse.y
+        mouse.set = true
+      }
+    }
+
     resize() {
       const width = this.clientWidth
       const height = this.clientHeight
@@ -203,16 +282,46 @@ const { class: className } = Astro.props
 
       this.width = width
       this.height = height
+      this.xGap = width < 720 ? 26 : width < 1100 ? 18 : 16
+      this.yGap = width < 720 ? 40 : 36
       this.cols = Math.ceil(width / STEP) + 2
-      this.threadCount = Math.ceil(width / THREAD_GAP) + 2
-      this.threadRows = Math.ceil(height / THREAD_STEP_Y) + 2
+      this.ridgeDisp = LAYERS.map(() => new Float32Array(this.cols))
+      this.ridgeVel = LAYERS.map(() => new Float32Array(this.cols))
 
-      this.disp = LAYERS.map(() => new Float32Array(this.cols))
-      this.vel = LAYERS.map(() => new Float32Array(this.cols))
-      this.threadDisp = new Float32Array(this.threadCount)
-      this.threadVel = new Float32Array(this.threadCount)
+      this.buildLines()
 
       if (!this.stopFrame) this.paint(performance.now())
+    }
+
+    buildLines() {
+      const { width, height, xGap, yGap } = this
+      const oWidth = width + 200
+      const oHeight = height + 30
+      const totalLines = Math.ceil(oWidth / xGap)
+      const totalPoints = Math.ceil(oHeight / yGap)
+      const xStart = (width - xGap * totalLines) / 2
+      const yStart = (height - yGap * totalPoints) / 2
+
+      this.lines = []
+
+      for (let i = 0; i <= totalLines; i++) {
+        const points: Point[] = []
+
+        for (let j = 0; j <= totalPoints; j++) {
+          points.push({
+            x: xStart + xGap * i,
+            y: yStart + yGap * j,
+            wx: 0,
+            wy: 0,
+            cx: 0,
+            cy: 0,
+            vx: 0,
+            vy: 0,
+          })
+        }
+
+        this.lines.push(points)
+      }
     }
 
     sampleColors() {
@@ -226,8 +335,70 @@ const { class: className } = Astro.props
       this.boost = document.documentElement.classList.contains(
         'theme-contrasted'
       )
-        ? 1.45
+        ? 1.35
         : 1
+    }
+
+    moved(point: Point, withCursor = true) {
+      return {
+        x: point.x + point.wx + (withCursor ? point.cx : 0),
+        y: point.y + point.wy + (withCursor ? point.cy : 0),
+      }
+    }
+
+    movePoints(time: number) {
+      const { lines, mouse, field, hovering, interactive } = this
+      const radius = hovering
+        ? Math.max(240, mouse.vs * 2.2)
+        : Math.max(200, mouse.vs * 1.6)
+
+      for (const points of lines) {
+        for (const p of points) {
+          const n = field.sample(
+            (p.x + time * 0.0125) * 0.002,
+            (p.y + time * 0.005) * 0.0015
+          )
+          const move = n * 12
+          p.wx = Math.cos(move) * 32
+          p.wy = Math.sin(move) * 16
+
+          if (!interactive || this.reduced) continue
+
+          const dx = p.x - mouse.sx
+          const dy = p.y - mouse.sy
+          const d = Math.hypot(dx, dy)
+
+          if (d < radius && d > 0.001) {
+            const s = 1 - d / radius
+            const l = s * s
+            const f = hovering ? l * 14 : l * 8
+            const angle = Math.atan2(dy, dx)
+
+            p.vx += Math.cos(angle) * f
+            p.vy += Math.sin(angle) * f
+
+            if (mouse.vs > 2) {
+              const x = Math.cos(d * 0.001) * l
+              const m = mouse.vs * 0.0018
+
+              p.vx += Math.cos(mouse.a) * x * radius * m
+              p.vy += Math.sin(mouse.a) * x * radius * m
+            }
+          }
+
+          p.vx += (0 - p.cx) * SPRING
+          p.vy += (0 - p.cy) * SPRING
+          p.vx *= FRICTION
+          p.vy *= FRICTION
+          p.cx += p.vx * STRENGTH
+          p.cy += p.vy * STRENGTH
+
+          if (p.cx > MAX_DISP) p.cx = MAX_DISP
+          else if (p.cx < -MAX_DISP) p.cx = -MAX_DISP
+          if (p.cy > MAX_DISP) p.cy = MAX_DISP
+          else if (p.cy < -MAX_DISP) p.cy = -MAX_DISP
+        }
+      }
     }
 
     ridgeY(layerIndex: number, x: number, time: number): number {
@@ -237,219 +408,200 @@ const { class: className } = Astro.props
         time * layer.drift * 0.00002
       const v = this.field.fbm(nx, layerIndex * 7.3 + 2.17, 3)
 
-      return (
-        this.height * layer.base -
-        (0.5 + 0.5 * v) * layer.amp * this.height
-      )
+      return this.height * layer.base - (0.5 + 0.5 * v) * layer.amp * this.height
     }
 
-    threadX(i: number, y: number, time: number): number {
-      const nx = i * 0.31 + time * 0.000038
-      const ny = y * 0.0031 + i * 0.08
-      const n = this.field.fbm(nx, ny, 3)
-
-      return i * THREAD_GAP - THREAD_GAP + n * 28 + this.threadDisp[i]
-    }
-
-    stir(clientX: number, clientY: number) {
-      const rect = this.getBoundingClientRect()
-      const x = clientX - rect.left
-      const y = clientY - rect.top
-      const p = this.pointer
-
-      const hadLast = p.lx > -9000
-      const dx = hadLast ? x - p.lx : 0
-      const dy = hadLast ? y - p.ly : 0
-
-      p.lx = x
-      p.ly = y
-      p.x = x
-      p.y = y
-
-      if (x < -80 || x > this.width + 80 || y < -80 || y > this.height + 80) {
-        return
-      }
-
-      const speed = Math.min(Math.hypot(dx, dy), 42)
-      if (speed < 0.6) return
-
-      this.poke(x, y, speed * 0.14, 110)
-    }
-
-    poke(x: number, y: number, force: number, radius: number) {
+    pokeRidge(x: number, y: number, force: number, radius: number) {
       if (this.reduced || !this.cols) return
 
       const sigmaX = radius * 0.55
       const sigmaY = 78
-
       const colFrom = Math.max(0, Math.floor((x - radius) / STEP))
       const colTo = Math.min(this.cols - 1, Math.ceil((x + radius) / STEP))
 
       for (let li = 0; li < LAYERS.length; li++) {
-        const disp = this.disp[li]
-        const vel = this.vel[li]
+        const disp = this.ridgeDisp[li]
+        const vel = this.ridgeVel[li]
+        if (!disp || !vel) continue
 
         for (let col = colFrom; col <= colTo; col++) {
           const cx = col * STEP
           const ry = this.ridgeY(li, cx, this.lastTime) + disp[col]
-
           const gx = Math.exp(-((cx - x) ** 2) / (2 * sigmaX * sigmaX))
           const gy = Math.exp(-((ry - y) ** 2) / (2 * sigmaY * sigmaY))
           const dir = ry > y ? 1 : -1
-
           vel[col] += dir * force * gx * gy
         }
       }
+    }
 
-      const tFrom = Math.max(0, Math.floor((x - radius) / THREAD_GAP))
-      const tTo = Math.min(
-        this.threadCount - 1,
-        Math.ceil((x + radius) / THREAD_GAP)
-      )
+    paintRidges(time: number, eased: number) {
+      const { ctx, width, height, ink } = this
+      const { r, g, b } = ink
+      const rise = (1 - eased) * 38
 
-      for (let i = tFrom; i <= tTo; i++) {
-        const cx = i * THREAD_GAP
-        const gx = Math.exp(-((cx - x) ** 2) / (2 * sigmaX * sigmaX))
-        const dir = cx < x ? -1 : 1
-        this.threadVel[i] += dir * force * 0.7 * gx
+      for (let li = 0; li < LAYERS.length; li++) {
+        const layer = LAYERS[li]
+        const disp = this.ridgeDisp[li]
+        const vel = this.ridgeVel[li]
+        if (!disp || !vel) continue
+
+        if (!this.reduced) {
+          for (let col = 0; col < this.cols; col++) {
+            vel[col] += -RIDGE_SPRING * disp[col]
+            vel[col] *= RIDGE_DAMP
+            disp[col] += vel[col]
+            if (disp[col] > RIDGE_MAX) disp[col] = RIDGE_MAX
+            else if (disp[col] < -RIDGE_MAX) disp[col] = -RIDGE_MAX
+          }
+        }
+
+        ctx.beginPath()
+        for (let col = 0; col < this.cols; col++) {
+          const x = Math.min(col * STEP, width)
+          const y = this.ridgeY(li, x, time) + disp[col] + rise
+          if (col === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+
+        const fill = Math.min(layer.alpha * this.boost, 0.18) * eased
+        ctx.lineTo(width, height)
+        ctx.lineTo(0, height)
+        ctx.closePath()
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fill})`
+        ctx.fill()
+
+        ctx.beginPath()
+        for (let col = 0; col < this.cols; col++) {
+          const x = Math.min(col * STEP, width)
+          const y = this.ridgeY(li, x, time) + disp[col] + rise
+          if (col === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${Math.min(fill + 0.06, 0.2)})`
+        ctx.lineWidth = layer.line
+        ctx.stroke()
       }
     }
 
+    paintWash(eased: number) {
+      const { ctx, width, height, field, paper, ink } = this
+      const base = height * 0.82
+      const amp = height * 0.08
+
+      ctx.beginPath()
+      ctx.moveTo(0, height)
+
+      for (let x = 0; x <= width; x += 18) {
+        const n = field.fbm(x * 0.0014 + 4.2, 2.1, 3)
+        const y = base - (0.5 + 0.5 * n) * amp
+        if (x === 0) ctx.lineTo(x, y)
+        else ctx.lineTo(x, y)
+      }
+
+      ctx.lineTo(width, height)
+      ctx.closePath()
+      ctx.fillStyle = `rgba(${ink.r}, ${ink.g}, ${ink.b}, ${0.055 * this.boost * eased})`
+      ctx.fill()
+
+      const mist = ctx.createLinearGradient(0, height * 0.78, 0, height)
+      mist.addColorStop(0, `rgba(${paper.r}, ${paper.g}, ${paper.b}, 0)`)
+      mist.addColorStop(
+        1,
+        `rgba(${paper.r}, ${paper.g}, ${paper.b}, ${0.28 * eased})`
+      )
+      ctx.fillStyle = mist
+      ctx.fillRect(0, height * 0.78, width, height * 0.22)
+    }
+
     paint(time: number) {
-      const { ctx, width, height } = this
+      const { ctx, width, height, mouse } = this
       if (!width || !height) return
 
       this.lastTime = time
+      this.frame += 1
 
       if (this.revealing && this.reveal < 1) {
         this.reveal = Math.min((time - this.revealStart) / REVEAL_MS, 1)
       }
       const eased = easeOutCubic(this.reveal)
-      const rise = (1 - eased) * 38
+
+      mouse.sx += (mouse.x - mouse.sx) * 0.1
+      mouse.sy += (mouse.y - mouse.sy) * 0.1
+
+      const dx = mouse.x - mouse.lx
+      const dy = mouse.y - mouse.ly
+      const dist = Math.hypot(dx, dy)
+
+      mouse.vs += (dist - mouse.vs) * 0.1
+      mouse.vs = Math.min(100, mouse.vs)
+      mouse.lx = mouse.x
+      mouse.ly = mouse.y
+      mouse.a = Math.atan2(dy, dx)
+
+      if (this.interactive) {
+        this.style.setProperty('--x', `${mouse.sx}px`)
+        this.style.setProperty('--y', `${mouse.sy}px`)
+      }
+
+      this.movePoints(time)
 
       ctx.clearRect(0, 0, width, height)
+      this.paintRidges(time, eased)
+      this.paintWash(eased)
 
       const { r, g, b } = this.ink
       const accent = this.accent
+      const highlightR = this.hovering ? 150 : 110
+      const baseAlpha = 0.72 * this.boost * eased
 
-      if (!this.reduced) {
-        for (let i = 0; i < this.threadCount; i++) {
-          this.threadVel[i] += -SPRING * this.threadDisp[i]
-          this.threadVel[i] *= DAMPING
-          this.threadDisp[i] += this.threadVel[i]
-          if (this.threadDisp[i] > MAX_DISP) this.threadDisp[i] = MAX_DISP
-          else if (this.threadDisp[i] < -MAX_DISP) this.threadDisp[i] = -MAX_DISP
-        }
-      }
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
 
-      const px = this.pointer.px > -9000 ? this.pointer.px : -9999
-      const py = this.pointer.py
-      const highlightR = 130
+      this.lines.forEach((points, index) => {
+        const last = points.length - 1
+        let minD = Infinity
 
-      for (let i = 0; i < this.threadCount; i++) {
         ctx.beginPath()
 
-        let near = 0
-        for (let row = 0; row < this.threadRows; row++) {
-          const y = Math.min(row * THREAD_STEP_Y, height)
-          const x = this.threadX(i, y, time)
+        for (let i = 0; i < points.length; i++) {
+          const p = this.moved(points[i], i !== last)
+          if (i === 0) ctx.moveTo(p.x, p.y)
+          else ctx.lineTo(p.x, p.y)
 
-          if (row === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
-
-          if (px > -9000) {
-            const d = Math.hypot(x - px, y - py)
-            if (d < highlightR) near = Math.max(near, 1 - d / highlightR)
+          if (this.interactive && mouse.set) {
+            const d = Math.hypot(p.x - mouse.sx, p.y - mouse.sy)
+            if (d < minD) minD = d
           }
         }
 
-        const moss = i % 3 === 0
-        const alpha = (moss ? 0.2 : 0.32) * this.boost * eased
-        const lit = near > 0.12
+        const moss = index % 3 === 0
+        const near = this.interactive && minD < highlightR
+        const proximity = near ? 1 - minD / highlightR : 0
 
-        if (lit) {
-          ctx.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.45 + near * 0.4})`
-          ctx.lineWidth = moss ? 2.2 : 1.6
+        if (near && proximity > 0.12) {
+          ctx.strokeStyle =
+            proximity > 0.55
+              ? `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.55 + proximity * 0.45})`
+              : `rgba(${r}, ${g}, ${b}, ${0.55 + proximity * 0.45})`
+          ctx.lineWidth = moss ? 2.4 : 1.85
+          ctx.setLineDash([])
+          ctx.stroke()
         } else {
-          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
-          ctx.lineWidth = moss ? 2.4 : 1.15
-        }
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${baseAlpha})`
+          ctx.lineWidth = 1.75
+          ctx.setLineDash([])
+          ctx.stroke()
 
-        ctx.stroke()
-      }
-
-      for (let li = 0; li < LAYERS.length; li++) {
-        const layer = LAYERS[li]
-        const disp = this.disp[li]
-        const vel = this.vel[li]
-
-        if (!this.reduced) {
-          for (let col = 0; col < this.cols; col++) {
-            vel[col] += -SPRING * disp[col]
-            vel[col] *= DAMPING
-            disp[col] += vel[col]
-
-            if (disp[col] > MAX_DISP) disp[col] = MAX_DISP
-            else if (disp[col] < -MAX_DISP) disp[col] = -MAX_DISP
+          if (moss) {
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.38 * this.boost * eased})`
+            ctx.lineWidth = 3.2
+            ctx.setLineDash([0.9, 6.5])
+            ctx.stroke()
+            ctx.setLineDash([])
           }
         }
-
-        ctx.beginPath()
-
-        for (let col = 0; col < this.cols; col++) {
-          const x = Math.min(col * STEP, width)
-          const y = this.ridgeY(li, x, time) + disp[col] + rise
-
-          if (col === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
-        }
-
-        const fill = Math.min(layer.alpha * this.boost, 0.6) * eased
-
-        ctx.lineTo(width, height)
-        ctx.lineTo(0, height)
-        ctx.closePath()
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fill * 0.5})`
-        ctx.fill()
-
-        ctx.beginPath()
-
-        for (let col = 0; col < this.cols; col++) {
-          const x = Math.min(col * STEP, width)
-          const y = this.ridgeY(li, x, time) + disp[col] + rise
-
-          if (col === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
-        }
-
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${Math.min(fill + 0.16, 0.62)})`
-        ctx.lineWidth = layer.line
-        ctx.stroke()
-      }
-
-      const mist = ctx.createLinearGradient(0, height * 0.72, 0, height)
-      const paper = this.paper
-      mist.addColorStop(0, `rgba(${paper.r}, ${paper.g}, ${paper.b}, 0)`)
-      mist.addColorStop(
-        1,
-        `rgba(${paper.r}, ${paper.g}, ${paper.b}, ${0.42 * eased})`
-      )
-      ctx.fillStyle = mist
-      ctx.fillRect(0, height * 0.72, width, height * 0.28)
-
-      const p = this.pointer
-      if (p.x > -9000) {
-        if (p.px < -9000) {
-          p.px = p.x
-          p.py = p.y
-        } else {
-          p.px += (p.x - p.px) * 0.16
-          p.py += (p.y - p.py) * 0.16
-        }
-
-        this.style.setProperty('--x', `${p.px}px`)
-        this.style.setProperty('--y', `${p.py}px`)
-      }
+      })
     }
   }
 
@@ -460,7 +612,7 @@ const { class: className } = Astro.props
 
 <style lang="scss">
   ink-ridges {
-    --x: -10rem;
+    --x: -0.5rem;
     --y: 50%;
 
     position: relative;
@@ -488,18 +640,25 @@ const { class: className } = Astro.props
       left: 0;
       z-index: 1;
 
-      width: 0.6rem;
-      height: 0.42rem;
+      width: 0.55rem;
+      height: 0.38rem;
 
       background: var(--daypart-lamp, #{color(accent)});
-      border-radius: 55% 45% 60% 40% / 55% 50% 50% 45%;
-      box-shadow: 0 0 0 0.22rem
-        color-mix(in srgb, var(--daypart-lamp, var(--color-accent)) 26%, transparent);
+      border-radius: 50% 40% 50% 40%;
+      box-shadow: 0 0 0 0.2rem
+        color-mix(
+          in srgb,
+          var(--daypart-lamp, var(--color-accent)) 28%,
+          transparent
+        );
 
       transform: translate3d(calc(var(--x) - 50%), calc(var(--y) - 50%), 0);
       opacity: 0;
 
-      transition: opacity 0.35s ease;
+      transition:
+        opacity 0.35s ease,
+        width 0.25s ease,
+        height 0.25s ease;
 
       content: '';
       pointer-events: none;
@@ -507,6 +666,8 @@ const { class: className } = Astro.props
     }
 
     &.is-interactive::before {
+      width: 0.72rem;
+      height: 0.48rem;
       opacity: 1;
     }
 
