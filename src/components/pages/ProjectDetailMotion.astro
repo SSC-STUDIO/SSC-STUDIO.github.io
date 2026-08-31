@@ -15,13 +15,8 @@ import PageAura from './PageAura.astro'
 ---
 
 <PageAura />
-<project-detail-motion aria-hidden="true"></project-detail-motion>
 
 <style lang="scss" is:global>
-  /* 驱动器本体不占位 */
-  project-detail-motion {
-    display: none;
-  }
 
   /* ══════════════════════════════════════════════════════
      面包屑 —— 一行细字压顶，去处随悬停亮起朱丝
@@ -499,57 +494,60 @@ import PageAura from './PageAura.astro'
   const STEP = 82
 
   /**
-   * project-detail-motion —— 正文逐段落墨
+   * 正文逐段落墨
    *
    * 全站的 data-flow 是「容器入屏，子项一次编排完」：正文动辄两三屏，
    * 后面的段落会在屏幕外自己演完。这里改为逐段观察，读到哪一段那一段才落墨；
    * 同一批进屏的彼此错峰，单独滚进来的立刻落定。
    *
    * 只加类、不藏内容：段落默认就是落定态，脚本缺席也照常可读。
+   * ClientRouter：astro:page-load 重挂、astro:before-swap 拆掉观察者。
    */
-  class ProjectDetailMotion extends HTMLElement {
-    observer: IntersectionObserver | null = null
+  let observer: IntersectionObserver | null = null
 
-    connectedCallback() {
-      if (prefersReducedMotion()) return
-      if (typeof IntersectionObserver !== 'function') return
-
-      const scope = this.closest('.p-detail') || document
-      const prose = scope.querySelector('.p-prose')
-      if (!prose) return
-
-      const blocks = Array.from(prose.children) as HTMLElement[]
-      if (!blocks.length) return
-
-      this.observer = new IntersectionObserver(
-        (entries, observer) => {
-          let batch = 0
-
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return
-
-            const block = entry.target as HTMLElement
-
-            block.style.setProperty('--prose-delay', `${batch++ * STEP}ms`)
-            block.classList.add('is-prose-in')
-
-            // 落过一次就不再观察，回滚时不重播
-            observer.unobserve(block)
-          })
-        },
-        { threshold: 0.04, rootMargin: '0px 0px -7% 0px' }
-      )
-
-      blocks.forEach((block) => this.observer?.observe(block))
-    }
-
-    disconnectedCallback() {
-      this.observer?.disconnect()
-      this.observer = null
-    }
+  function destroy() {
+    observer?.disconnect()
+    observer = null
   }
 
-  if (!customElements.get('project-detail-motion')) {
-    customElements.define('project-detail-motion', ProjectDetailMotion)
+  function mount() {
+    destroy()
+
+    if (prefersReducedMotion()) return
+    if (typeof IntersectionObserver !== 'function') return
+    if (document.visibilityState === 'hidden') return
+
+    const prose = document.querySelector('.p-detail .p-prose')
+    if (!prose) return
+
+    const blocks = Array.from(prose.children) as HTMLElement[]
+    if (!blocks.length) return
+
+    observer = new IntersectionObserver(
+      (entries, current) => {
+        let batch = 0
+
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          const block = entry.target as HTMLElement
+
+          block.style.setProperty('--prose-delay', `${batch++ * STEP}ms`)
+          block.classList.add('is-prose-in')
+
+          current.unobserve(block)
+        })
+      },
+      { threshold: 0.04, rootMargin: '0px 0px -7% 0px' }
+    )
+
+    blocks.forEach((block) => observer?.observe(block))
   }
+
+  document.addEventListener('astro:page-load', mount)
+  document.addEventListener('astro:before-swap', destroy)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') destroy()
+    else mount()
+  })
 </script>
