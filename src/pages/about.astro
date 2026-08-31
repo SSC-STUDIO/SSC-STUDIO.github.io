@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 ---
 
 <BaseLayout
@@ -16,7 +17,9 @@ import PageCard from '@/components/pages/PageCard.astro'
   />
 
   <main class="p-page p-page--wide p-about">
-    <figure class="p-about-photo" data-reveal>
+    <PageAura />
+
+    <figure class="p-about-photo" data-reveal data-leaf>
       <img
         src="/legacy-assets/personal/chen.webp"
         srcset="/legacy-assets/personal/chen-sm.webp 320w, /legacy-assets/personal/chen.webp 640w"
@@ -34,7 +37,7 @@ import PageCard from '@/components/pages/PageCard.astro'
       </figcaption>
     </figure>
 
-    <div class="p-prose" data-reveal>
+    <div class="p-prose" data-flow data-intersect>
       <p>
         正在探索 AI、交互与游戏开发的初中生。把少年时的好奇，写进可运行的光里。
       </p>
@@ -52,7 +55,7 @@ import PageCard from '@/components/pages/PageCard.astro'
       <h2>此刻</h2>
       <p>正在把 AI 实验、交互练习和班级记忆整理成一条更清晰的河流。</p>
       <h2>Skills</h2>
-      <div class="p-chips">
+      <div class="p-chips" data-flow data-intersect style="--flow-step: 74ms">
         <span class="p-chip p-chip--accent">AI</span>
         <span class="p-chip p-chip--accent">TypeScript</span>
         <span class="p-chip p-chip--accent">Games</span>
@@ -73,3 +76,126 @@ import PageCard from '@/components/pages/PageCard.astro'
 
   <PageFoot current="/about" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 关于页动效（仅本页） ── */
+
+  /* 立轴照片：随指针沿中缝轻翻（data-leaf 供角度），
+     另铺一道随指针横移的受光，像光掠过裱好的相纸。 */
+  .p-about-photo {
+    position: relative;
+
+    &::after {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+
+      background: linear-gradient(
+        105deg,
+        transparent calc(var(--leaf-sheen, 0.5) * 100% - 26%),
+        color-mix(in srgb, #{color(primary)} 34%, transparent)
+          calc(var(--leaf-sheen, 0.5) * 100%),
+        transparent calc(var(--leaf-sheen, 0.5) * 100% + 26%)
+      );
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+
+      transition: opacity 0.4s ease(out-quint);
+    }
+
+    &:hover::after {
+      opacity: 1;
+    }
+
+    /* 照片本体随之极缓地推近，纵深不靠位移全靠尺度 */
+    img {
+      transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &:hover img {
+      transform: scale(1.035);
+    }
+
+    /* 落款处的朱砂短线：悬停时自左向右洇开 */
+    &__name {
+      position: relative;
+
+      &::after {
+        position: absolute;
+        bottom: -0.3em;
+        left: 0;
+
+        width: 100%;
+        height: 2px;
+
+        background: color(accent);
+        content: '';
+        transform: scaleX(0);
+        transform-origin: 0 50%;
+
+        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+    }
+  }
+
+  .p-about-photo:hover .p-about-photo__name::after {
+    transform: scaleX(1);
+  }
+
+  /* 正文小标题：入屏时把既有的压脚朱丝一笔描出 */
+  .p-about .p-prose h2::after {
+    transform-origin: 0 50%;
+  }
+
+  .p-about .p-prose.is-in-view h2::after {
+    animation: about-rule-draw 620ms cubic-bezier(0.16, 1, 0.3, 1) 220ms
+      backwards;
+  }
+
+  @keyframes about-rule-draw {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  /* 技能签：悬停时轻提并翻墨 */
+  .p-chip {
+    transition:
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.28s ease,
+      border-color 0.28s ease,
+      color 0.28s ease;
+  }
+
+  .p-about .p-chip:hover {
+    transform: translateY(-3px);
+
+    background: color(secondary);
+    border-color: color(secondary);
+
+    color: color(primary);
+  }
+
+  .p-about .p-chip:hover::before {
+    color: color(accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-about-photo::after,
+    .p-about-photo img,
+    .p-about-photo__name::after,
+    .p-chip {
+      transition: none;
+    }
+
+    .p-about-photo:hover img,
+    .p-about .p-chip:hover {
+      transform: none;
+    }
+
+    .p-about .p-prose.is-in-view h2::after {
+      animation: none;
+    }
+  }
+</style>
