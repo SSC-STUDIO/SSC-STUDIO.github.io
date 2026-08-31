@@ -6,7 +6,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 
 <BaseLayout
   title="Interactive Game Kit · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="Interactive Game Kit：浏览器棋类、弹幕 Roguelite 与 Godot 竞技场原型——手感、反馈与排行榜一体。"
 >
   <PageHero
     kicker="project · 2025"
@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">Interactive Game Kit</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2025</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2025 · 持续迭代</span>
+      <span>project 03 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -31,11 +39,28 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <figcaption>FIG.01 · Interactive Game Kit</figcaption>
     </figure>
     <div class="p-prose" data-reveal>
+      <p>把「好玩」拆成三件事：规则、手感、反馈——每条产品线各攻一件。</p>
+      <h2>三条产品线</h2>
+      <ul>
+        <li>
+          <strong>Multi-Board-Game-Collection</strong> —
+          浏览器里的多款棋类合集，把规则、对局与复盘做进一个随手可开的页面；
+        </li>
+        <li>
+          <strong>Survivor-Arena</strong> — Vampire Survivors
+          式的弹幕生存 Roguelite，主攻手感与波次节奏；
+        </li>
+        <li>
+          <strong>GreedySnake-2026</strong> — Godot 4.6 的 Roguelite
+          竞技场生存贪吃蛇：5 种模式、24 项升级、10 套流派构筑、4
+          种诅咒变体与 29 个成就，中英双语。
+        </li>
+      </ul>
+      <h2>与本站的关系</h2>
       <p>
-        Multi-Board-Game-Collection 汇集多种棋盘玩法；Survivor-Arena 是
-        Vampire Survivors 式弹幕 Roguelite；Greedy-Snake-2026 在 Godot 4.6
-        里做竞技场生存与升级系统。本站 /benchmarks 与 /games
-        提供统一试玩入口与分数排行。
+        一部分作品直接内置在<a href="/benchmarks">反应力实验室</a
+        >即点即玩，成绩进入统一的<a href="/leaderboard">排行榜</a
+        >；完整源码都在 GitHub 上开放。
       </p>
     </div>
     <div class="p-chips" data-reveal>
@@ -46,6 +71,8 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <span class="p-card__tag">Canvas</span>
     </div>
     <div class="p-card__actions" data-reveal>
+      <a class="p-card__link" href="/benchmarks"> 站内试玩 </a>
+      <a class="p-card__link" href="/leaderboard"> 查看排行榜 </a>
       <a
         class="p-card__link"
         href="https://github.com/SSC-STUDIO/Multi-Board-Game-Collection"
@@ -56,19 +83,159 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       </a>
       <a
         class="p-card__link"
-        href="https://github.com/SSC-STUDIO/Greedy-Snake-2026"
+        href="https://github.com/SSC-STUDIO/GreedySnake-2026"
         target="_blank"
         rel="noopener noreferrer"
       >
-        Greedy-Snake-2026
+        GreedySnake-2026
       </a>
-      <a class="p-card__link" href="/benchmarks"> 试玩游戏 </a>
-      <a class="p-card__link" href="/leaderboard"> 查看排行榜 </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/ai-lab-notes">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">AI Lab Notes</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a class="p-projnav__link p-projnav__link--next" href="/projects/games-lab">
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">Games Lab</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>

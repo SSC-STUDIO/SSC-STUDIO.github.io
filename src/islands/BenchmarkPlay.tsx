@@ -90,6 +90,11 @@ function visualCellCount(level: number, gridSize: number): number {
   return Math.min(level + 2, gridSize * gridSize - 1);
 }
 
+/** Visual memory: how long the pattern stays lit. */
+function visualShowDuration(level: number): number {
+  return 1200 + level * 200;
+}
+
 /** Chimp test: `count` shuffled numbers on distinct grid cells. */
 function generateGridCells(count: number, size: number): ChimpCell[] {
   const cells: ChimpCell[] = [];
@@ -397,7 +402,7 @@ function VisualMemoryGame() {
       setPhase("showing");
       later(() => {
         setPhase("input");
-      }, 1200 + lvl * 200);
+      }, visualShowDuration(lvl));
     },
     [later],
   );
@@ -423,6 +428,8 @@ function VisualMemoryGame() {
 
   const handleConfirm = useCallback(() => {
     if (phase !== "input") return;
+    // 一个都没选就确认多半是误触，不判负。
+    if (selected.length === 0) return;
     const patternSet = new Set(pattern.map((c) => `${c.row},${c.col}`));
     const allCorrect =
       selected.length === pattern.length &&
@@ -438,6 +445,17 @@ function VisualMemoryGame() {
       setPhase("gameover");
     }
   }, [phase, pattern, selected, level, startRound, later]);
+
+  // 键盘可玩：输入阶段按回车确认。
+  useEffect(() => {
+    if (phase !== "input") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key === "Enter") handleConfirm();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, handleConfirm]);
 
   const isActive = (row: number, col: number): boolean => {
     if (phase === "showing" || phase === "correct") {
@@ -510,9 +528,17 @@ function VisualMemoryGame() {
             </div>
           ) : null}
           {phase === "showing" ? (
-            <small className="benchmark-grid-hint">
-              第 {level} 级 — 记住方块位置 ({cellCount} 个)
-            </small>
+            <>
+              <small className="benchmark-grid-hint">
+                第 {level} 级 — 记住方块位置 ({cellCount} 个)
+              </small>
+              <span
+                key={level}
+                className="benchmark-timebar"
+                style={{ animationDuration: `${visualShowDuration(level)}ms` }}
+                aria-hidden="true"
+              />
+            </>
           ) : null}
         </div>
       ) : null}

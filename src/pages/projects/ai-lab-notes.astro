@@ -6,7 +6,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 
 <BaseLayout
   title="AI Lab Notes · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="AI Lab Notes：自托管 LLM 网关 Ai-Model-Gateway 与 PyTorch 视觉实验——模型路由、故障回退、遥测与可复现的训练笔记。"
 >
   <PageHero
     kicker="project · 2026"
@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">AI Lab Notes</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2026</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2026 · 持续迭代</span>
+      <span>project 02 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -32,11 +40,25 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     </figure>
     <div class="p-prose" data-reveal>
       <p>
-        主线是 Ai-Model-Gateway（Go）——面向 OpenAI / Anthropic
-        兼容 API
-        的自托管网关，覆盖模型路由、速率限制、故障回退、基准测试、配置发布与回滚；辅以
-        Plants-Disease-Detection 等 PyTorch
-        视觉实验，记录数据集来源、训练流程与部署取舍。
+        给 AI
+        实验一个可以复现、可以回滚的家：网关代码、训练脚本和踩过的坑，都记录在案。
+      </p>
+      <h2>主线 · Ai-Model-Gateway</h2>
+      <p>
+        Go 编写的自托管大模型运维网关，统一接入 OpenAI / Anthropic 兼容
+        API：模型路由、速率限制、故障回退、遥测观测与基准评测，配置支持发布、更新与回滚。源码与文档站全部开放。
+      </p>
+      <h2>支线 · Plants-Disease-Detection</h2>
+      <p>
+        一套开放的植物病害分类工具包：可复现的 PyTorch
+        训练流程、数据集溯源整理与配套教学材料。项目已归档，作为 CV
+        入门实验留存。
+      </p>
+      <h2>写下来</h2>
+      <p>
+        实验的弯路与结论会整理成文字，最新一篇见<a
+          href="/articles/ai-prototype-loop">《AI 原型的迭代回路》</a
+        >。
       </p>
     </div>
     <div class="p-chips" data-reveal>
@@ -71,11 +93,159 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       >
         Plants-Disease-Detection
       </a>
+      <a class="p-card__link" href="/articles/ai-prototype-loop">
+        相关文章
+      </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/my-website">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">MyWebsite 个人站</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a
+        class="p-projnav__link p-projnav__link--next"
+        href="/projects/interactive-game-kit"
+      >
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">Interactive Game Kit</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>

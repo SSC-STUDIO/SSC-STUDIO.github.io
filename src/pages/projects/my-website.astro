@@ -6,7 +6,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 
 <BaseLayout
   title="MyWebsite 个人站 · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="MyWebsite 个人站：Astro + Fastify + Prisma 的 TypeScript monorepo，承载作品集、文章、Human Benchmark 与班级空间。"
 >
   <PageHero
     kicker="project · 2026"
@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">MyWebsite 个人站</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2026</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2026 · 持续迭代</span>
+      <span>project 01 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -36,6 +44,21 @@ import PageFoot from '@/components/pages/PageFoot.astro'
         Prisma），承载作品展示、内容管理、认知实验排行与班级记忆库。GitHub
         主仓库持续迭代，也是本站与实验游戏的统一代码底座。
       </p>
+      <h2>架构</h2>
+      <p>
+        前端是 Astro 的静态优先路线：页面本身是很快的静态
+        HTML，Benchmark 游戏、私信与留言墙这类有状态的部分才水合成 React
+        孤岛。后端由 Fastify + Prisma + PostgreSQL
+        组成，提供账号、分数、留言与班级档案的 API——前后端住在同一个
+        monorepo 里，一次提交同时演进。
+      </p>
+      <h2>站内导览</h2>
+      <p>
+        这个项目就是你正在看的网站——<a href="/benchmarks">反应力实验</a
+        >、<a href="/articles">文章</a>、<a href="/honors">荣誉墙</a>、<a
+          href="/guestbook">留言簿</a
+        >与<a href="/class">班级空间</a>都长在它上面。
+      </p>
     </div>
     <div class="p-chips" data-reveal>
       <span class="p-card__tag">Astro</span>
@@ -45,13 +68,158 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <span class="p-card__tag">PostgreSQL</span>
     </div>
     <div class="p-card__actions" data-reveal>
-      <a class="p-card__link" href="/"> Visit </a>
-      <a class="p-card__link" href="/projects/my-website"> Project </a>
+      <a class="p-card__link" href="/"> 回到首页 </a>
+      <a class="p-card__link" href="/articles/why-build-personal-site">
+        建站缘起
+      </a>
+      <a class="p-card__link" href="/about"> 关于我 </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/honors">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">Honors & Growth</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a class="p-projnav__link p-projnav__link--next" href="/projects/ai-lab-notes">
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">AI Lab Notes</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>
