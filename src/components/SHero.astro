@@ -6,6 +6,7 @@ import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
 import StudioClock from './StudioClock.astro'
 import InkMist from './InkMist.astro'
+import InkBubbles from './InkBubbles.astro'
 import InkBamboo from './InkBamboo.astro'
 import InkFish from './InkFish.astro'
 import InkMoon from './InkMoon.astro'
@@ -14,6 +15,7 @@ import DateSeal from './DateSeal.astro'
 
 <div class="s-hero" data-intersect>
   <InkMist class="s__mist" />
+  <InkBubbles class="s__bubbles" />
   <InkBamboo class="s__bamboo" size={280} flip />
   <InkMoon class="s__moon" size={190} />
   <InkFish class="s__fish" size={200} />
@@ -579,6 +581,11 @@ import DateSeal from './DateSeal.astro'
       z-index: 1;
 
       translate: calc(var(--par-x, 0) * -5px) calc(var(--par-y, 0) * -3px);
+    }
+
+    /* 墨圈泡泡：与静态底纹同一族圆环，缓缓上浮 */
+    .s__bubbles {
+      z-index: 1;
     }
 
     .s__bamboo {

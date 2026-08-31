@@ -1,0 +1,231 @@
+---
+/**
+ * InkBubbles — 纸面墨圈冒泡
+ *
+ * 把 ink-cloud-ground 底纹里的空心墨圈「放活」几枚：
+ * 自区块底部缓缓上浮，带轻微横向摆动，大小 / 速度 / 相位随机，
+ * 到顶前淡出并在底部重生。全部 canvas 圆环描边，透明度压得很低，
+ * 不与主体内容抢注意力；reduced-motion 下完全不启动（静态底纹仍在）。
+ *
+ * 自定义元素生命周期 + data-intersect 暂停：SPA 换页与离屏都安全。
+ */
+const { class: className } = Astro.props
+---
+
+<ink-bubbles class:list={className} data-intersect aria-hidden="true">
+  <canvas class="js-canvas"></canvas>
+</ink-bubbles>
+
+<script>
+  import {
+    onFrame,
+    onResize,
+    onThemeFlip,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+
+  type RGB = { r: number; g: number; b: number }
+
+  type Bubble = {
+    /** 基准横位（0~1，相对宽度） */
+    bx: number
+    /** 纵位（px，自底部向上递减） */
+    y: number
+    r: number
+    /** 上浮速度 px/s */
+    speed: number
+    /** 横向摆幅 px 与频率 */
+    swayAmp: number
+    swayFreq: number
+    phase: number
+    /** 基础透明度（叠加生灭淡入淡出） */
+    alpha: number
+    /** 少数泡泡染朱砂，作纸面「铜钉」点缀 */
+    accent: boolean
+    lineWidth: number
+  }
+
+  function hexToRgb(hex: string): RGB | null {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+    if (!m) return null
+    const n = parseInt(m[1], 16)
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
+  }
+
+  class InkBubbles extends HTMLElement {
+    canvas: HTMLCanvasElement
+    ctx: CanvasRenderingContext2D
+
+    width = 0
+    height = 0
+    bubbles: Bubble[] = []
+
+    ink: RGB = { r: 28, g: 42, b: 34 }
+    accent: RGB = { r: 194, g: 58, b: 43 }
+
+    reduced = false
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+
+    connectedCallback() {
+      this.canvas = this.querySelector('.js-canvas')
+      const ctx = this.canvas?.getContext('2d')
+      if (!this.canvas || !ctx) return
+
+      this.ctx = ctx
+      this.reduced = prefersReducedMotion()
+      if (this.reduced) return
+
+      this.sampleColors()
+      this.resize()
+
+      const ro = new ResizeObserver(() => this.resize())
+      ro.observe(this)
+      this.stops.push(() => ro.disconnect())
+      this.stops.push(onResize(() => this.resize()))
+      this.stops.push(onThemeFlip(() => this.sampleColors()))
+
+      this.addEventListener('intersect', this.onIntersect as EventListener, {
+        passive: true,
+      })
+
+      this.resume()
+    }
+
+    disconnectedCallback() {
+      this.suspend()
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    onIntersect = (e: CustomEvent) => {
+      if (e.detail?.isIntersecting) this.resume()
+      else this.suspend()
+    }
+
+    resume() {
+      if (this.unframe || this.reduced) return
+      this.unframe = onFrame((time, delta) => this.paint(time, delta))
+    }
+
+    suspend() {
+      this.unframe?.()
+      this.unframe = null
+    }
+
+    sampleColors() {
+      const css = getComputedStyle(this)
+      this.ink = hexToRgb(css.getPropertyValue('--color-secondary')) ?? this.ink
+      this.accent =
+        hexToRgb(css.getPropertyValue('--color-accent')) ?? this.accent
+    }
+
+    resize() {
+      const width = this.clientWidth
+      const height = this.clientHeight
+      if (!width || !height) return
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      this.canvas.width = Math.round(width * dpr)
+      this.canvas.height = Math.round(height * dpr)
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+      this.width = width
+      this.height = height
+
+      const count = width < 720 ? 7 : 13
+      if (this.bubbles.length !== count) this.seed(count)
+    }
+
+    seed(count: number) {
+      this.bubbles = []
+      for (let i = 0; i < count; i++) {
+        // 初播撒满整个高度，避免开场底部扎堆
+        this.bubbles.push(this.makeBubble(Math.random()))
+      }
+    }
+
+    /** yRatio: 0 = 底部出生，(0,1] = 初播时撒在途中 */
+    makeBubble(yRatio = 0): Bubble {
+      const accent = Math.random() < 0.12
+
+      return {
+        bx: 0.03 + Math.random() * 0.94,
+        y: this.height * (1 - yRatio) + (yRatio === 0 ? 14 : 0),
+        r: 2.6 + Math.random() * 5.4,
+        speed: 7 + Math.random() * 12,
+        swayAmp: 4 + Math.random() * 9,
+        swayFreq: 0.0004 + Math.random() * 0.0005,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.05 + Math.random() * 0.06,
+        accent,
+        lineWidth: 0.9 + Math.random() * 0.7,
+      }
+    }
+
+    paint(time: number, delta: number) {
+      const { ctx, width, height, bubbles } = this
+      if (!width || !height) return
+
+      ctx.clearRect(0, 0, width, height)
+
+      const dt = delta / 1000
+      const fadeBand = height * 0.14
+
+      for (let i = 0; i < bubbles.length; i++) {
+        let b = bubbles[i]
+
+        b.y -= b.speed * dt
+
+        // 出顶重生：回到底部，换一套随机参数
+        if (b.y < -b.r * 2) {
+          b = bubbles[i] = this.makeBubble(0)
+        }
+
+        // 生灭：底部淡入、近顶淡出
+        const fromBottom = height - b.y
+        const fadeIn = Math.min(1, fromBottom / fadeBand)
+        const fadeOut = Math.min(1, Math.max(0, b.y / fadeBand))
+        const alpha = b.alpha * Math.min(fadeIn, fadeOut)
+        if (alpha <= 0.002) continue
+
+        const x =
+          b.bx * width + Math.sin(time * b.swayFreq + b.phase) * b.swayAmp
+
+        const c = b.accent ? this.accent : this.ink
+        ctx.beginPath()
+        ctx.arc(x, b.y, b.r, 0, Math.PI * 2)
+        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`
+        ctx.lineWidth = b.lineWidth
+        ctx.stroke()
+      }
+    }
+  }
+
+  if (!customElements.get('ink-bubbles')) {
+    customElements.define('ink-bubbles', InkBubbles)
+  }
+</script>
+
+<style lang="scss">
+  ink-bubbles {
+    position: absolute;
+    inset: 0;
+
+    display: block;
+
+    overflow: hidden;
+    pointer-events: none;
+
+    canvas {
+      position: absolute;
+      inset: 0;
+
+      display: block;
+
+      width: 100%;
+      height: 100%;
+    }
+  }
+</style>
