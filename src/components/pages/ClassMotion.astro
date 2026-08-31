@@ -1,0 +1,133 @@
+---
+/**
+ * ClassMotion — 班级空间三页共用的动效层
+ *
+ * 班级页的内容全部由 React 岛在取数之后插入，服务端渲染时 DOM 里空无一物，
+ * 所以入场只能交给 CSS：元素一挂载动画就跑，`backwards` 只回填起始帧，
+ * 动画不跑时元素仍是常态可读的——不会重演当年 clip-path 的白屏。
+ *
+ * 用在 class 索引、画廊与同学档案三页；画廊自身的灯箱手势留在页面里。
+ */
+import PageAura from './PageAura.astro'
+---
+
+<PageAura />
+
+<style lang="scss" is:global>
+  /* ── 入场：数据取回后逐块落定 ── */
+
+  .p-class__metric {
+    position: relative;
+
+    animation: class-settle 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    transition:
+      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.3s ease;
+  }
+
+  .p-class__metric:nth-child(2) {
+    animation-delay: 90ms;
+  }
+
+  .p-class__metric:nth-child(3) {
+    animation-delay: 180ms;
+  }
+
+  .p-class__metric:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 70%, transparent);
+  }
+
+  /* 数字：自纸面浮起半格，像刚落的墨迹收干 */
+  .p-class__metric dd:not(.p-class__metric-sub) {
+    animation: class-count-rise 720ms cubic-bezier(0.16, 1, 0.3, 1) 120ms
+      backwards;
+  }
+
+  .p-class__profile {
+    animation: class-settle 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .p-class__profile:nth-child(3n + 2) {
+    animation-delay: 80ms;
+  }
+
+  .p-class__profile:nth-child(3n) {
+    animation-delay: 160ms;
+  }
+
+  .p-class-boards__panel,
+  .p-class-profile__panel {
+    animation: class-settle 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .p-class-boards__panel:last-child,
+  .p-class-profile__panel:nth-child(2) {
+    animation-delay: 110ms;
+  }
+
+  .p-class-profile__panel:nth-child(n + 3) {
+    animation-delay: 200ms;
+  }
+
+  /* 留言逐条落纸；第五条起并作一档，长列表不必久等 */
+  .p-class-comments__item {
+    animation: class-settle 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .p-class-comments__item:nth-child(2) {
+    animation-delay: 60ms;
+  }
+
+  .p-class-comments__item:nth-child(3) {
+    animation-delay: 120ms;
+  }
+
+  .p-class-comments__item:nth-child(4) {
+    animation-delay: 180ms;
+  }
+
+  .p-class-comments__item:nth-child(n + 5) {
+    animation-delay: 240ms;
+  }
+
+  /* 回复展开时自留言下方推开 */
+  .p-class-comments__reply {
+    animation: class-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes class-settle {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.85rem, 0);
+    }
+  }
+
+  @keyframes class-count-rise {
+    from {
+      filter: blur(4px);
+      opacity: 0;
+      transform: translate3d(0, 0.35em, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-class__metric,
+    .p-class__metric dd:not(.p-class__metric-sub),
+    .p-class__profile,
+    .p-class-boards__panel,
+    .p-class-profile__panel,
+    .p-class-comments__item,
+    .p-class-comments__reply {
+      animation: none;
+    }
+
+    .p-class__metric {
+      transition: none;
+    }
+
+    .p-class__metric:hover {
+      transform: none;
+    }
+  }
+</style>

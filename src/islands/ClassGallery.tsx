@@ -16,9 +16,10 @@ import { ClassLoginLock } from "./ClassSpace";
  * Grid: native lazy loading, uniform aspect ratio, cover crop, video
  * badge, ink-wash skeleton that fades out once each thumb decodes.
  * Lightbox: fullscreen overlay, prev/next, ESC / backdrop click to close,
- * arrow keys + Home/End navigation, Tab focus trap, body scroll lock,
- * spinner while the large media loads, adjacent images preloaded, focus
- * restore on close.
+ * arrow keys + Home/End navigation, drag / swipe to step, Tab focus trap,
+ * body scroll lock, spinner while the large media loads, adjacent images
+ * preloaded, focus restore on close. Stepping slides the new frame in from
+ * the direction of travel, like turning a page in an album.
  */
 
 type MediaKind = "image" | "video";
@@ -144,6 +145,11 @@ export default function ClassGallery() {
   // URL of the lightbox media that finished loading — comparing against
   // the current item avoids reset races with cached images.
   const [readyUrl, setReadyUrl] = useState<string | null>(null);
+  // 翻页方向：新帧从来处滑入，一眼看得出往前还是往后
+  const [dir, setDir] = useState<-1 | 1>(1);
+  // 拖拽位移（px），松手前画面跟着手走
+  const [drag, setDrag] = useState(0);
+  const dragRef = useRef<{ id: number; x: number } | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
@@ -210,6 +216,7 @@ export default function ClassGallery() {
 
   const step = useCallback(
     (direction: -1 | 1) => {
+      setDir(direction);
       setSelected((current) =>
         current === null || items.length === 0
           ? current
@@ -217,6 +224,32 @@ export default function ClassGallery() {
       );
     },
     [items.length],
+  );
+
+  /* 拖拽翻页：一套指针事件同时吃下鼠标与触屏；
+     视频上的手势留给原生控件，不抢它的进度条。 */
+  const onDragStart = useCallback((event: React.PointerEvent) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if ((event.target as HTMLElement).closest("video")) return;
+    dragRef.current = { id: event.pointerId, x: event.clientX };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const onDragMove = useCallback((event: React.PointerEvent) => {
+    if (!dragRef.current || event.pointerId !== dragRef.current.id) return;
+    setDrag(event.clientX - dragRef.current.x);
+  }, []);
+
+  const onDragEnd = useCallback(
+    (event: React.PointerEvent) => {
+      if (!dragRef.current || event.pointerId !== dragRef.current.id) return;
+      const dx = event.clientX - dragRef.current.x;
+      dragRef.current = null;
+      setDrag(0);
+      // 甩过一指宽才算翻页，免得轻轻一点就跳走
+      if (Math.abs(dx) > 64) step(dx < 0 ? 1 : -1);
+    },
+    [step],
   );
 
   const lightboxOpen = selected !== null;
@@ -325,7 +358,8 @@ export default function ClassGallery() {
       ) : (
         <>
           <p className="p-class-gallery__count">
-            共 {items.length} 项 · 点击任意一张打开灯箱（← → 切换，ESC 关闭）
+            共 {items.length} 项 ·
+            点击任意一张打开灯箱（← → 或左右拖动切换，ESC 关闭）
           </p>
           <ul className="p-class-gallery__grid">
             {items.map((item, index) => (
@@ -371,7 +405,13 @@ export default function ClassGallery() {
             <figure
               className={`p-class-lightbox__figure${
                 mediaReady ? "" : " is-loading"
-              }`}
+              }${drag !== 0 ? " is-dragging" : ""}`}
+              data-dir={dir > 0 ? "next" : "prev"}
+              style={{ "--drag-x": `${drag}px` } as React.CSSProperties}
+              onPointerDown={onDragStart}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragEnd}
+              onPointerCancel={onDragEnd}
             >
               {current.kind === "video" ? (
                 // key forces a remount per file so the previous clip stops

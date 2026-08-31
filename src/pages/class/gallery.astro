@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ClassMotion from '@/components/pages/ClassMotion.astro'
 import ClassGallery from '@/islands/ClassGallery'
 ---
 
@@ -16,6 +17,7 @@ import ClassGallery from '@/islands/ClassGallery'
   />
 
   <main class="p-page p-page--wide">
+    <ClassMotion />
     <ClassGallery client:load />
   </main>
 
@@ -109,8 +111,78 @@ import ClassGallery from '@/islands/ClassGallery'
     }
   }
 
+  /* 格子解码完成即落墨入位。图片本就陆续到齐，
+     天然形成一片自上而下的错落，不必再排延迟。 */
+  .p-class-gallery__item.is-loaded {
+    animation: class-gallery-settle 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes class-gallery-settle {
+    from {
+      opacity: 0.35;
+      transform: translate3d(0, 0.7rem, 0) scale(0.985);
+    }
+  }
+
+  /* ── 灯箱翻页：新帧自来处滑入，如册页翻过一叶 ── */
+
+  .p-class-lightbox__figure {
+    cursor: grab;
+    touch-action: pan-y;
+
+    /* 松手后回位；拖拽中跟手，不加过渡 */
+    transform: translate3d(calc(var(--drag-x, 0px) * 0.32), 0, 0);
+    transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-class-lightbox__figure.is-dragging {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  .p-class-lightbox__figure .p-class-lightbox__media {
+    animation: class-lightbox-turn-next 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-class-lightbox__figure[data-dir='prev'] .p-class-lightbox__media {
+    animation-name: class-lightbox-turn-prev;
+  }
+
+  @keyframes class-lightbox-turn-next {
+    from {
+      opacity: 0;
+      transform: translate3d(3.5%, 0, 0) scale(0.985);
+    }
+  }
+
+  @keyframes class-lightbox-turn-prev {
+    from {
+      opacity: 0;
+      transform: translate3d(-3.5%, 0, 0) scale(0.985);
+    }
+  }
+
+  /* 左右按钮：悬停时朝去向递一步。
+     基准 transform 要留给 translateY(-50%) 居中，这里改用独立的 translate。 */
+  .p-class-lightbox__nav {
+    transition:
+      translate 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .p-class-lightbox__nav--prev:hover {
+    translate: -3px 0;
+  }
+
+  .p-class-lightbox__nav--next:hover {
+    translate: 3px 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .p-class-gallery__item::after {
+    .p-class-gallery__item::after,
+    .p-class-gallery__item.is-loaded,
+    .p-class-lightbox__figure .p-class-lightbox__media {
       animation: none;
     }
 
@@ -118,6 +190,20 @@ import ClassGallery from '@/islands/ClassGallery'
     .p-class-lightbox__media {
       transition: none;
       opacity: 1;
+    }
+
+    .p-class-lightbox__figure {
+      transform: none;
+      transition: none;
+    }
+
+    .p-class-lightbox__nav {
+      transition: none;
+    }
+
+    .p-class-lightbox__nav--prev:hover,
+    .p-class-lightbox__nav--next:hover {
+      translate: none;
     }
 
     .p-class-lightbox__figure.is-loading::before {

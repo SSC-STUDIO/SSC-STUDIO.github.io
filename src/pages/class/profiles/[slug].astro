@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ClassMotion from '@/components/pages/ClassMotion.astro'
 import ClassProfile from '@/islands/ClassProfile'
 
 // Profile slugs live behind the authenticated class API, so they cannot be
@@ -33,6 +34,7 @@ const { slug = '' } = Astro.params
   />
 
   <main class="p-page p-page--wide">
+    <ClassMotion />
     <ClassProfile client:load slug={slug} />
   </main>
 
