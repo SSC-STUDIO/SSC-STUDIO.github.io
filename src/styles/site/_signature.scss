@@ -515,7 +515,7 @@ html.theme-contrasted[data-daypart='dusk'] {
   will-change: transform;
 }
 
-sen-work,
+scroll-leaf,
 .p-card {
   transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);

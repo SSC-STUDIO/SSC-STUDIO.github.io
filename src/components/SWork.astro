@@ -1,5 +1,5 @@
 ---
-import AWork from './AWork.astro'
+import ScrollLeaf from './ScrollLeaf.astro'
 import InkMountains from './InkMountains.astro'
 import InkMeander from './InkMeander.astro'
 import InkScroll from './InkScroll.astro'
@@ -107,7 +107,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       <div class="s__scene js-scene">
         {
           works.map((work, index) => (
-            <AWork
+            <ScrollLeaf
               cssClass="s__scene__work s__scene__work--image js-work"
               href={work.href}
               img={work.img}

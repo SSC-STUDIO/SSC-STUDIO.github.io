@@ -1,4 +1,11 @@
 ---
+/**
+ * InkRail — 云头界栏
+ *
+ * 页面各段之间的一条「界栏」：两端如意云头收口，
+ * 中间朱丝栏串起几枚汉字，字会偶尔被点上一笔朱墨（呼吸式，
+ * 用随机间隔的定时器而非每帧掷骰，离屏即停）。
+ */
 const {
   class: className,
   style = 'primary',
@@ -6,73 +13,111 @@ const {
 } = Astro.props
 ---
 
-<sen-rail class:list={['style--' + style, className]} data-intersect>
-  <span class="a__node" aria-hidden="true"></span>
+<ink-rail class:list={['style--' + style, className]} data-intersect>
+  <svg
+    class="rail__cloud rail__cloud--head"
+    viewBox="0 0 30 14"
+    aria-hidden="true"
+  >
+    <path
+      d="M1 12.5 C4 7 9 4.5 14.5 5.2 C19.5 5.8 22 8.6 21.2 10.8 C20.5 12.6 18 12.8 17.2 11.3 C16.5 10 17.6 8.6 19 8.8"
+    ></path>
+    <path
+      class="rail__cloud-tail"
+      d="M5.5 12.5 C10 10.8 16 10.6 21 11.6 C24 12.2 27 11.8 29 10.4"
+    ></path>
+  </svg>
 
-  <span class="a__glyphs">
+  <span class="rail__glyphs">
     {
       strings.map((glyph) => (
         <>
-          <span class="a__glyph js-glyph">{glyph}</span>
-          <span class="a__rule" aria-hidden="true" />
+          <span class="rail__glyph js-glyph">{glyph}</span>
+          <span class="rail__rule" aria-hidden="true" />
         </>
       ))
     }
   </span>
 
-  <span class="a__node" aria-hidden="true"></span>
-</sen-rail>
+  <svg
+    class="rail__cloud rail__cloud--tail-end"
+    viewBox="0 0 30 14"
+    aria-hidden="true"
+  >
+    <path
+      d="M1 12.5 C4 7 9 4.5 14.5 5.2 C19.5 5.8 22 8.6 21.2 10.8 C20.5 12.6 18 12.8 17.2 11.3 C16.5 10 17.6 8.6 19 8.8"
+    ></path>
+    <path
+      class="rail__cloud-tail"
+      d="M5.5 12.5 C10 10.8 16 10.6 21 11.6 C24 12.2 27 11.8 29 10.4"
+    ></path>
+  </svg>
+</ink-rail><!-- .ink-rail -->
 
 <script>
-  import Emitter from '../utils/Emitter'
+  import { prefersReducedMotion } from '../motion/core'
 
-  class ASeparator extends HTMLElement {
-    glyphs: NodeListOf<HTMLElement>
-    isPaused: boolean
+  /** 点墨持续时长（与 CSS 过渡对齐） */
+  const DAB_MS = 320
+
+  class InkRail extends HTMLElement {
+    glyphs: HTMLElement[] = []
+    timer = 0
 
     connectedCallback() {
-      this.glyphs = this.querySelectorAll('.js-glyph')
-      this.isPaused = true
-      this.bindEvents()
-    }
+      this.glyphs = Array.from(
+        this.querySelectorAll<HTMLElement>('.js-glyph')
+      )
 
-    bindEvents() {
-      this.addEventListener('intersect', this.onIntersect.bind(this), {
+      this.addEventListener('intersect', this.onIntersect as EventListener, {
         passive: true,
       })
     }
 
-    onIntersect(e) {
-      this.isPaused = !e.detail.isIntersecting
-
-      if (this.isPaused) {
-        Emitter.off('tick', this.tick, this)
-      } else {
-        Emitter.on('tick', this.tick, this)
-      }
+    disconnectedCallback() {
+      this.stop()
     }
 
-    tick() {
-      this.glyphs.forEach((glyph) => {
-        if (Math.random() > 0.012) return
+    onIntersect = (e: CustomEvent) => {
+      if (e.detail?.isIntersecting) this.start()
+      else this.stop()
+    }
+
+    /** 随机间隔点墨：比每帧掷骰便宜，节奏也更像人在落笔 */
+    start() {
+      if (this.timer || !this.glyphs.length || prefersReducedMotion()) return
+
+      const dab = () => {
+        const glyph =
+          this.glyphs[Math.floor(Math.random() * this.glyphs.length)]
+
         glyph.classList.add('is-ink')
-        window.setTimeout(() => glyph.classList.remove('is-ink'), 280)
-      })
+        window.setTimeout(() => glyph.classList.remove('is-ink'), DAB_MS)
+
+        this.timer = window.setTimeout(dab, 1200 + Math.random() * 1600)
+      }
+
+      this.timer = window.setTimeout(dab, 500 + Math.random() * 900)
+    }
+
+    stop() {
+      window.clearTimeout(this.timer)
+      this.timer = 0
     }
   }
 
-  if (!customElements.get('sen-rail')) {
-    customElements.define('sen-rail', ASeparator)
+  if (!customElements.get('ink-rail')) {
+    customElements.define('ink-rail', InkRail)
   }
 </script>
 
 <style lang="scss">
-  sen-rail {
+  ink-rail {
     @include flex(row, center, space-between);
 
     position: relative;
 
-    padding: 0 1.15rem;
+    padding: 0 1.05rem;
     width: 100%;
     height: 2.35rem;
 
@@ -86,16 +131,32 @@ const {
     font: 700 13px / 1 font-family(editorial);
     letter-spacing: 0.28em;
 
-    .a__node {
+    .rail__cloud {
       flex-shrink: 0;
 
-      width: 1.5px;
+      width: 1.75rem;
       height: 0.85rem;
 
-      background: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      color: color-mix(in srgb, #{color(secondary)} 62%, transparent);
+
+      path {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.3;
+        stroke-linecap: round;
+      }
+
+      .rail__cloud-tail {
+        opacity: 0.55;
+      }
+
+      /* 尾端云头镜像，首尾相顾 */
+      &--tail-end {
+        transform: scaleX(-1);
+      }
     }
 
-    .a__glyphs {
+    .rail__glyphs {
       @include flex(row, center, space-between);
 
       flex: 1 1 auto;
@@ -103,7 +164,7 @@ const {
       padding: 0 0.85rem;
     }
 
-    .a__glyph {
+    .rail__glyph {
       position: relative;
 
       flex: 0 0 auto;
@@ -120,7 +181,7 @@ const {
       }
     }
 
-    .a__rule {
+    .rail__rule {
       flex: 1 1 auto;
 
       height: 5px;
@@ -170,11 +231,11 @@ const {
 
       color: color(primary);
 
-      .a__node {
-        background: color(primary);
+      .rail__cloud {
+        color: color-mix(in srgb, #{color(primary)} 72%, transparent);
       }
 
-      .a__glyph {
+      .rail__glyph {
         color: color(primary);
 
         &.is-ink {
@@ -182,7 +243,7 @@ const {
         }
       }
 
-      .a__rule {
+      .rail__rule {
         background-image:
           radial-gradient(circle, color-mix(in srgb, #{color(primary)} 70%, transparent) 0.7px, transparent 0.85px),
           radial-gradient(circle, color-mix(in srgb, #{color(accent)} 50%, transparent) 0.45px, transparent 0.6px),
@@ -193,7 +254,7 @@ const {
     &.style--accent {
       background: color(accent-muted);
 
-      .a__glyph.is-ink {
+      .rail__glyph.is-ink {
         color: color(accent-strong);
       }
     }

@@ -1541,17 +1541,17 @@ a.p-card {
 
 /* Accent separator variant (used right under every p-hero) */
 
-sen-rail {
+ink-rail {
   &.style--accent {
     background: color(accent-muted);
 
     color: color(secondary);
 
-    .a__node {
-      background: color(secondary);
+    .rail__cloud {
+      color: color-mix(in srgb, var(--color-secondary) 68%, transparent);
     }
 
-    .a__rule {
+    .rail__rule {
       background-image: repeating-linear-gradient(
         90deg,
         color(secondary) 0 5px,

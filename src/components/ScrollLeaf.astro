@@ -1,12 +1,19 @@
 ---
+/**
+ * ScrollLeaf — 卷·册页条目（作品长卷里的一叶）
+ *
+ * 装裱语言：松墨底、四角朱砂碰头、右上骑缝绢色签条（竖排卷号）。
+ * 对外协议：父级（作品长卷）通过 progress 属性驱动横移，
+ * 组件把它落成 --progress 变量并按可见性开合 content-visibility。
+ */
 const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
 ---
 
-<sen-work class={cssClass}>
-  <div class="a__inner">
+<scroll-leaf class={cssClass}>
+  <div class="leaf__inner">
     <a href={href}>
       <img
-        class="a__image js-image"
+        class="leaf__image js-image"
         src={img}
         alt={title}
         width="1082"
@@ -15,62 +22,52 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
         decoding="async"
       />
 
-      <div class="a__caption">
-        <div class="a__caption__text">
-          <span class="a__caption__title">{title}</span>
-          <span class="a__caption__summary">{summary}</span>
-          <span class="a__caption__stack">
-            {stack.map((tag) => <span class="a__caption__tag">{tag}</span>)}
+      <div class="leaf__caption">
+        <div class="leaf__caption__text">
+          <span class="leaf__caption__title">{title}</span>
+          <span class="leaf__caption__summary">{summary}</span>
+          <span class="leaf__caption__stack">
+            {stack.map((tag) => <span class="leaf__caption__tag">{tag}</span>)}
           </span>
-        </div><!-- .a__caption__text -->
+        </div><!-- .leaf__caption__text -->
 
-        <div class="a__caption__key">
+        <div class="leaf__caption__key">
           {key}
-        </div><!-- .a__caption__key -->
-      </div><!-- .a__caption -->
+        </div><!-- .leaf__caption__key -->
+      </div><!-- .leaf__caption -->
 
-      <span class="a__slip" aria-hidden="true">
-        <span class="a__slip__text">{key}</span>
+      <span class="leaf__slip" aria-hidden="true">
+        <span class="leaf__slip__text">{key}</span>
       </span>
     </a>
-  </div><!-- .a__inner -->
-</sen-work>
+  </div><!-- .leaf__inner -->
+</scroll-leaf>
 
 <script>
-  class AWork extends HTMLElement {
+  class ScrollLeaf extends HTMLElement {
     static observedAttributes = ['progress']
 
     link: HTMLAnchorElement
 
-    /**
-     * Init
-     */
     connectedCallback() {
-      // Elements
       this.link = this.querySelector('a')
-
-      // Events
       this.link.addEventListener('click', this.onClick.bind(this))
     }
 
-    /**
-     * Attribute changed
-     */
-    attributeChangedCallback(name, oldValue, newValue) {
-      if (name === 'progress') {
-        this.style.setProperty('--progress', newValue)
+    /** progress ∈ [-1, 1]：0 在画心，±1 出画外（出画即关渲染） */
+    attributeChangedCallback(name: string, _old: string, value: string) {
+      if (name !== 'progress') return
 
-        if (newValue === '1' || newValue === '-1') {
-          this.classList.remove('is-inview')
-        } else {
-          this.classList.add('is-inview')
-        }
+      this.style.setProperty('--progress', value)
+
+      if (value === '1' || value === '-1') {
+        this.classList.remove('is-inview')
+      } else {
+        this.classList.add('is-inview')
       }
     }
 
-    /**
-     * On click
-     */
+    /** 占位链接（#）不跳页 */
     onClick(event: MouseEvent) {
       if (this.link.href.includes('#')) {
         event.preventDefault()
@@ -79,13 +76,13 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
   }
 
-  if (!customElements.get('sen-work')) {
-    customElements.define('sen-work', AWork)
+  if (!customElements.get('scroll-leaf')) {
+    customElements.define('scroll-leaf', ScrollLeaf)
   }
 </script>
 
 <style lang="scss">
-  sen-work {
+  scroll-leaf {
     position: relative;
     top: 0;
     left: 0;
@@ -114,13 +111,13 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       text-decoration: none;
     }
 
-    .a__inner {
+    .leaf__inner {
       display: block;
       margin: 0;
       padding: 0;
     }
 
-    .a__image {
+    .leaf__image {
       display: block;
 
       width: auto;
@@ -139,12 +136,12 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
 
     /* 悬停时泛起陈年宣纸的旧色 */
-    a:hover .a__image,
-    a:focus-visible .a__image {
+    a:hover .leaf__image,
+    a:focus-visible .leaf__image {
       filter: sepia(0.22) saturate(1.06) contrast(1.02) brightness(0.99);
     }
 
-    .a__caption {
+    .leaf__caption {
       @include flex(row, flex-start, space-between);
 
       gap: 1rem;
@@ -156,28 +153,28 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       text-transform: none;
     }
 
-    .a__caption__text {
+    .leaf__caption__text {
       @include flex(column, flex-start, flex-start);
 
       gap: 0.35rem;
       max-width: 28rem;
     }
 
-    .a__caption__summary {
+    .leaf__caption__summary {
       color: color-mix(in srgb, var(--color-on-surface) 82%, transparent);
       font: 400 10px / 1.45 font-family(editorial);
       letter-spacing: 0.02em;
       text-transform: none;
     }
 
-    .a__caption__stack {
+    .leaf__caption__stack {
       @include flex(row, center, flex-start);
 
       flex-wrap: wrap;
       gap: 0.25rem;
     }
 
-    .a__caption__tag {
+    .leaf__caption__tag {
       padding: 0.18rem 0.42rem;
 
       border: 1px solid
@@ -189,7 +186,7 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       letter-spacing: 0.05em;
     }
 
-    .a__caption__key {
+    .leaf__caption__key {
       flex-shrink: 0;
       align-self: center;
       padding: 0.22rem 0.5rem;
@@ -206,7 +203,7 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
 
     /* 签条 —— 骑缝在册页右上角的绢色题签 */
-    .a__slip {
+    .leaf__slip {
       position: absolute;
       top: -0.55rem;
       right: 1.1rem;
@@ -217,7 +214,7 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
       pointer-events: none;
     }
 
-    .a__slip__text {
+    .leaf__slip__text {
       display: block;
       padding: 0.7em 0.26em;
 
@@ -242,12 +239,12 @@ const { cssClass, href, img, title, summary, stack = [], key } = Astro.props
     }
 
     @include mq(phone) {
-      .a__slip {
+      .leaf__slip {
         top: -0.4rem;
         right: 0.6rem;
       }
 
-      .a__slip__text {
+      .leaf__slip__text {
         font-size: 9px;
       }
     }

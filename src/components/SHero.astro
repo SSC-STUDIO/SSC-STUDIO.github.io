@@ -1,6 +1,6 @@
 ---
 import InkRidges from './InkRidges.astro'
-import ASeparator from './ASeparator.astro'
+import InkRail from './InkRail.astro'
 import SealMark from './SealMark.astro'
 import SenMark from './SenMark.astro'
 import StudioCard from './StudioCard.astro'
@@ -25,7 +25,7 @@ import DateSeal from './DateSeal.astro'
   <StudioCard />
 
   <div class="s__content js-content">
-    <ASeparator
+    <InkRail
       class="s__separator js-separator"
       style="primary"
       strings={['木', '林', '森']}
@@ -44,7 +44,7 @@ import DateSeal from './DateSeal.astro'
       <SealMark variant="hero" />
     </h1>
 
-    <ASeparator
+    <InkRail
       class="s__separator js-separator"
       style="accent"
       strings={['好奇', '造物', '长期']}
