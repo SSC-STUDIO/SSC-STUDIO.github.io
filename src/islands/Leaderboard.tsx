@@ -178,6 +178,11 @@ export default function Leaderboard() {
                     } as CSSProperties
                   }
                 >
+                  {index === 0 ? (
+                    <span className="lb-champ" aria-hidden="true">
+                      魁
+                    </span>
+                  ) : null}
                   <span className={`lb-rank ${RANK_CLASSES[index + 1] ?? ""}`}>
                     #{index + 1}
                   </span>
