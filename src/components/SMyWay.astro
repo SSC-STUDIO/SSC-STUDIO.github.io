@@ -1,6 +1,7 @@
 ---
 import InkMountains from './InkMountains.astro'
 import InkBloom from './InkBloom.astro'
+import InkBubbles from './InkBubbles.astro'
 import SenMark from './SenMark.astro'
 
 const frames = [
@@ -110,6 +111,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 <section class="s-my-way" data-intersect>
   <InkMountains compact />
   <InkBloom class="s__bloom" size={260} />
+  <InkBubbles class="s__bubbles" />
   <div class="s__smiley js-smiley" aria-hidden="true">
     <span class="s__smiley__ring"></span>
     <span class="s__smiley__pips">
@@ -1170,6 +1172,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       z-index: 1;
 
       opacity: 0.9;
+    }
+
+    /* 墨圈泡泡：与底纹圆环同族，自卷底缓缓上浮（压在物件与大字之下） */
+    .s__bubbles {
+      z-index: 1;
     }
 
     @include mq(desktop-lg) {
