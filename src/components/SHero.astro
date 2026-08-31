@@ -42,7 +42,7 @@ import DateSeal from './DateSeal.astro'
       把少年时的好奇，写进可运行的光里 · AI / 游戏 / 交互 / 长期作品
     </p>
 
-    <h1 class="s__title">
+    <h1 class="s__title" aria-label="CHEN RUNSEN">
       <span class="s__title__word js-word">CHEN</span>
       <span class="s__title__asset js-star" aria-hidden="true">
         <SenMark size={72} />
@@ -75,14 +75,19 @@ import DateSeal from './DateSeal.astro'
   import { gsap } from 'gsap'
 
   /**
-   * Split the title words into chars (replaces GSAP SplitText)
+   * 把题名拆成字（替代 GSAP SplitText）。
+   * 原文先记下，revert 时还原——无 JS / 拆字失败时 h1 里仍是可读的 CHEN RUNSEN。
+   * --char-i 对齐内页卷首：落定后墨光按字序错峰游走。
    */
   function splitWords(container: HTMLElement) {
-    const words = container.querySelectorAll('.js-word')
+    const words = container.querySelectorAll<HTMLElement>('.js-word')
     const chars: HTMLElement[] = []
+    const originals: { el: HTMLElement; text: string }[] = []
+    let index = 0
 
-    words.forEach((word: HTMLElement) => {
-      const text = word.textContent.trim()
+    words.forEach((word) => {
+      const text = (word.textContent || '').trim()
+      originals.push({ el: word, text })
 
       word.textContent = ''
       word.classList.add('word')
@@ -90,23 +95,26 @@ import DateSeal from './DateSeal.astro'
       ;[...text].forEach((letter) => {
         const char = document.createElement('span')
         char.classList.add('char', `char--${letter}`)
+        char.style.setProperty('--char-i', String(Math.min(index, 14)))
 
         const inner = document.createElement('span')
         inner.classList.add('char__inner')
         inner.dataset.letter = letter.toUpperCase()
-        inner.innerHTML = letter
+        inner.textContent = letter
 
         char.appendChild(inner)
         word.appendChild(char)
         chars.push(char)
+        index += 1
       })
     })
 
     return {
       chars,
       revert() {
-        words.forEach((word: HTMLElement) => {
-          word.textContent = word.textContent
+        originals.forEach(({ el, text }) => {
+          el.textContent = text
+          el.classList.remove('word')
         })
       },
     }
@@ -123,6 +131,7 @@ import DateSeal from './DateSeal.astro'
     stops: Cleanup[] = []
     unframe: Cleanup | null = null
     charTimers: number[] = []
+    idleTimer = 0
     tl: gsap.core.Timeline | null = null
     destroyed = false
 
@@ -191,11 +200,40 @@ import DateSeal from './DateSeal.astro'
       this.stops.forEach((stop) => stop())
       this.stops = []
       this.stopFrame()
+      this.stopIdle()
       this.charTimers.forEach((id) => clearTimeout(id))
       this.charTimers = []
       this.tl?.kill()
       this.tl = null
       this.el?.removeEventListener('intersect', this.onIntersect)
+    }
+
+    /**
+     * 闲时走字：对齐 InkRail「随机间隔定时器，不每帧掷骰」。
+     * 离屏 / reduced-motion / 换页即停。
+     */
+    startIdle() {
+      if (this.idleTimer || prefersReducedMotion() || this.destroyed) return
+
+      const loop = () => {
+        if (this.destroyed || this.isPaused || this.isWaiting) {
+          this.idleTimer = 0
+          if (!this.destroyed && !this.isPaused) {
+            this.idleTimer = window.setTimeout(loop, 1600)
+          }
+          return
+        }
+
+        this.animateChar()
+        this.idleTimer = window.setTimeout(loop, 2400 + Math.random() * 2800)
+      }
+
+      this.idleTimer = window.setTimeout(loop, 3200)
+    }
+
+    stopIdle() {
+      window.clearTimeout(this.idleTimer)
+      this.idleTimer = 0
     }
 
     startFrame() {
@@ -232,7 +270,14 @@ import DateSeal from './DateSeal.astro'
         this.el.removeEventListener('intersect', this.onIntersect)
       )
 
+      const title = this.el.querySelector('.s__title')
+      title?.addEventListener('click', this.onTitleClick)
+      this.stops.push(() =>
+        title?.removeEventListener('click', this.onTitleClick)
+      )
+
       this.startFrame()
+      this.startIdle()
     }
 
     /**
@@ -241,8 +286,33 @@ import DateSeal from './DateSeal.astro'
     onIntersect = (e: CustomEvent) => {
       this.isPaused = !e.detail.isIntersecting
 
-      if (this.isPaused) this.stopFrame()
-      else this.startFrame()
+      if (this.isPaused) {
+        this.stopFrame()
+        this.stopIdle()
+      } else {
+        this.startFrame()
+        this.startIdle()
+      }
+    }
+
+    /**
+     * 点字走墨：点到哪一枚就滑哪一枚；点到题名空隙则错峰带过几枚。
+     * 对齐内页卷首「字可玩」、关于页「先暗示再会给彩头」。
+     */
+    onTitleClick = (e: Event) => {
+      if (this.destroyed || this.isWaiting || prefersReducedMotion()) return
+
+      const char = (e.target as Element | null)?.closest(
+        '.char'
+      ) as HTMLElement | null
+      if (char && this.el.contains(char)) {
+        this.nudgeChar(char)
+        return
+      }
+
+      if ((e.target as Element | null)?.closest('.js-star, .seal-mark')) return
+
+      this.rippleChars()
     }
 
     /**
@@ -415,30 +485,51 @@ import DateSeal from './DateSeal.astro'
     }
 
     /**
-     * Animate char
+     * 单字水平走墨：贴边裁剪 + 对侧克隆补位。
      */
-    animateChar() {
-      if (this.isWaiting || !this.split || Math.random() > 0.01) return
-
-      const char =
-        this.split.chars[Math.floor(Math.random() * this.split.chars.length)]
-
+    nudgeChar(char: HTMLElement | undefined) {
+      if (!char || this.destroyed || this.isWaiting) return
       if (
         char.classList.contains('to-right') ||
         char.classList.contains('to-left')
       )
         return
 
-      /* 只做水平滚动：字形贴边裁剪 + 对侧克隆补位，
-         垂直方向在 0.82 行高下必然裁字头或叠邻行，砍掉 */
       const className = 'to-' + (Math.random() < 0.5 ? 'left' : 'right')
-
       char.classList.add(className)
 
       const timer = window.setTimeout(() => {
         char.classList.remove(className)
       }, 2000)
       this.charTimers.push(timer)
+    }
+
+    /** 闲时随机抽一枚 */
+    animateChar() {
+      if (!this.split?.chars.length) return
+      const char =
+        this.split.chars[Math.floor(Math.random() * this.split.chars.length)]
+      this.nudgeChar(char)
+    }
+
+    /** 点题名空隙：从落点附近带过三四枚，像一笔带过 */
+    rippleChars() {
+      if (!this.split?.chars.length) return
+
+      const pool = this.split.chars.filter(
+        (char) =>
+          !char.classList.contains('to-right') &&
+          !char.classList.contains('to-left')
+      )
+      const count = Math.min(3 + Math.floor(Math.random() * 2), pool.length)
+      const start = Math.floor(Math.random() * Math.max(1, pool.length - count + 1))
+
+      for (let i = 0; i < count; i++) {
+        const timer = window.setTimeout(() => {
+          this.nudgeChar(pool[start + i])
+        }, i * 70)
+        this.charTimers.push(timer)
+      }
     }
 
     /**
@@ -460,7 +551,7 @@ import DateSeal from './DateSeal.astro'
      * Tick
      */
     tick() {
-      this.animateChar()
+      if (this.destroyed) return
       this.tickParallax()
     }
   }
@@ -839,6 +930,23 @@ import DateSeal from './DateSeal.astro'
         clip-path: inset(-0.35em 0);
 
         color: color(secondary);
+        cursor: pointer;
+
+        /* 对齐内页卷首：落定后朱砂墨光按 --char-i 错峰游过 */
+        animation: s-hero-char-wave 9s ease-in-out infinite;
+        animation-delay: calc(2.6s + var(--char-i, 0) * 90ms);
+      }
+
+      @keyframes s-hero-char-wave {
+        0%,
+        86%,
+        100% {
+          color: color(secondary);
+        }
+
+        91% {
+          color: color-mix(in srgb, #{color(accent)} 62%, #{color(secondary)});
+        }
       }
 
       :global(.char__inner) {
@@ -887,6 +995,11 @@ import DateSeal from './DateSeal.astro'
       }
 
       @media (prefers-reduced-motion: reduce) {
+        :global(.char) {
+          animation: none;
+          cursor: default;
+        }
+
         :global(.to-right .char__inner),
         :global(.to-left .char__inner) {
           animation: none;
