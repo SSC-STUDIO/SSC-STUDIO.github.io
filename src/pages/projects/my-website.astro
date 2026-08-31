@@ -2,6 +2,8 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectCover from '@/components/pages/ProjectCover.astro'
+import ProjectNav from '@/components/pages/ProjectNav.astro'
 import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
@@ -28,19 +30,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <span>2026 · 持续迭代</span>
       <span>project 01 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal data-leaf>
-      <span class="p-detail-figure__plate">
-        <img
-          class="p-detail-cover"
-          src="/images/work-covers/my-website.svg"
-          alt="MyWebsite 个人站"
-          width="1082"
-          height="636"
-          loading="lazy"
-        />
-      </span>
-      <figcaption>FIG.01 · MyWebsite 个人站</figcaption>
-    </figure>
+    <ProjectCover slug="my-website" />
     <div class="p-prose" data-intersect>
       <p>
         TypeScript monorepo（Astro 电影感前端 + Fastify API +
@@ -81,27 +71,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       </a>
       <a class="p-card__link" href="/about" data-seal> 关于我 </a>
     </div>
-    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/honors" data-seal>
-        <span class="p-projnav__dir">← 上一个</span>
-        <span class="p-projnav__name">Honors & Growth</span>
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--index"
-        href="/projects"
-        data-seal
-      >
-        全部项目
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--next"
-        href="/projects/ai-lab-notes"
-        data-seal
-      >
-        <span class="p-projnav__dir">下一个 →</span>
-        <span class="p-projnav__name">AI Lab Notes</span>
-      </a>
-    </nav>
+    <ProjectNav slug="my-website" />
 
     <ProjectDetailMotion />
   </main>

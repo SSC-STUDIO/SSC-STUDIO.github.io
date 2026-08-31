@@ -2,6 +2,8 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectCover from '@/components/pages/ProjectCover.astro'
+import ProjectNav from '@/components/pages/ProjectNav.astro'
 import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
@@ -28,19 +30,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <span>2025 · 持续迭代</span>
       <span>project 03 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal data-leaf>
-      <span class="p-detail-figure__plate">
-        <img
-          class="p-detail-cover"
-          src="/images/work-covers/game-kit.svg"
-          alt="Interactive Game Kit"
-          width="1082"
-          height="636"
-          loading="lazy"
-        />
-      </span>
-      <figcaption>FIG.01 · Interactive Game Kit</figcaption>
-    </figure>
+    <ProjectCover slug="interactive-game-kit" />
     <div class="p-prose" data-intersect>
       <p>把「好玩」拆成三件事：规则、手感、反馈——每条产品线各攻一件。</p>
       <h2>三条产品线</h2>
@@ -95,27 +85,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
         GreedySnake-2026
       </a>
     </div>
-    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/ai-lab-notes" data-seal>
-        <span class="p-projnav__dir">← 上一个</span>
-        <span class="p-projnav__name">AI Lab Notes</span>
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--index"
-        href="/projects"
-        data-seal
-      >
-        全部项目
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--next"
-        href="/projects/games-lab"
-        data-seal
-      >
-        <span class="p-projnav__dir">下一个 →</span>
-        <span class="p-projnav__name">Games Lab</span>
-      </a>
-    </nav>
+    <ProjectNav slug="interactive-game-kit" />
 
     <ProjectDetailMotion />
   </main>

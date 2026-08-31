@@ -2,6 +2,8 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectCover from '@/components/pages/ProjectCover.astro'
+import ProjectNav from '@/components/pages/ProjectNav.astro'
 import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
@@ -28,19 +30,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <span>2025 · 持续写作</span>
       <span>project 07 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal data-leaf>
-      <span class="p-detail-figure__plate">
-        <img
-          class="p-detail-cover"
-          src="/images/work-covers/articles.svg"
-          alt="Articles & Notes"
-          width="1082"
-          height="636"
-          loading="lazy"
-        />
-      </span>
-      <figcaption>FIG.01 · Articles & Notes</figcaption>
-    </figure>
+    <ProjectCover slug="articles" />
     <div class="p-prose" data-intersect>
       <h2>为什么写</h2>
       <p>
@@ -66,27 +56,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <a class="p-card__link" href="/articles" data-seal> 全部文章 </a>
       <a class="p-card__link" href="/rss.xml" data-seal> RSS 订阅 </a>
     </div>
-    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/class-space" data-seal>
-        <span class="p-projnav__dir">← 上一个</span>
-        <span class="p-projnav__name">Class Space</span>
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--index"
-        href="/projects"
-        data-seal
-      >
-        全部项目
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--next"
-        href="/projects/honors"
-        data-seal
-      >
-        <span class="p-projnav__dir">下一个 →</span>
-        <span class="p-projnav__name">Honors & Growth</span>
-      </a>
-    </nav>
+    <ProjectNav slug="articles" />
 
     <ProjectDetailMotion />
   </main>

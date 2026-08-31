@@ -1,0 +1,66 @@
+---
+/**
+ * ProjectNav — 详情页相邻项目
+ *
+ * 上一 / 下一从 projects.ts 顺序只读环取，路由语义仍由那份数据决定。
+ * 牌上露出邻卷封面一角，像册页翻到边口。
+ */
+import { projects } from '@/data/projects'
+
+interface Props {
+  slug: string
+}
+
+const { slug } = Astro.props
+const index = projects.findIndex((project) => project.slug === slug)
+
+if (index < 0) {
+  throw new Error(`Unknown project slug: ${slug}`)
+}
+
+const total = projects.length
+const prev = projects[(index - 1 + total) % total]
+const next = projects[(index + 1) % total]
+---
+
+<nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
+  <a class="p-projnav__link" href={prev.href} data-seal>
+    <span class="p-projnav__thumb" aria-hidden="true">
+      <img
+        src={prev.cover}
+        alt=""
+        width="216"
+        height="127"
+        loading="lazy"
+        decoding="async"
+      />
+    </span>
+    <span class="p-projnav__copy">
+      <span class="p-projnav__dir">← 上一个</span>
+      <span class="p-projnav__name">{prev.name}</span>
+    </span>
+  </a>
+  <a
+    class="p-projnav__link p-projnav__link--index"
+    href="/projects"
+    data-seal
+  >
+    全部项目
+  </a>
+  <a class="p-projnav__link p-projnav__link--next" href={next.href} data-seal>
+    <span class="p-projnav__thumb" aria-hidden="true">
+      <img
+        src={next.cover}
+        alt=""
+        width="216"
+        height="127"
+        loading="lazy"
+        decoding="async"
+      />
+    </span>
+    <span class="p-projnav__copy">
+      <span class="p-projnav__dir">下一个 →</span>
+      <span class="p-projnav__name">{next.name}</span>
+    </span>
+  </a>
+</nav>

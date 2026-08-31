@@ -9,6 +9,8 @@ import { projects } from '@/data/projects'
 
 /** GitHub 数据由 `npm run sync:repos` 生成（构建期静态，不占用运行时配额） */
 const repos = reposData.repos
+
+const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 ---
 
 <BaseLayout
@@ -28,7 +30,7 @@ const repos = reposData.repos
       <p class="p-projects__label">selected works · 八件作品</p>
       <div class="p-grid p-grid--stagger">
         {
-          projects.map((project) => (
+          projects.map((project, i) => (
             <PageCard
               href={project.href}
               kicker={project.kicker}
@@ -38,16 +40,26 @@ const repos = reposData.repos
               <span
                 class="p-projects__figure"
                 data-handscroll
-                data-handscroll-parallax="2"
+                data-handscroll-parallax="5"
+                data-leaf
               >
-                <img
-                  class="p-detail-cover"
-                  src={project.cover}
-                  alt=""
-                  width="540"
-                  height="318"
-                  loading="lazy"
-                />
+                <span class="p-projects__pane">
+                  <img
+                    class="p-detail-cover"
+                    src={project.cover}
+                    alt=""
+                    width="540"
+                    height="318"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </span>
+                <span class="p-projects__window" aria-hidden="true" />
+                <span class="p-projects__slip" aria-hidden="true">
+                  <span class="p-projects__slip-text">
+                    卷 · {cnNumerals[i] ?? i + 1}
+                  </span>
+                </span>
               </span>
               <p>{project.summary}</p>
               <div class="p-card__tags">
@@ -174,9 +186,16 @@ const repos = reposData.repos
       }
     }
 
-    /* 窗框：一格定比例的取景框，封面在框内游移。
-       overflow 裁住溢出的画心，::after 补一圈内影作纵深。 */
+    /* 窗框：一格定比例的取景框。朱砂护角落在框上，
+       画心交给内层 pane 裁切，签条才能骑在框外不被切掉。 */
     &__figure {
+      @include ink-corner-marks(
+        $len: 11px,
+        $w: 1.5px,
+        $inset: 5px,
+        $softness: 0
+      );
+
       position: relative;
       display: block;
       overflow: hidden;
@@ -188,17 +207,94 @@ const repos = reposData.repos
 
       transition: border-color 0.32s ease;
 
+      /* 护角默认隐着，悬停时自外收拢落定 */
+      &::after {
+        opacity: 0;
+        transform: scale(1.04);
+        transition:
+          opacity 0.32s ease,
+          transform 0.45s ease(out-quint);
+      }
+    }
+
+    /* 开卷窗：铺满取景框，两侧略收，悬停时窗框张开 */
+    &__pane {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+
+      clip-path: inset(0 0.38rem);
+      transition: clip-path 0.5s ease(out-quint);
+    }
+
+    /* 内影 + 游走高光（高光吃 --leaf-sheen） */
+    &__window {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+
+      box-shadow: inset 0 0 1.45rem
+        color-mix(in srgb, #{color(secondary)} 15%, transparent);
+
+      pointer-events: none;
+
       &::after {
         position: absolute;
-        inset: 0;
-        z-index: 2;
+        top: -25%;
+        bottom: -25%;
+        left: -17%;
 
-        box-shadow: inset 0 0 1.35rem
-          color-mix(in srgb, #{color(secondary)} 15%, transparent);
+        width: 34%;
+
+        background: linear-gradient(
+          100deg,
+          transparent,
+          color-mix(in srgb, #{color(paper-warm)} 40%, transparent) 48%,
+          color-mix(in srgb, #{color(accent)} 8%, transparent) 66%,
+          transparent
+        );
 
         content: '';
-        pointer-events: none;
+        opacity: 0;
+        transform: translate3d(calc((1 - var(--leaf-sheen, 0.5)) * 294%), 0, 0)
+          skewX(-9deg);
+        transition: opacity 340ms ease;
       }
+    }
+
+    /* 骑缝签条：绢色竖题，压在窗框右上 */
+    &__slip {
+      position: absolute;
+      top: 0.32rem;
+      right: 0.48rem;
+      z-index: 3;
+
+      display: block;
+
+      pointer-events: none;
+    }
+
+    &__slip-text {
+      display: block;
+      padding: 0.5em 0.2em;
+
+      writing-mode: vertical-rl;
+
+      background: linear-gradient(
+        180deg,
+        color(paper-warm),
+        color-mix(in srgb, #{color(paper-warm)} 88%, #000)
+      );
+      box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, #{color(secondary)} 55%, transparent),
+        inset 0 0 0 2px color(paper-warm),
+        1px 1.5px 3px rgba(12, 10, 8, 0.22);
+
+      color: color(secondary);
+      font: 600 9px / 1.15 font-family(editorial);
+      letter-spacing: 0.28em;
+
+      white-space: nowrap;
     }
 
     /* 去向提示：默认静默，悬停时箭头前行 */
@@ -225,6 +321,15 @@ const repos = reposData.repos
       &:focus-visible {
         .p-projects__figure {
           border-color: color-mix(in srgb, #{color(accent)} 72%, transparent);
+
+          &::after {
+            opacity: 0.9;
+            transform: none;
+          }
+        }
+
+        .p-projects__pane {
+          clip-path: inset(0);
         }
 
         .p-projects__go {
@@ -260,9 +365,14 @@ const repos = reposData.repos
           opacity 0.3s ease;
       }
 
+      &.is-pressed .p-projects__go::after {
+        transform: translateX(7px);
+      }
+
       @media (prefers-reduced-motion: reduce) {
         &:hover,
-        &:focus-visible {
+        &:focus-visible,
+        &.is-pressed {
           .p-projects__go::after {
             transform: none;
           }
@@ -272,12 +382,11 @@ const repos = reposData.repos
   }
 
   /* 画心：比窗框高出一成，--scroll-shift 由 [data-handscroll] 每帧写入，
-     随滚动在框内上下游移，做出「透过窗看」的纵深。
+     随滚动在框内上下游移；指针拂过时再横移半步（--leaf-sheen）。
      取 8/5 而非窗框的 16/9：既留出游移的余量，
-     又只裁掉封面左右各三个百分点，边上的题字不至于被切。
-     （height 属性会把 SVG 压成 1.09 的怪比例，这里交还给取景比例。） */
+     又只裁掉封面左右各三个百分点，边上的题字不至于被切。 */
   .p-projects .p-projects__figure .p-detail-cover {
-    --cover-zoom: 1.05;
+    --cover-zoom: 1.06;
 
     display: block;
 
@@ -289,7 +398,11 @@ const repos = reposData.repos
     aspect-ratio: 8 / 5;
     object-fit: cover;
 
-    transform: translate3d(0, calc(-5% + var(--scroll-shift, 0vh)), 0)
+    transform: translate3d(
+        calc((var(--leaf-sheen, 0.5) - 0.5) * -12px),
+        calc(-5% + var(--scroll-shift, 0vh)),
+        0
+      )
       scale(var(--cover-zoom));
     transform-origin: center;
 
@@ -301,9 +414,18 @@ const repos = reposData.repos
   /* 悬停：推近半步，并沉入旧宣纸的色调（与首页 ScrollLeaf 同一手感） */
   .p-projects .p-card:hover .p-detail-cover,
   .p-projects .p-card:focus-visible .p-detail-cover {
-    --cover-zoom: 1.1;
+    --cover-zoom: 1.12;
 
     filter: sepia(0.22) saturate(1.06) contrast(1.02);
+  }
+
+  .p-projects .p-projects__figure.is-leaf-live .p-projects__window::after {
+    opacity: 0.48;
+  }
+
+  /* 按下：画心略退半步，像册页被指腹按住 */
+  .p-projects .p-card.is-pressed .p-detail-cover {
+    --cover-zoom: 1.02;
   }
 
   /* 区块入屏后，小引右侧那道朱丝自左描出 */
@@ -403,17 +525,35 @@ const repos = reposData.repos
 
   @media (prefers-reduced-motion: reduce) {
     .p-projects .p-projects__figure .p-detail-cover {
-      transform: translate3d(0, -5%, 0) scale(1.05);
+      transform: none;
       transition: none;
     }
 
     .p-projects .p-card:hover .p-detail-cover,
-    .p-projects .p-card:focus-visible .p-detail-cover {
-      --cover-zoom: 1.05;
+    .p-projects .p-card:focus-visible .p-detail-cover,
+    .p-projects .p-card.is-pressed .p-detail-cover {
+      --cover-zoom: 1;
+      filter: none;
     }
 
-    .p-projects .p-projects__figure {
+    .p-projects .p-projects__figure,
+    .p-projects .p-projects__figure::after,
+    .p-projects .p-projects__pane,
+    .p-projects .p-projects__window::after {
       transition: none;
+    }
+
+    .p-projects .p-projects__figure::after {
+      opacity: 0.75;
+      transform: none;
+    }
+
+    .p-projects .p-projects__pane {
+      clip-path: none;
+    }
+
+    .p-projects .p-projects__window::after {
+      display: none;
     }
 
     html.js .p-projects .p-projects__label::after {

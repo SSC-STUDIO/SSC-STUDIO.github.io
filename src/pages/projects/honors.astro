@@ -2,6 +2,8 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectCover from '@/components/pages/ProjectCover.astro'
+import ProjectNav from '@/components/pages/ProjectNav.astro'
 import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
@@ -28,19 +30,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <span>2024 起 · 持续收录</span>
       <span>project 08 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal data-leaf>
-      <span class="p-detail-figure__plate">
-        <img
-          class="p-detail-cover"
-          src="/images/work-covers/honors.svg"
-          alt="Honors & Growth"
-          width="1082"
-          height="636"
-          loading="lazy"
-        />
-      </span>
-      <figcaption>FIG.01 · Honors & Growth</figcaption>
-    </figure>
+    <ProjectCover slug="honors" />
     <div class="p-prose" data-intersect>
       <h2>荣誉墙</h2>
       <p>
@@ -64,27 +54,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <a class="p-card__link" href="/honors" data-seal> 荣誉墙与成长河流 </a>
       <a class="p-card__link" href="/about" data-seal> 关于我 </a>
     </div>
-    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/articles" data-seal>
-        <span class="p-projnav__dir">← 上一个</span>
-        <span class="p-projnav__name">Articles & Notes</span>
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--index"
-        href="/projects"
-        data-seal
-      >
-        全部项目
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--next"
-        href="/projects/my-website"
-        data-seal
-      >
-        <span class="p-projnav__dir">下一个 →</span>
-        <span class="p-projnav__name">MyWebsite 个人站</span>
-      </a>
-    </nav>
+    <ProjectNav slug="honors" />
 
     <ProjectDetailMotion />
   </main>

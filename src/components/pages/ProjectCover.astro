@@ -1,0 +1,48 @@
+---
+/**
+ * ProjectCover — 详情页封面画框
+ *
+ * 窗框 + 画心视差 + 骑缝签条。封面与卷号只从 projects.ts 只读取出，
+ * 不改路由语义。脚本缺席时封面与图注照常可见。
+ */
+import { projects } from '@/data/projects'
+
+interface Props {
+  slug: string
+}
+
+const { slug } = Astro.props
+const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
+const index = projects.findIndex((project) => project.slug === slug)
+const project = projects[index]
+
+if (!project) {
+  throw new Error(`Unknown project slug: ${slug}`)
+}
+
+const volume = cnNumerals[index] ?? String(index + 1)
+const figNo = String(index + 1).padStart(2, '0')
+---
+
+<figure class="p-detail-figure" data-reveal data-leaf>
+  <span class="p-detail-figure__spine" aria-hidden="true"></span>
+  <span
+    class="p-detail-figure__plate"
+    data-handscroll
+    data-handscroll-parallax="5"
+  >
+    <img
+      class="p-detail-cover"
+      src={project.cover}
+      alt={project.name}
+      width="1082"
+      height="636"
+      loading="lazy"
+      decoding="async"
+    />
+  </span>
+  <span class="p-detail-figure__slip" aria-hidden="true">
+    <span class="p-detail-figure__slip-text">卷 · {volume}</span>
+  </span>
+  <figcaption>FIG.{figNo} · {project.name}</figcaption>
+</figure>

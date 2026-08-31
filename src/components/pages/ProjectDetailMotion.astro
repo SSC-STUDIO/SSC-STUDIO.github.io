@@ -3,7 +3,7 @@
  * ProjectDetailMotion — 八个项目详情页共用的装帧与动效
  *
  * 一处收齐：卷底墨圈环境层、面包屑与相邻项目牌的样式、
- * 封面画框的册页翻页与游走高光、正文逐段落墨、
+ * 封面画框的册页翻页、窗框开合与游走高光、正文逐段落墨、
  * 元信息与标签的错峰入场、去向链接的落印手感。
  * 详情页只需把它放进 <main class="p-page p-detail"> 末尾。
  *
@@ -17,7 +17,6 @@ import PageAura from './PageAura.astro'
 <PageAura />
 
 <style lang="scss" is:global>
-
   /* ══════════════════════════════════════════════════════
      面包屑 —— 一行细字压顶，去处随悬停亮起朱丝
      ══════════════════════════════════════════════════════ */
@@ -79,7 +78,7 @@ import PageAura from './PageAura.astro'
   }
 
   /* ══════════════════════════════════════════════════════
-     相邻项目牌 —— 左右两块去向，名字随悬停向去处递一步
+     相邻项目牌 —— 邻卷封面探出边口，名字朝去处递一步
      ══════════════════════════════════════════════════════ */
 
   .p-projnav {
@@ -90,17 +89,20 @@ import PageAura from './PageAura.astro'
     margin-top: 2.5rem;
     padding-top: 1.5rem;
 
-    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+    border-top: 1.5px dashed
+      color-mix(in srgb, #{color(accent)} 45%, transparent);
 
     /* 三块去向牌错峰落下 */
     --flow-step: 88ms;
 
     &__link {
       display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
 
-      padding: 0.9rem 1rem;
+      overflow: hidden;
+      padding: 0.7rem 0.8rem;
 
       border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
 
@@ -123,21 +125,26 @@ import PageAura from './PageAura.astro'
         outline-offset: 2px;
       }
 
-      @media (prefers-reduced-motion: reduce) {
-        &:hover,
-        &:focus-visible {
-          transform: none;
-        }
+      /* 落印：朝各自的去处压半步，盖过 data-seal 的垂直位移 */
+      &.is-pressed {
+        transform: translate3d(-5px, 1px, 0);
+        transition-duration: 90ms;
       }
     }
 
     &__link--next {
+      flex-direction: row-reverse;
       text-align: right;
-      align-items: flex-end;
+      align-items: center;
+
+      &.is-pressed {
+        transform: translate3d(5px, 1px, 0);
+      }
     }
 
     &__link--index {
       align-self: center;
+      justify-content: center;
 
       padding: 0.6rem 0.9rem;
 
@@ -151,7 +158,62 @@ import PageAura from './PageAura.astro'
       &:focus-visible {
         background: transparent;
         color: color(accent);
+        transform: none;
       }
+
+      &.is-pressed {
+        transform: translate3d(0, 1px, 0);
+      }
+    }
+
+    /* 邻卷封面：比牌略大一圈，默认朝来处藏一点，悬停时推入窗心 */
+    &__thumb {
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+
+      width: 4.7rem;
+      aspect-ratio: 16 / 9;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 32%, transparent);
+
+      &::after {
+        position: absolute;
+        inset: 0;
+
+        box-shadow: inset 0 0 0.7rem
+          color-mix(in srgb, #{color(secondary)} 16%, transparent);
+
+        content: '';
+        pointer-events: none;
+      }
+
+      img {
+        display: block;
+
+        width: 124%;
+        height: 124%;
+        margin: -10% 0 0 -8%;
+
+        object-fit: cover;
+
+        transform: translate3d(6%, 0, 0) scale(1.02);
+        transition:
+          transform 0.55s ease(out-quint),
+          filter 0.4s ease;
+      }
+    }
+
+    &__link--next &__thumb img {
+      margin-left: -16%;
+      transform: translate3d(-6%, 0, 0) scale(1.02);
+    }
+
+    &__copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.38rem;
+      min-width: 0;
     }
 
     &__dir {
@@ -188,12 +250,23 @@ import PageAura from './PageAura.astro'
       transform: translateX(4px);
     }
 
+    &__link:hover &__thumb img,
+    &__link:focus-visible &__thumb img {
+      transform: translate3d(0, 0, 0) scale(1.08);
+      filter: sepia(0.18) saturate(1.05) contrast(1.02);
+    }
+
     @include mq(phone) {
       grid-template-columns: 1fr;
 
       &__link--next {
+        flex-direction: row;
         text-align: left;
-        align-items: flex-start;
+      }
+
+      &__link--next &__thumb img {
+        margin-left: -8%;
+        transform: translate3d(6%, 0, 0) scale(1.02);
       }
 
       &__link--index {
@@ -204,9 +277,9 @@ import PageAura from './PageAura.astro'
   }
 
   /* ══════════════════════════════════════════════════════
-     封面画框 —— 册页翻页 + 一道随指针游走的高光
+     封面画框 —— 册页翻页 + 窗框开合 + 一道随指针游走的高光
      [data-leaf] 已在全局样式里备好基础 transform 与 --leaf-* 变量，
-     这里只写「怎么受光、怎么隔窗看画」。
+     这里只写「怎么受光、怎么隔窗看画、怎么骑缝」。
      ══════════════════════════════════════════════════════ */
 
   .p-detail .p-detail-figure {
@@ -229,13 +302,83 @@ import PageAura from './PageAura.astro'
     }
   }
 
-  /* 画心：一格自带裁切的窗，封面在窗内游移 */
+  /* 书脊：左侧一道苔纹界栏，像册页装进函套的中缝 */
+  .p-detail .p-detail-figure__spine {
+    position: absolute;
+    top: 14%;
+    bottom: 22%;
+    left: 0;
+    z-index: 3;
+
+    width: 7px;
+
+    background-image:
+      linear-gradient(
+        color-mix(in srgb, #{color(secondary)} 46%, transparent),
+        color-mix(in srgb, #{color(secondary)} 46%, transparent)
+      ),
+      repeating-linear-gradient(
+        180deg,
+        color-mix(in srgb, #{color(accent)} 28%, transparent) 0 2px,
+        transparent 2px 7px
+      );
+    background-repeat: no-repeat, repeat;
+    background-size:
+      1.5px 100%,
+      5px 100%;
+    background-position:
+      center,
+      1px 0;
+
+    pointer-events: none;
+  }
+
+  /* 骑缝签条：绢色竖题，骑在画框右上角 */
+  .p-detail .p-detail-figure__slip {
+    position: absolute;
+    top: -0.45rem;
+    right: 1.15rem;
+    z-index: 4;
+
+    display: block;
+
+    pointer-events: none;
+  }
+
+  .p-detail .p-detail-figure__slip-text {
+    display: block;
+    padding: 0.62em 0.24em;
+
+    writing-mode: vertical-rl;
+
+    background: linear-gradient(
+      180deg,
+      color(paper-warm),
+      color-mix(in srgb, #{color(paper-warm)} 88%, #000)
+    );
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, #{color(secondary)} 55%, transparent),
+      inset 0 0 0 2.5px color(paper-warm),
+      1px 1.5px 4px rgba(12, 10, 8, 0.28);
+
+    color: color(secondary);
+    font: 600 10.5px / 1.15 font-family(editorial);
+    letter-spacing: 0.32em;
+
+    white-space: nowrap;
+  }
+
+  /* 画心：一格自带裁切的窗，封面在窗内游移。
+     默认两侧略收——像作品卷的开卷遮罩；指针拂过时窗框张开。 */
   .p-detail .p-detail-figure__plate {
     position: relative;
     display: block;
     overflow: hidden;
 
     border: 1px solid color-mix(in srgb, #{color(secondary)} 45%, transparent);
+
+    clip-path: inset(0 0.38rem);
+    transition: clip-path 480ms ease(out-quint);
 
     /* 窗内纵深：四缘一圈极淡内影 */
     &::before {
@@ -279,27 +422,54 @@ import PageAura from './PageAura.astro'
     }
   }
 
+  .p-detail .p-detail-figure.is-leaf-live .p-detail-figure__plate {
+    clip-path: inset(0);
+  }
+
   .p-detail .p-detail-figure.is-leaf-live .p-detail-figure__plate::after {
     opacity: 0.5;
   }
 
   /* 封面本体：height 属性会把 SVG 拉变形，交还给原比例；
-     略放大一档留出余量，好让指针带着画面在窗内反向游移。 */
+     略放大一档留出余量，好让滚动与指针带着画面在窗内反向游移。
+     --scroll-shift 写在 plate（[data-handscroll]）上，子元素继承。 */
   .p-detail .p-detail-figure .p-detail-cover {
     --cover-pan: 0px;
 
+    display: block;
+
+    width: 100%;
     height: auto;
 
     border: 0;
+    aspect-ratio: 8 / 5;
+    object-fit: cover;
 
-    transform: translate3d(var(--cover-pan), 0, 0) scale(1.03);
+    transform: translate3d(
+        var(--cover-pan),
+        calc(-4% + var(--scroll-shift, 0vh)),
+        0
+      )
+      scale(1.08);
+    transform-origin: center;
     transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .p-detail .p-detail-figure.is-leaf-live .p-detail-cover {
-    --cover-pan: calc((var(--leaf-sheen, 0.5) - 0.5) * -14px);
+    --cover-pan: calc((var(--leaf-sheen, 0.5) - 0.5) * -18px);
 
     transition: transform 120ms linear;
+  }
+
+  @include mq(phone) {
+    .p-detail .p-detail-figure__slip {
+      top: -0.32rem;
+      right: 0.7rem;
+    }
+
+    .p-detail .p-detail-figure__slip-text {
+      font-size: 9px;
+    }
   }
 
   /* ══════════════════════════════════════════════════════
@@ -445,8 +615,10 @@ import PageAura from './PageAura.astro'
   @media (prefers-reduced-motion: reduce) {
     .p-crumbs a::after,
     .p-projnav__name,
+    .p-projnav__thumb img,
     .p-detail .p-detail-figure,
     .p-detail .p-detail-figure .p-detail-cover,
+    .p-detail .p-detail-figure__plate,
     .p-detail .p-chips .p-card__tag,
     .p-detail .p-prose a {
       transition: none;
@@ -457,6 +629,11 @@ import PageAura from './PageAura.astro'
       transform: scaleX(1);
     }
 
+    .p-projnav__link:hover,
+    .p-projnav__link:focus-visible,
+    .p-projnav__link.is-pressed,
+    .p-projnav__link--next.is-pressed,
+    .p-projnav__link--index.is-pressed,
     .p-projnav__link:hover .p-projnav__name,
     .p-projnav__link:focus-visible .p-projnav__name,
     .p-projnav__link--next:hover .p-projnav__name,
@@ -465,8 +642,20 @@ import PageAura from './PageAura.astro'
       transform: none;
     }
 
+    .p-projnav__thumb img,
+    .p-projnav__link--next .p-projnav__thumb img,
+    .p-projnav__link:hover .p-projnav__thumb img,
+    .p-projnav__link:focus-visible .p-projnav__thumb img {
+      transform: none;
+      filter: none;
+    }
+
     .p-detail .p-detail-figure .p-detail-cover {
       transform: none;
+    }
+
+    .p-detail .p-detail-figure__plate {
+      clip-path: none;
     }
 
     .p-detail .p-detail-figure__plate::after {

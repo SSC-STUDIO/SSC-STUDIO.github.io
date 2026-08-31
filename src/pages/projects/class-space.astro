@@ -2,6 +2,8 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ProjectCover from '@/components/pages/ProjectCover.astro'
+import ProjectNav from '@/components/pages/ProjectNav.astro'
 import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
 ---
 
@@ -28,19 +30,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <span>2025 · 持续记录</span>
       <span>project 06 / 08</span>
     </div>
-    <figure class="p-detail-figure" data-reveal data-leaf>
-      <span class="p-detail-figure__plate">
-        <img
-          class="p-detail-cover"
-          src="/images/work-covers/class.svg"
-          alt="Class Space"
-          width="1082"
-          height="636"
-          loading="lazy"
-        />
-      </span>
-      <figcaption>FIG.01 · Class Space</figcaption>
-    </figure>
+    <ProjectCover slug="class-space" />
     <div class="p-prose" data-intersect>
       <p>这个站最柔软的一角，收藏我们这一班的现场。</p>
       <h2>有什么</h2>
@@ -66,27 +56,7 @@ import ProjectDetailMotion from '@/components/pages/ProjectDetailMotion.astro'
       <a class="p-card__link" href="/class/gallery" data-seal> 班级画廊 </a>
       <a class="p-card__link" href="/account" data-seal> 登录账号 </a>
     </div>
-    <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-      <a class="p-projnav__link" href="/projects/benchmarks" data-seal>
-        <span class="p-projnav__dir">← 上一个</span>
-        <span class="p-projnav__name">Human Benchmarks</span>
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--index"
-        href="/projects"
-        data-seal
-      >
-        全部项目
-      </a>
-      <a
-        class="p-projnav__link p-projnav__link--next"
-        href="/projects/articles"
-        data-seal
-      >
-        <span class="p-projnav__dir">下一个 →</span>
-        <span class="p-projnav__name">Articles & Notes</span>
-      </a>
-    </nav>
+    <ProjectNav slug="class-space" />
 
     <ProjectDetailMotion />
   </main>
