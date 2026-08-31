@@ -1,11 +1,73 @@
 import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+import net from 'node:net';
 
 import react from '@astrojs/react';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const API_TUNNEL_PORT = 18080;
+
+/**
+ * Dev-only guard in front of the `/api` proxy.
+ *
+ * The proxy target is an SSH tunnel to production which is often not
+ * running locally. Without this guard every `/api/*` request crashes in
+ * the proxy with a noisy ECONNREFUSED stack trace. Here we probe the
+ * tunnel port (cached for a few seconds) and answer a clean 503 JSON
+ * when it is down, so islands can degrade gracefully and the console
+ * stays quiet.
+ */
+function apiTunnelFallback() {
+  let lastProbe = 0;
+  let tunnelUp = false;
+  const PROBE_TTL = 5000;
+
+  const probe = () =>
+    new Promise((resolve) => {
+      const socket = net.connect({ host: '127.0.0.1', port: API_TUNNEL_PORT });
+      let settled = false;
+      const done = (ok) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolve(ok);
+      };
+      socket.setTimeout(400);
+      socket.once('connect', () => done(true));
+      socket.once('timeout', () => done(false));
+      socket.once('error', () => done(false));
+    });
+
+  return {
+    name: 'api-tunnel-fallback',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url || !req.url.startsWith('/api/')) return next();
+
+        const now = Date.now();
+        if (now - lastProbe > PROBE_TTL) {
+          tunnelUp = await probe();
+          lastProbe = now;
+        }
+        if (tunnelUp) return next();
+
+        res.statusCode = 503;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(
+          JSON.stringify({
+            error: 'api_unavailable',
+            hint: `SSH tunnel to production API (127.0.0.1:${API_TUNNEL_PORT}) is not running`,
+          })
+        );
+      });
+    },
+  };
+}
 
 // https://astro.build/config
 export default defineConfig({
@@ -17,11 +79,12 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [apiTunnelFallback()],
     server: {
       proxy: {
         // Local dev: forward API calls through the SSH tunnel to production
         '/api': {
-          target: 'http://localhost:18080',
+          target: `http://127.0.0.1:${API_TUNNEL_PORT}`,
           changeOrigin: true,
         },
       },
