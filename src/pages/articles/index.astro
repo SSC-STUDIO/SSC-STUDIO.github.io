@@ -3,11 +3,37 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+
+/** 文章清单：新文在前；words 为正文约数，用来估算阅读时长（400 字/分钟） */
+const articles = [
+  {
+    href: '/articles/why-build-personal-site',
+    kicker: 'featured',
+    title: '为什么还在做个人网站',
+    summary: '在模板和社交平台之间，个人站仍然值得投入。',
+    date: '2026年3月1日',
+    words: 380,
+    tags: ['meta', 'writing'],
+  },
+  {
+    href: '/articles/ai-prototype-loop',
+    kicker: 'note',
+    title: 'AI 原型的快速迭代循环',
+    summary: '从想法到可点击 demo，我使用的四步循环。',
+    date: '2026年2月15日',
+    words: 300,
+    tags: ['ai', 'engineering'],
+  },
+]
+
+const total = articles.length
+const pad = (n: number) => String(n).padStart(2, '0')
+const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 ---
 
 <BaseLayout
   title="Articles · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="文章目录：工程复盘、AI 实验笔记与关于个人网站的长期思考，把灵感写慢、把问题写透。"
 >
   <PageHero
     kicker="content"
@@ -16,35 +42,49 @@ import PageCard from '@/components/pages/PageCard.astro'
   />
 
   <main class="p-page p-page--wide">
+    <p class="p-articles-count" data-reveal>
+      卷内共 <strong>{total}</strong> 篇 · 依时间倒序陈列
+    </p>
     <div class="p-stack p-stack--cards">
-      <PageCard
-        href="/articles/why-build-personal-site"
-        kicker="featured"
-        id="#ART-01/02"
-        title="为什么还在做个人网站"
-      >
-        <p>在模板和社交平台之间，个人站仍然值得投入。</p>
-        <p class="p-card__meta">2026年3月1日</p>
-        <div class="p-card__tags">
-          <span class="p-card__tag">meta</span>
-          <span class="p-card__tag">writing</span>
-        </div>
-      </PageCard>
-      <PageCard
-        href="/articles/ai-prototype-loop"
-        kicker="note"
-        id="#ART-02/02"
-        title="AI 原型的快速迭代循环"
-      >
-        <p>从想法到可点击 demo，我使用的四步循环。</p>
-        <p class="p-card__meta">2026年2月15日</p>
-        <div class="p-card__tags">
-          <span class="p-card__tag">ai</span>
-          <span class="p-card__tag">engineering</span>
-        </div>
-      </PageCard>
+      {
+        articles.map((article, index) => (
+          <PageCard
+            href={article.href}
+            kicker={article.kicker}
+            id={`#ART-${pad(index + 1)}/${pad(total)}`}
+            title={article.title}
+          >
+            <p>{article.summary}</p>
+            <p class="p-card__meta">
+              {article.date} · 约 {readingMinutes(article.words)} 分钟读完
+            </p>
+            <div class="p-card__tags">
+              {article.tags.map((tag) => (
+                <span class="p-card__tag">{tag}</span>
+              ))}
+            </div>
+          </PageCard>
+        ))
+      }
     </div>
   </main>
 
   <PageFoot current="/articles" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* 卷首计数：如册页题记，一行小字压在卡片群之上 */
+  .p-articles-count {
+    margin: 0 0 1.25rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 400 0.85rem / 1.4 font-family(editorial);
+    letter-spacing: 0.08em;
+
+    strong {
+      color: color(accent);
+      font-family: font-family(fraktion);
+      font-weight: 700;
+    }
+  }
+</style>
