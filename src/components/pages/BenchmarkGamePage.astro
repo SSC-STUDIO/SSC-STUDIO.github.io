@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import BenchmarkPlay from '@/islands/BenchmarkPlay'
 
 interface Props {
@@ -42,6 +43,14 @@ const {
   chips,
   game,
 } = Astro.props
+
+/** 台面卷底的一个题字，按能力分类取字：疾 / 记 / 注 */
+const KIND_GLYPH: Record<string, string> = {
+  reaction: '疾',
+  memory: '记',
+  attention: '注',
+}
+const glyph = KIND_GLYPH[kind] ?? '测'
 ---
 
 <BaseLayout
@@ -50,7 +59,8 @@ const {
 >
   <PageHero kicker={heroKicker} title={title} summary={summary} />
 
-  <main class="p-page">
+  <main class:list={['p-page', 'p-bench-play', `p-bench-play--${game}`]}>
+    <PageAura />
     <div class="p-detail-meta" data-reveal>
       <span>参考 {refValue} {refUnit}</span>
       <span>{kind}</span>
@@ -61,12 +71,18 @@ const {
         参考指标：<strong>{refValue}</strong> {refUnit}
       </p>
     </div>
-    <div class="p-chips" data-reveal>
+    <div class="p-chips" data-flow data-intersect>
       {chips.map((chip) => <span class="p-chip p-chip--accent">{chip}</span>)}
     </div>
-    <div style="margin-top: 2rem;" data-reveal>
+    <section
+      class="p-bench-play__stage"
+      data-reveal
+      data-handscroll
+      data-handscroll-parallax="9"
+    >
+      <span class="p-bench-play__glyph" aria-hidden="true">{glyph}</span>
       <BenchmarkPlay client:load game={game} />
-    </div>
+    </section>
     <p class="p-back" data-reveal>
       <a class="p-card__link p-card__link--ghost" href="/benchmarks"
         >← 全部挑战</a
@@ -80,7 +96,228 @@ const {
 
 <style lang="scss" is:global>
   /* 基准测试组页面级手感样式 — 只作用于使用本组件的 7 个游戏页。
-     动画只用 transform / opacity，并全部尊重 prefers-reduced-motion。 */
+     动画只用 transform / opacity，并全部尊重 prefers-reduced-motion。
+
+     一条贯穿全篇的纪律：凡是可能落在「计时那一瞬」的动画，
+     选择器必须把该状态显式排除。反应测试尤甚 —— 变绿的一帧
+     不允许有任何过渡或动画在跑。 */
+
+  /* ── 台面：装裱护角与卷底题字 ── */
+
+  .p-bench-play__stage {
+    /* z-index 自成一栈，题字的负层才不会跑到别处去 */
+    position: relative;
+    z-index: 0;
+
+    margin-top: 2rem;
+    padding: 1.35rem 0.5rem 0.5rem;
+
+    @include ink-corner-marks(18px, 1.5px, 0, color(accent), 0.5);
+  }
+
+  /* 题字随滚动缓缓反向游移，替台面垫出一层纵深 */
+  .p-bench-play__glyph {
+    position: absolute;
+    top: -1.1rem;
+    right: 0.2rem;
+    z-index: -1;
+
+    color: color(secondary);
+    font: 700 clamp(4.5rem, 15vw, 8rem) / 1 font-family(bigger);
+
+    opacity: 0.055;
+    pointer-events: none;
+    user-select: none;
+
+    transform: translate3d(0, calc(var(--scroll-shift, 0vh) * -1.5), 0);
+  }
+
+  /* ── 靶子：候点、落指、结算 ── */
+
+  .benchmark-target {
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 170ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* 候点时一圈朱砂在纸上呼吸三口，示意「可落指」，之后归于静止。
+     只挂 idle（起手与结算重开）：状态一旦离开 idle 规则即不再命中，
+     动画当帧停摆，绿色那一瞬没有任何东西在动。
+
+     刻意用有限次数而非 infinite：靶子是 React 孤岛的 SSR 产物，
+     壳层的「离屏暂停」只挑 iterations = Infinity 的宿主，
+     一旦挑中就会往元素上写行内 animation-play-state ——
+     那正好赶在 React 补水之前，换来一串 hydration mismatch 报错。 */
+  .benchmark-target[data-state='idle']::after {
+    position: absolute;
+    inset: 0.5rem;
+    z-index: 0;
+
+    border: 1.5px solid color-mix(in srgb, #{color(accent)} 52%, transparent);
+
+    content: '';
+    opacity: 0.15;
+    pointer-events: none;
+
+    animation: bench-pad-breathe 3.4s ease(in-out-sine) 3;
+  }
+
+  @keyframes bench-pad-breathe {
+    0%,
+    100% {
+      opacity: 0.14;
+      transform: scale(0.988);
+    }
+
+    50% {
+      opacity: 0.44;
+      transform: scale(1);
+    }
+  }
+
+  /* 起手台面的悬停轻提 —— 同样只在 idle */
+  .benchmark-target[data-state='idle']:hover {
+    transform: translate3d(0, -2px, 0);
+  }
+
+  /* 落指如钤印：整块贴回纸面。ready 被显式排除。 */
+  .benchmark-target:active:not([data-state='ready']) {
+    transform: translate3d(0, 1.5px, 0);
+  }
+
+  /* 结算落印：成绩自纸面上方压下来，旋即收住 */
+  .benchmark-target[data-state='result'] .benchmark-target__inner > span {
+    animation: bench-stamp 620ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+  }
+
+  @keyframes bench-stamp {
+    from {
+      opacity: 0;
+      transform: scale(1.42) rotate(-2.5deg);
+    }
+
+    55% {
+      opacity: 1;
+    }
+  }
+
+  /* 落印之后的朱砂涟漪：一圈自中心晕开即散 */
+  .benchmark-target[data-state='result']::before {
+    position: absolute;
+    inset: 8%;
+    z-index: 0;
+
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, #{color(accent)} 32%, transparent) 0 34%,
+      color-mix(in srgb, #{color(accent)} 11%, transparent) 34% 60%,
+      transparent 62%
+    );
+
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+
+    animation: bench-result-splash 800ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes bench-result-splash {
+    0% {
+      opacity: 0.85;
+      transform: scale(0.34);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.32);
+    }
+  }
+
+  /* 失手一闪：整块靶子泛起一层朱砂再退去，与既有的横晃同拍 */
+  .benchmark-target--fail::before {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+
+    background: color-mix(in srgb, #{color(accent)} 24%, transparent);
+
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+
+    animation: bench-fail-wash 560ms ease backwards;
+  }
+
+  @keyframes bench-fail-wash {
+    0% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* 太早点击的告白：朱砂小字闪两下 */
+  .benchmark-target__warn {
+    animation: bench-warn-blink 640ms ease-in-out backwards;
+  }
+
+  @keyframes bench-warn-blink {
+    0%,
+    46% {
+      opacity: 0.15;
+    }
+
+    24%,
+    72% {
+      opacity: 1;
+    }
+  }
+
+  /* ── 反应测试专属：计时精度优先 ──
+     变绿的一帧不允许有颜色过渡（原先 0.2s 的 background 过渡会把
+     「看见绿色」的时刻往后推），只保留与计时无关的 box-shadow 与 transform。 */
+  .p-bench-play--reaction-test .benchmark-target {
+    transition:
+      box-shadow 0.2s ease,
+      transform 170ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ── 过场节拍 ── */
+
+  /* 倒数：每一记数字自上方压下（React 换 key 重播） */
+  .benchmark-countdown {
+    animation: bench-count-beat 740ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes bench-count-beat {
+    from {
+      opacity: 0.18;
+      transform: scale(1.5);
+    }
+
+    60% {
+      opacity: 1;
+    }
+  }
+
+  /* 换幕：新一关的题面自纸底极轻地浮上来。
+     压到 260ms 以内，不去吃记忆类游戏的观察时间。 */
+  .benchmark-round--beat {
+    animation: bench-round-beat 260ms ease(out-quint) backwards;
+  }
+
+  @keyframes bench-round-beat {
+    from {
+      opacity: 0.72;
+      transform: translate3d(0, 5px, 0);
+    }
+  }
 
   /* 记忆类游戏「显示阶段」的剩余时间条：scaleX 从 1 收缩到 0，
      时长由 island 按当前关卡的展示时间内联指定。 */
@@ -105,6 +342,63 @@ const {
     }
   }
 
+  /* ── 棋盘：落墨、悬停、清点 ── */
+
+  /* 新棋盘自左上向右下逐格洇开。
+     只挂在「状态类是终态」的格子上：黑猩猩的 .wrong 一出现就进结算、
+     不会再摘掉，所以后面用 .wrong 覆盖 animation 是安全的。
+     舒尔特表的 --error 会在 400ms 后摘掉，格子若带基态 animation，
+     摘类那一刻入场动画会被整条重播一遍 —— 因此舒尔特表改为
+     整盘一次铺开（见 .schulte-grid），不做逐格错峰。 */
+  .benchmark-grid-cell,
+  .benchmark-sequence-tile {
+    animation: bench-cell-ink 360ms ease(out-quint) backwards;
+    animation-delay: calc(var(--cell-i, 0) * 12ms);
+  }
+
+  @keyframes bench-cell-ink {
+    from {
+      opacity: 0;
+      transform: scale(0.86);
+    }
+  }
+
+  @for $i from 1 through 36 {
+    .benchmark-grid-cell:nth-child(#{$i}),
+    .benchmark-sequence-tile:nth-child(#{$i}) {
+      --cell-i: #{$i - 1};
+    }
+  }
+
+  /* 舒尔特表整盘铺开：一次极短的展卷，之后格子各自的
+     --cleared / --error 动画互不干扰。 */
+  .schulte-grid {
+    animation: bench-board-in 420ms ease(out-quint) backwards;
+  }
+
+  @keyframes bench-board-in {
+    from {
+      opacity: 0;
+      transform: scale(0.975);
+    }
+  }
+
+  /* 悬停时一圈朱砂微光自格边渗出 */
+  .benchmark-grid-cell,
+  .benchmark-sequence-tile {
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.1s ease;
+  }
+
+  .benchmark-grid-cell:hover:not(:disabled),
+  .benchmark-sequence-tile:hover:not(:disabled) {
+    box-shadow: 0 0 0.55rem
+      color-mix(in srgb, #{color(accent)} 38%, transparent);
+  }
+
   /* 点击的物理感：格子 / 序列块 / 大靶子按下时轻微下沉。 */
   .benchmark-grid-cell:active:not(:disabled),
   .benchmark-sequence-tile:active:not(:disabled),
@@ -117,6 +411,47 @@ const {
     background: color-mix(in srgb, #{color(accent)} 65%, #{color(primary)});
     border-color: color(accent);
     transform: scale(1.05);
+  }
+
+  /* 舒尔特表：清点进度的一道墨痕，按比例横向展开 */
+  .schulte-progress {
+    display: block;
+
+    width: min(100%, 28rem);
+    height: 3px;
+    margin: 0.85rem auto 0;
+
+    background: color-mix(in srgb, #{color(secondary)} 14%, transparent);
+
+    span {
+      display: block;
+
+      height: 100%;
+
+      background: linear-gradient(
+        90deg,
+        color(accent-strong),
+        color(accent)
+      );
+
+      transform-origin: left center;
+      transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  }
+
+  /* 点亮的一记收束：墨色落定 */
+  .schulte-cell--cleared {
+    animation: bench-cell-clear 300ms ease(out-quint) backwards;
+  }
+
+  @keyframes bench-cell-clear {
+    from {
+      transform: scale(0.9);
+    }
+
+    55% {
+      transform: scale(1.05);
+    }
   }
 
   /* 答对/出题过场：轻微放大回落，给「换幕」一个节拍。
@@ -170,22 +505,93 @@ const {
     animation: benchmark-fail-shake 0.4s ease(out-quint);
   }
 
+  /* ── 按钮：提交与再来一局的落印感 ── */
+
+  .p-bench-play .p-card__link {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.2s ease;
+  }
+
+  .p-bench-play .p-card__link:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 3px 0 color-mix(in srgb, #{color(accent)} 72%, transparent);
+  }
+
+  .p-bench-play .p-card__link:active:not(:disabled) {
+    transform: translate3d(0, 1px, 0);
+    box-shadow: none;
+  }
+
+  /* 成绩统计条：入屏后逐格落墨 */
+  .benchmark-stats span,
+  .schulte-hud span {
+    animation: bench-stat-rise 420ms ease(out-quint) backwards;
+    animation-delay: calc(var(--stat-i, 0) * 60ms);
+  }
+
+  @keyframes bench-stat-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 6px, 0);
+    }
+  }
+
+  @for $i from 1 through 4 {
+    .benchmark-stats span:nth-child(#{$i}),
+    .schulte-hud span:nth-child(#{$i}) {
+      --stat-i: #{$i - 1};
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .benchmark-timebar {
-      animation: none;
-    }
-
-    .benchmark-grid-cell:active:not(:disabled),
-    .benchmark-sequence-tile:active:not(:disabled),
-    .schulte-cell:active:not(:disabled),
-    .benchmark-sequence-tile.pressed {
-      transform: none;
-    }
-
+    .benchmark-timebar,
+    .benchmark-target[data-state='idle']::after,
+    .benchmark-target[data-state='result'] .benchmark-target__inner > span,
+    .benchmark-target[data-state='result']::before,
+    .benchmark-target--fail::before,
+    .benchmark-target__warn,
+    .benchmark-countdown,
+    .benchmark-round--beat,
+    .benchmark-grid-cell,
+    .benchmark-sequence-tile,
+    .schulte-grid,
+    .schulte-cell--cleared,
+    .benchmark-stats span,
+    .schulte-hud span,
     .benchmark-target--pop .benchmark-target__inner,
     .benchmark-target.benchmark-target--fail,
     .benchmark-grid-cell.wrong {
       animation: none;
+    }
+
+    .benchmark-target[data-state='idle']::after,
+    .benchmark-target[data-state='result']::before,
+    .benchmark-target--fail::before {
+      opacity: 0;
+    }
+
+    .p-bench-play__glyph,
+    .benchmark-target,
+    .benchmark-target[data-state='idle']:hover,
+    .benchmark-target:active:not([data-state='ready']),
+    .benchmark-grid-cell:active:not(:disabled),
+    .benchmark-sequence-tile:active:not(:disabled),
+    .schulte-cell:active:not(:disabled),
+    .benchmark-sequence-tile.pressed,
+    .p-bench-play .p-card__link:hover,
+    .p-bench-play .p-card__link:active:not(:disabled) {
+      transform: none;
+    }
+
+    .benchmark-target,
+    .benchmark-grid-cell,
+    .benchmark-sequence-tile,
+    .schulte-progress span,
+    .p-bench-play .p-card__link {
+      transition: none;
     }
   }
 </style>

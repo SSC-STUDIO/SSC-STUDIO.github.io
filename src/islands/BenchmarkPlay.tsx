@@ -490,7 +490,10 @@ function VisualMemoryGame() {
       ) : null}
 
       {phase === "showing" || phase === "input" || phase === "correct" ? (
-        <div>
+        // 出题那一拍给整块题面一记极短的浮起（类每轮重新加上，动画自然重播）
+        <div
+          className={`benchmark-round${phase === "showing" ? " benchmark-round--beat" : ""}`}
+        >
           <div
             className="benchmark-grid"
             style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
@@ -691,7 +694,9 @@ function SequenceMemoryGame() {
       ) : null}
 
       {phase === "showing" || phase === "input" || phase === "correct" ? (
-        <div>
+        <div
+          className={`benchmark-round${phase === "showing" ? " benchmark-round--beat" : ""}`}
+        >
           <div className="benchmark-sequence-row">
             {Array.from({ length: SEQUENCE_TILE_COUNT }, (_, i) => (
               <button
@@ -834,7 +839,9 @@ function ChimpTestGame() {
       ) : null}
 
       {phase === "showing" || phase === "input" || phase === "correct" ? (
-        <div>
+        <div
+          className={`benchmark-round${phase === "showing" ? " benchmark-round--beat" : ""}`}
+        >
           <div
             className="benchmark-grid"
             style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
@@ -1228,7 +1235,13 @@ function SchulteGridGame() {
       {phase === "countdown" ? (
         <div className="benchmark-target" data-state="ready">
           <div className="benchmark-target__inner">
-            <span className="benchmark-number">{countdown}</span>
+            {/* key 随读数变化：每记数字都是新节点，落数动画自然重播 */}
+            <span
+              key={countdown}
+              className="benchmark-number benchmark-countdown"
+            >
+              {countdown}
+            </span>
             <small>准备 — 倒数结束后找到数字 1</small>
           </div>
         </div>
@@ -1258,6 +1271,14 @@ function SchulteGridGame() {
                 </button>
               );
             })}
+          </div>
+          {/* 清点进度：一道墨痕按已点亮的格数横向展开 */}
+          <div className="schulte-progress" aria-hidden="true">
+            <span
+              style={{
+                transform: `scaleX(${(nextExpected - 1) / SCHULTE_CELL_COUNT})`,
+              }}
+            />
           </div>
           <div className="schulte-hud">
             <span>下一个: {nextExpected}</span>

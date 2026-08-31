@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 
 const games = [
   {
@@ -88,37 +89,291 @@ const games = [
     summary="Human Benchmark 式认知小实验：反应、记忆、注意力 — 分数可提交、可排行。"
   />
 
-  <main class="p-page p-page--wide">
+  <main class="p-page p-page--wide p-bench">
+    <PageAura />
     <div class="p-detail-meta" data-reveal>
       <span>7 项挑战</span>
       <span>分数同步排行榜</span>
     </div>
-    <div class="p-grid">
-      {
-        games.map((game) => (
-          <PageCard
-            href={game.href}
-            kicker={game.kicker}
-            id={game.id}
-            title={game.title}
-          >
-            <p>{game.summary}</p>
-            <p>
-              <strong>{game.ref}</strong> {game.unit}
-            </p>
-            <div class="p-card__tags">
-              {game.tags.map((tag) => (
-                <span class="p-card__tag">{tag}</span>
-              ))}
+    <section
+      class="p-bench__deck"
+      data-handscroll
+      data-handscroll-parallax="5"
+      aria-label="全部挑战"
+    >
+      <div class="p-grid p-bench__grid" data-flow data-intersect>
+        {
+          games.map((game) => (
+            <div class="p-bench__cell">
+              <PageCard
+                class="p-bench__card"
+                href={game.href}
+                kicker={game.kicker}
+                id={game.id}
+                title={game.title}
+              >
+                <p>{game.summary}</p>
+                <p class="p-bench__metric">
+                  <strong>{game.ref}</strong>
+                  <span>{game.unit}</span>
+                </p>
+                <div class="p-card__tags">
+                  {game.tags.map((tag) => (
+                    <span class="p-card__tag">{tag}</span>
+                  ))}
+                </div>
+                <p class="p-bench__go" aria-hidden="true">
+                  <span>开始挑战</span>
+                  <span class="p-bench__arrow">→</span>
+                </p>
+              </PageCard>
             </div>
-          </PageCard>
-        ))
-      }
-    </div>
+          ))
+        }
+      </div>
+    </section>
     <p class="p-back" data-reveal>
-      <a class="p-card__link" href="/leaderboard">查看排行榜 →</a>
+      <a class="p-card__link" href="/leaderboard" data-leaf>查看排行榜 →</a>
     </p>
   </main>
 
   <PageFoot current="/benchmarks" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── Benchmarks 索引页：册页错落的挑战陈列 ──
+     纵深写在包裹层 .p-bench__cell 上，绝不落到 .p-card 自己的
+     transform —— 那一条上还叠着 MotionPack 的册页倾斜与悬停提起，
+     两处各写各的，后来者会把前者整条抹掉。 */
+
+  .p-bench {
+    /* 三列各走不同的纵深系数，如园林里前后错落的几进院落。
+       --scroll-shift 由 [data-handscroll] 持续写在 .p-bench__deck 上。 */
+    .p-bench__cell {
+      --bench-depth: 0;
+
+      transform: translate3d(
+        0,
+        calc(var(--scroll-shift, 0vh) * var(--bench-depth)),
+        0
+      );
+    }
+
+    @media (min-width: 1080px) {
+      .p-bench__cell:nth-child(3n + 1) {
+        --bench-depth: 0.8;
+      }
+
+      .p-bench__cell:nth-child(3n + 2) {
+        --bench-depth: 0.3;
+      }
+
+      .p-bench__cell:nth-child(3n + 3) {
+        --bench-depth: 0.58;
+      }
+    }
+
+    /* 四角朱砂括号：悬停时自外收拢落定，如册页上框好的护角 */
+    .p-bench__card {
+      @include ink-corner-marks(15px, 1.5px, 6px, color(accent-strong), 1);
+
+      &::after {
+        opacity: 0;
+        transform: scale(1.035);
+
+        transition:
+          opacity 300ms ease,
+          transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      &:hover::after,
+      &:focus-visible::after {
+        opacity: 0.85;
+        transform: none;
+      }
+    }
+
+    /* 抬头一线朱丝：自左扫入，压住 kicker 与编号 */
+    .p-bench__card .p-card__head {
+      position: relative;
+
+      &::after {
+        position: absolute;
+        right: 0;
+        bottom: -0.34rem;
+        left: 0;
+
+        height: 1.5px;
+
+        background: linear-gradient(
+          90deg,
+          color(accent-strong),
+          color-mix(in srgb, #{color(accent)} 12%, transparent)
+        );
+
+        content: '';
+
+        transform: scaleX(0);
+        transform-origin: left center;
+        transition: transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+    }
+
+    .p-bench__card:hover .p-card__head::after,
+    .p-bench__card:focus-visible .p-card__head::after {
+      transform: scaleX(1);
+    }
+
+    /* 编号如一枚小印：悬停时压深朱砂、微微歪一点落下去 */
+    .p-bench__card .p-card__id {
+      transition:
+        transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 260ms ease,
+        color 260ms ease;
+    }
+
+    .p-bench__card:hover .p-card__id {
+      background-color: color(accent-strong);
+      color: color(primary);
+
+      transform: translate3d(0, -1px, 0) rotate(-1.8deg) scale(1.05);
+    }
+
+    .p-bench__card .p-card__kicker {
+      transition: color 260ms ease;
+    }
+
+    .p-bench__card:hover .p-card__kicker {
+      color: color-mix(in srgb, #{color(secondary)} 90%, transparent);
+    }
+
+    /* 参考指标：悬停时数字微涨并染朱砂，把「可玩」摆到明处 */
+    .p-bench__card .p-bench__metric {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+
+      margin: 0.85rem 0 0;
+
+      strong {
+        display: inline-block;
+
+        color: color(secondary);
+        font: 700 clamp(1.45rem, 2.6vw, 1.95rem) / 1 font-family(fraktion);
+        letter-spacing: 0.02em;
+
+        transform-origin: left bottom;
+        transition:
+          transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          color 260ms ease;
+      }
+
+      span {
+        color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+        font: 700 9px / 1 font-family(fraktion);
+        letter-spacing: 0.18em;
+      }
+    }
+
+    .p-bench__card:hover .p-bench__metric strong {
+      color: color(accent-strong);
+
+      transform: scale(1.07);
+    }
+
+    /* 标签逐枚轻抬：错峰 40ms，像一叠签条被依次挑起 */
+    .p-bench__card .p-card__tag {
+      transition:
+        transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 280ms ease;
+      transition-delay: calc(var(--tag-i, 0) * 40ms);
+    }
+
+    @for $i from 1 through 6 {
+      .p-bench__card .p-card__tag:nth-child(#{$i}) {
+        --tag-i: #{$i - 1};
+      }
+    }
+
+    .p-bench__card:hover .p-card__tag {
+      background-color: color-mix(
+        in srgb,
+        #{color(accent-strong)} 72%,
+        #{color(primary)}
+      );
+
+      transform: translate3d(0, -2px, 0);
+    }
+
+    /* 卷末一行去向：虚线上方的「开始挑战 →」，箭头随悬停前探 */
+    .p-bench__card .p-bench__go {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+
+      margin: 1.15rem 0 0;
+      padding-top: 0.8rem;
+
+      border-top: 1px dashed
+        color-mix(in srgb, #{color(secondary)} 22%, transparent);
+
+      color: color-mix(in srgb, #{color(secondary)} 58%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.2em;
+
+      transition: color 260ms ease;
+    }
+
+    .p-bench__arrow {
+      transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .p-bench__card:hover .p-bench__go {
+      color: color(accent-strong);
+    }
+
+    .p-bench__card:hover .p-bench__arrow {
+      transform: translate3d(0.4rem, 0, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .p-bench__cell,
+      .p-bench__card::after,
+      .p-bench__card:hover .p-card__id,
+      .p-bench__card:hover .p-bench__metric strong,
+      .p-bench__card:hover .p-card__tag,
+      .p-bench__card:hover .p-bench__arrow {
+        transform: none;
+      }
+
+      .p-bench__card::after {
+        opacity: 0;
+      }
+
+      .p-bench__card:hover::after,
+      .p-bench__card:focus-visible::after {
+        opacity: 0.85;
+      }
+
+      .p-bench__card .p-card__head::after {
+        transform: scaleX(0);
+      }
+
+      .p-bench__card:hover .p-card__head::after,
+      .p-bench__card:focus-visible .p-card__head::after {
+        transform: scaleX(1);
+      }
+
+      .p-bench__card::after,
+      .p-bench__card .p-card__head::after,
+      .p-bench__card .p-card__id,
+      .p-bench__card .p-card__kicker,
+      .p-bench__card .p-bench__metric strong,
+      .p-bench__card .p-card__tag,
+      .p-bench__card .p-bench__go,
+      .p-bench__arrow {
+        transition: none;
+      }
+    }
+  }
+</style>
