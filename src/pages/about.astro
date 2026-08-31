@@ -7,7 +7,7 @@ import PageCard from '@/components/pages/PageCard.astro'
 
 <BaseLayout
   title="关于 · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="关于陈润森：正在探索 AI、交互与游戏开发的初中生——照片、方向、技能与自我介绍。"
 >
   <PageHero
     kicker="brand"
@@ -18,10 +18,12 @@ import PageCard from '@/components/pages/PageCard.astro'
   <main class="p-page p-page--wide p-about">
     <figure class="p-about-photo" data-reveal>
       <img
-        src="/images/about-cover.svg"
-        alt="陈润森 — AI、游戏与交互实验"
-        width="1200"
-        height="675"
+        src="/legacy-assets/personal/chen.webp"
+        srcset="/legacy-assets/personal/chen-sm.webp 320w, /legacy-assets/personal/chen.webp 640w"
+        sizes="(min-width: 1080px) 23rem, calc(100vw - 3rem)"
+        alt="陈润森的个人照片"
+        width="640"
+        height="811"
         loading="lazy"
       />
       <figcaption>
