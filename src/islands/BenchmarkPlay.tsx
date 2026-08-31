@@ -168,13 +168,17 @@ function StartTarget({
 }) {
   return (
     <div
-      className="benchmark-target"
+      className={`benchmark-target ${gameover ? "benchmark-target--fail" : ""}`}
       data-state="idle"
       onClick={onStart}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onStart();
+        if (e.repeat) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onStart();
+        }
       }}
     >
       <div className="benchmark-target__inner">
@@ -239,6 +243,8 @@ function NumberMemoryGame() {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (phase !== "input") return;
+      // 空输入不判负：误按回车不该直接结束一局。
+      if (inputValue.length === 0) return;
 
       if (inputValue === currentNumber) {
         const nextLevel = level + 1;
@@ -271,13 +277,17 @@ function NumberMemoryGame() {
     <div className="benchmark-game">
       {phase === "idle" || phase === "gameover" ? (
         <div
-          className="benchmark-target"
+          className={`benchmark-target ${phase === "gameover" ? "benchmark-target--fail" : ""}`}
           data-state="idle"
           onClick={startGame}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") startGame();
+            if (e.repeat) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              startGame();
+            }
           }}
         >
           <div className="benchmark-target__inner">
@@ -285,6 +295,7 @@ function NumberMemoryGame() {
               <>
                 <span>第 {level - 1} 位</span>
                 <small>正确数字: {currentNumber}</small>
+                <small>你的输入: {inputValue}</small>
                 <small>点击重新开始</small>
               </>
             ) : (
@@ -298,10 +309,16 @@ function NumberMemoryGame() {
       ) : null}
 
       {phase === "showing" ? (
-        <div className="benchmark-target" data-state="ready">
+        <div className="benchmark-target benchmark-target--pop" data-state="ready">
           <div className="benchmark-target__inner">
             <span className="benchmark-number">{currentNumber}</span>
             <small>第 {level} 位 — 记住这个数字</small>
+            <span
+              key={level}
+              className="benchmark-timebar"
+              style={{ animationDuration: `${showDuration(level)}ms` }}
+              aria-hidden="true"
+            />
           </div>
         </div>
       ) : null}
@@ -330,7 +347,7 @@ function NumberMemoryGame() {
       ) : null}
 
       {phase === "correct" ? (
-        <div className="benchmark-target" data-state="ready">
+        <div className="benchmark-target benchmark-target--pop" data-state="ready">
           <div className="benchmark-target__inner">
             <span>正确！</span>
             <small>进入第 {level} 位...</small>

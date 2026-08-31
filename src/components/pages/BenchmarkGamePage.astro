@@ -77,3 +77,115 @@ const {
 
   <PageFoot current="/benchmarks" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* 基准测试组页面级手感样式 — 只作用于使用本组件的 7 个游戏页。
+     动画只用 transform / opacity，并全部尊重 prefers-reduced-motion。 */
+
+  /* 记忆类游戏「显示阶段」的剩余时间条：scaleX 从 1 收缩到 0，
+     时长由 island 按当前关卡的展示时间内联指定。 */
+  .benchmark-timebar {
+    display: block;
+    width: min(100%, 12rem);
+    height: 3px;
+    margin: 0.85rem auto 0;
+    background: color(accent);
+    transform-origin: left center;
+    animation-name: benchmark-timebar-shrink;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes benchmark-timebar-shrink {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  /* 点击的物理感：格子 / 序列块 / 大靶子按下时轻微下沉。 */
+  .benchmark-grid-cell:active:not(:disabled),
+  .benchmark-sequence-tile:active:not(:disabled),
+  .schulte-cell:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+
+  /* 序列记忆：玩家点击回放时的短促高亮（区别于出题时的常亮）。 */
+  .benchmark-sequence-tile.pressed {
+    background: color-mix(in srgb, #{color(accent)} 65%, #{color(primary)});
+    border-color: color(accent);
+    transform: scale(1.05);
+  }
+
+  /* 答对/出题过场：轻微放大回落，给「换幕」一个节拍。
+     注意只挂在记忆类游戏的显式 --pop 类上，绝不能挂 data-state="ready"，
+     否则反应测试变绿瞬间会被入场动画遮住，污染计时。 */
+  .benchmark-target--pop .benchmark-target__inner {
+    animation: benchmark-pop 0.45s ease(out-quint) both;
+  }
+
+  @keyframes benchmark-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* 失败瞬间：靶子横向轻晃，用朱砂描边点出「这局结束了」。 */
+  .benchmark-target.benchmark-target--fail {
+    animation: benchmark-fail-shake 0.4s ease(out-quint);
+    border-color: color(accent);
+  }
+
+  @keyframes benchmark-fail-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-5px);
+    }
+    45% {
+      transform: translateX(5px);
+    }
+    70% {
+      transform: translateX(-3px);
+    }
+    88% {
+      transform: translateX(2px);
+    }
+  }
+
+  /* 黑猩猩测试：点错的格子闪朱砂再进入结算。 */
+  .benchmark-grid-cell.wrong {
+    background: color-mix(in srgb, #{color(accent)} 30%, #{color(primary)});
+    border-color: color(accent);
+    color: color(accent);
+    animation: benchmark-fail-shake 0.4s ease(out-quint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .benchmark-timebar {
+      animation: none;
+    }
+
+    .benchmark-grid-cell:active:not(:disabled),
+    .benchmark-sequence-tile:active:not(:disabled),
+    .schulte-cell:active:not(:disabled),
+    .benchmark-sequence-tile.pressed {
+      transform: none;
+    }
+
+    .benchmark-target--pop .benchmark-target__inner,
+    .benchmark-target.benchmark-target--fail,
+    .benchmark-grid-cell.wrong {
+      animation: none;
+    }
+  }
+</style>
