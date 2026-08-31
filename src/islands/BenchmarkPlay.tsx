@@ -543,10 +543,20 @@ function SequenceMemoryGame() {
   const [sequence, setSequence] = useState<number[]>([]);
   const [playerInput, setPlayerInput] = useState<number[]>([]);
   const [highlighted, setHighlighted] = useState<number | null>(null);
+  /** 玩家点击时的短促高亮 — 与出题回放的常亮区分开。 */
+  const [pressedTile, setPressedTile] = useState<number | null>(null);
   const [bestLevel, setBestLevel] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [submitState, setSubmitState] = useState<ScoreSubmitState>("idle");
   const later = useSingleTimer();
+  // 按压反馈用独立计时器：`later` 是单槽的，复用会顶掉进入下一关的排程。
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    };
+  }, []);
 
   const playSequence = useCallback(
     (seq: number[]) => {
@@ -595,6 +605,12 @@ function SequenceMemoryGame() {
   const handleTileClick = useCallback(
     (index: number) => {
       if (phase !== "input") return;
+
+      // 每次点击都给一个 ~180ms 的高亮回响，确认「点到了」。
+      setPressedTile(index);
+      if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = setTimeout(() => setPressedTile(null), 180);
+
       const nextInput = [...playerInput, index];
       setPlayerInput(nextInput);
       const pos = nextInput.length - 1;
@@ -613,6 +629,18 @@ function SequenceMemoryGame() {
     },
     [phase, playerInput, sequence, level, startRound, later],
   );
+
+  // 键盘可玩：输入阶段按 1 / 2 / 3 对应左中右三块。
+  useEffect(() => {
+    if (phase !== "input") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const idx = ["1", "2", "3"].indexOf(e.key);
+      if (idx !== -1 && idx < SEQUENCE_TILE_COUNT) handleTileClick(idx);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, handleTileClick]);
 
   const score = bestLevel || (phase === "gameover" ? level - 1 : 0);
 
@@ -645,9 +673,10 @@ function SequenceMemoryGame() {
             {Array.from({ length: SEQUENCE_TILE_COUNT }, (_, i) => (
               <button
                 key={i}
-                className={`benchmark-sequence-tile ${highlighted === i ? "active" : ""}`}
+                className={`benchmark-sequence-tile ${highlighted === i ? "active" : ""} ${pressedTile === i ? "pressed" : ""}`}
                 onClick={() => handleTileClick(i)}
                 disabled={phase !== "input"}
+                aria-label={`第 ${i + 1} 块`}
                 type="button"
               />
             ))}
@@ -656,7 +685,7 @@ function SequenceMemoryGame() {
             {phase === "showing"
               ? `第 ${level} 级 — 观察顺序`
               : phase === "input"
-                ? `第 ${level} 级 — 重复顺序 (${playerInput.length}/${sequence.length})`
+                ? `第 ${level} 级 — 重复顺序 (${playerInput.length}/${sequence.length})，可按键 1/2/3`
                 : null}
           </small>
         </div>
