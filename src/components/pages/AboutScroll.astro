@@ -1,0 +1,515 @@
+---
+/**
+ * AboutScroll — 关于页专用立轴
+ *
+ * 对照首页 ScrollLeaf 的装裱语言：天杆 / 地杆、绫边、四角朱砂碰头。
+ * 指针沿中缝轻翻交给 [data-leaf]（本组件只挂属性，不改 leaf-flip）。
+ * 点轴翻到背面题识；无 JS 或 reduced-motion 时照片常显，题识不是正文。
+ */
+---
+
+<about-scroll
+  class="p-about-photo p-about-scroll"
+  data-reveal
+  data-leaf
+>
+  <span class="p-about-scroll__rod p-about-scroll__rod--sky" aria-hidden="true">
+    <i class="p-about-scroll__knob"></i>
+    <i class="p-about-scroll__bar"></i>
+    <i class="p-about-scroll__knob"></i>
+  </span>
+  <span class="p-about-scroll__tassel" aria-hidden="true"></span>
+
+  <div class="p-about-scroll__stage">
+    <div class="p-about-scroll__flip">
+      <figure class="p-about-scroll__plate">
+        <img
+          src="/legacy-assets/personal/chen.webp"
+          srcset="/legacy-assets/personal/chen-sm.webp 320w, /legacy-assets/personal/chen.webp 640w"
+          sizes="(min-width: 1080px) 23rem, calc(100vw - 3rem)"
+          alt="陈润森的个人照片"
+          width="640"
+          height="811"
+          loading="lazy"
+        />
+        <figcaption>
+          <span class="p-about-photo__name">陈润森</span>
+          <span class="p-about-photo__tag">AI · 游戏 · 交互 · 长期作品</span>
+        </figcaption>
+      </figure>
+
+      <aside class="p-about-scroll__verso" aria-hidden="true">
+        <p class="p-about-scroll__verso-year">甲辰</p>
+        <p class="p-about-scroll__verso-lines">
+          好奇为灯<br />长期为舟
+        </p>
+        <p class="p-about-scroll__verso-sign">润森自题</p>
+      </aside>
+    </div>
+  </div>
+
+  <span class="p-about-scroll__rod p-about-scroll__rod--earth" aria-hidden="true">
+    <i class="p-about-scroll__knob"></i>
+    <i class="p-about-scroll__bar"></i>
+    <i class="p-about-scroll__knob"></i>
+  </span>
+
+  <span class="p-about-scroll__slip" aria-hidden="true">立轴</span>
+  <span class="p-about-scroll__hint" aria-hidden="true">点轴翻看题识</span>
+</about-scroll>
+
+<script>
+  import { prefersReducedMotion, type Cleanup } from '../../motion/core'
+
+  /**
+   * 立轴：点一下翻到背面题识，再点或 Esc 翻回。
+   * 自定义元素生命周期对齐 SPA；脚本缺席时只看见正面照片。
+   */
+  class AboutScroll extends HTMLElement {
+    stops: Cleanup[] = []
+    verso = false
+
+    connectedCallback() {
+      this.classList.add('is-live')
+      this.tabIndex = 0
+      this.setAttribute('role', 'button')
+      this.setAttribute('aria-expanded', 'false')
+      this.setAttribute('aria-label', '立轴照片，点按翻看背面题识')
+
+      const onClick = (event: Event) => {
+        if ((event.target as Element | null)?.closest('a')) return
+        this.toggle()
+      }
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          this.toggle()
+        } else if (event.key === 'Escape' && this.verso) {
+          this.toggle(false)
+        }
+      }
+
+      this.addEventListener('click', onClick)
+      this.addEventListener('keydown', onKey)
+      this.stops.push(() => {
+        this.removeEventListener('click', onClick)
+        this.removeEventListener('keydown', onKey)
+      })
+    }
+
+    disconnectedCallback() {
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    toggle(next = !this.verso) {
+      this.verso = next
+      this.classList.toggle('is-verso', next)
+      this.setAttribute('aria-expanded', next ? 'true' : 'false')
+
+      const verso = this.querySelector('.p-about-scroll__verso')
+      verso?.setAttribute('aria-hidden', next ? 'false' : 'true')
+
+      if (prefersReducedMotion()) return
+      this.classList.remove('is-pressed')
+      void this.offsetWidth
+      this.classList.add('is-pressed')
+    }
+  }
+
+  /**
+   * 技能签：点一下钤一记朱砂字，片刻后淡去。
+   * 签上的字本身一直可见，惊喜只是落印。
+   */
+  class AboutChips extends HTMLElement {
+    stops: Cleanup[] = []
+    timers: number[] = []
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+
+      const onClick = (event: Event) => {
+        const chip = (event.target as Element | null)?.closest('.p-chip')
+        if (!(chip instanceof HTMLElement)) return
+
+        const stamp = document.createElement('i')
+        stamp.className = 'p-about-chip-stamp'
+        stamp.textContent = chip.dataset.stamp || '可'
+        stamp.setAttribute('aria-hidden', 'true')
+        chip.appendChild(stamp)
+
+        const timer = window.setTimeout(() => stamp.remove(), 920)
+        this.timers.push(timer)
+      }
+
+      this.addEventListener('click', onClick)
+      this.stops.push(() => this.removeEventListener('click', onClick))
+    }
+
+    disconnectedCallback() {
+      this.timers.forEach((id) => clearTimeout(id))
+      this.timers = []
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+  }
+
+  if (!customElements.get('about-scroll')) {
+    customElements.define('about-scroll', AboutScroll)
+  }
+  if (!customElements.get('about-chips')) {
+    customElements.define('about-chips', AboutChips)
+  }
+</script>
+
+<style lang="scss">
+  .p-about-scroll {
+    --rod: 0.55rem;
+
+    position: relative;
+
+    display: block;
+    margin: 0 0 2rem;
+    overflow: visible;
+
+    cursor: pointer;
+    outline: none;
+
+    &:focus-visible {
+      outline: 2px dashed color-mix(in srgb, #{color(accent)} 70%, transparent);
+      outline-offset: 8px;
+    }
+  }
+
+  .p-about-scroll__rod {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+
+    pointer-events: none;
+  }
+
+  .p-about-scroll__bar {
+    display: block;
+    flex: 1;
+
+    height: var(--rod);
+
+    border-radius: 1px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #{color(secondary)} 42%, #{color(primary)}),
+      color-mix(in srgb, #{color(secondary)} 68%, #{color(primary)}) 46%,
+      color-mix(in srgb, #{color(secondary)} 38%, #{color(primary)})
+    );
+    box-shadow: 0 1px 0 color-mix(in srgb, #{color(primary)} 40%, transparent);
+  }
+
+  .p-about-scroll__knob {
+    display: block;
+    flex-shrink: 0;
+
+    width: 0.85rem;
+    height: 0.85rem;
+
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 32% 28%,
+      color-mix(in srgb, #{color(accent)} 55%, #{color(primary)}),
+      color-mix(in srgb, #{color(accent-strong)} 80%, #{color(secondary)})
+    );
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, #{color(secondary)} 35%, transparent);
+  }
+
+  .p-about-scroll__rod--sky {
+    margin: 0 0.35rem 0.35rem;
+  }
+
+  .p-about-scroll__rod--earth {
+    margin: 0.4rem 0.55rem 0;
+  }
+
+  /* 穗：悬停时轻轻摆一下，像风过立轴 */
+  .p-about-scroll__tassel {
+    position: absolute;
+    top: calc(var(--rod) + 0.2rem);
+    right: 1.15rem;
+    z-index: 3;
+
+    width: 2px;
+    height: 1.7rem;
+
+    background: color(accent);
+    pointer-events: none;
+    transform-origin: 50% 0;
+
+    &::after {
+      position: absolute;
+      bottom: -0.55rem;
+      left: 50%;
+
+      width: 0.55rem;
+      height: 0.55rem;
+
+      border: 1.5px solid color(accent);
+      background: color-mix(in srgb, #{color(accent)} 35%, #{color(primary)});
+      content: '';
+      transform: translateX(-50%) rotate(45deg);
+    }
+  }
+
+  .p-about-scroll.is-live:hover .p-about-scroll__tassel {
+    animation: about-tassel 1.4s ease-in-out 1;
+  }
+
+  @keyframes about-tassel {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+
+    35% {
+      transform: rotate(11deg);
+    }
+
+    65% {
+      transform: rotate(-7deg);
+    }
+  }
+
+  .p-about-scroll__stage {
+    position: relative;
+
+    overflow: hidden;
+
+    @include ink-frame;
+    @include ink-corner-marks($len: 13px, $w: 1.5px, $inset: 5px, $softness: 0.85);
+
+    perspective: 72rem;
+  }
+
+  .p-about-scroll__flip {
+    position: relative;
+
+    transform-style: preserve-3d;
+    transition: transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-about-scroll.is-verso .p-about-scroll__flip {
+    transform: rotateY(180deg);
+  }
+
+  .p-about-scroll.is-pressed .p-about-scroll__stage {
+    animation: about-scroll-press 420ms cubic-bezier(0.2, 1.2, 0.32, 1);
+  }
+
+  @keyframes about-scroll-press {
+    0% {
+      transform: scale(1);
+    }
+
+    40% {
+      transform: scale(0.985);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .p-about-scroll__plate {
+    position: relative;
+
+    margin: 0;
+
+    backface-visibility: hidden;
+
+    img {
+      display: block;
+
+      width: 100%;
+      height: auto;
+
+      transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    figcaption {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 1rem;
+
+      padding: 0.85rem 1rem;
+
+      @include ink-hairline-top;
+      background: color-mix(in srgb, #{color(accent)} 10%, #{color(primary)});
+    }
+  }
+
+  .p-about-scroll:hover .p-about-scroll__plate img {
+    transform: scale(1.035);
+  }
+
+  /* 相纸受光：一道随指针横移的浅光（--leaf-sheen 由 leaf-flip 写入） */
+  .p-about-scroll__plate::after {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+
+    background: linear-gradient(
+      105deg,
+      transparent calc(var(--leaf-sheen, 0.5) * 100% - 26%),
+      color-mix(in srgb, #{color(primary)} 34%, transparent)
+        calc(var(--leaf-sheen, 0.5) * 100%),
+      transparent calc(var(--leaf-sheen, 0.5) * 100% + 26%)
+    );
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+
+    transition: opacity 0.4s ease(out-quint);
+  }
+
+  .p-about-scroll:hover .p-about-scroll__plate::after {
+    opacity: 1;
+  }
+
+  .p-about-photo__name {
+    position: relative;
+
+    font: 700 11px / 1 font-family(fraktion);
+    letter-spacing: 0.12em;
+
+    &::after {
+      position: absolute;
+      bottom: -0.3em;
+      left: 0;
+
+      width: 100%;
+      height: 2px;
+
+      background: color(accent);
+      content: '';
+      transform: scaleX(0);
+      transform-origin: 0 50%;
+
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  }
+
+  .p-about-scroll:hover .p-about-photo__name::after {
+    transform: scaleX(1);
+  }
+
+  .p-about-photo__tag {
+    color: color-mix(in srgb, #{color(secondary)} 75%, transparent);
+    font: 400 0.9rem / 1.4 font-family(editorial);
+  }
+
+  .p-about-scroll__verso {
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+
+    padding: 1.5rem 1.1rem;
+
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, #{color(accent)} 8%, #{color(primary)}),
+        #{color(primary)} 40%,
+        color-mix(in srgb, #{color(secondary)} 8%, #{color(primary)})
+      );
+
+    text-align: center;
+    backface-visibility: hidden;
+    transform: rotateY(180deg);
+    pointer-events: none;
+  }
+
+  .p-about-scroll__verso-year {
+    margin: 0;
+
+    color: color(accent-strong);
+    font: 700 0.72rem / 1 font-family(fraktion);
+    letter-spacing: 0.42em;
+  }
+
+  .p-about-scroll__verso-lines {
+    margin: 0;
+
+    color: color(secondary);
+    font: 400 1.35rem / 1.7 font-family(editorial);
+    letter-spacing: 0.28em;
+    writing-mode: vertical-rl;
+  }
+
+  .p-about-scroll__verso-sign {
+    margin: 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 0.7rem / 1 font-family(fraktion);
+    letter-spacing: 0.22em;
+  }
+
+  .p-about-scroll__slip {
+    position: absolute;
+    top: 2.4rem;
+    right: -0.15rem;
+    z-index: 3;
+
+    padding: 0.45rem 0.18rem 0.55rem;
+
+    background: color-mix(in srgb, #{color(accent)} 18%, #{color(primary)});
+    border: 1px solid color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    color: color(accent-strong);
+    font: 700 0.62rem / 1.2 font-family(fraktion);
+    letter-spacing: 0.18em;
+    writing-mode: vertical-rl;
+    pointer-events: none;
+  }
+
+  .p-about-scroll__hint {
+    display: none;
+
+    margin: 0.45rem 0 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 48%, transparent);
+    font: 400 0.75rem / 1.4 font-family(editorial);
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .p-about-scroll.is-live .p-about-scroll__hint {
+    display: block;
+  }
+
+  .p-about-scroll.is-verso .p-about-scroll__hint {
+    color: color(accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-about-scroll__flip,
+    .p-about-scroll__plate img,
+    .p-about-scroll__plate::after,
+    .p-about-photo__name::after {
+      transition: none;
+    }
+
+    .p-about-scroll:hover .p-about-scroll__plate img {
+      transform: none;
+    }
+
+    .p-about-scroll.is-live:hover .p-about-scroll__tassel,
+    .p-about-scroll.is-pressed .p-about-scroll__stage {
+      animation: none;
+    }
+  }
+</style>

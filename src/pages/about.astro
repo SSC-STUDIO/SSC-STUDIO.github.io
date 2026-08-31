@@ -4,6 +4,7 @@ import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
+import AboutScroll from '@/components/pages/AboutScroll.astro'
 import InkSeal3D from '@/components/InkSeal3D.astro'
 ---
 
@@ -12,7 +13,7 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
   description="关于陈润森：正在探索 AI、交互与游戏开发的初中生——照片、方向、技能与自我介绍。"
 >
   <PageHero
-    kicker="brand"
+    kicker="立轴"
     title="关于"
     summary="照片、方向和自我介绍，拼成一个正在变化的人。"
   />
@@ -20,23 +21,7 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
   <main class="p-page p-page--wide p-about">
     <PageAura />
 
-    <figure class="p-about-photo" data-reveal data-leaf>
-      <img
-        src="/legacy-assets/personal/chen.webp"
-        srcset="/legacy-assets/personal/chen-sm.webp 320w, /legacy-assets/personal/chen.webp 640w"
-        sizes="(min-width: 1080px) 23rem, calc(100vw - 3rem)"
-        alt="陈润森的个人照片"
-        width="640"
-        height="811"
-        loading="lazy"
-      />
-      <figcaption>
-        <span class="p-about-photo__name">陈润森</span>
-        <span class="p-about-photo__tag"
-          >AI · 游戏 · 交互 · 长期作品</span
-        >
-      </figcaption>
-    </figure>
+    <AboutScroll />
 
     <div class="p-prose" data-flow data-intersect>
       <p>
@@ -56,13 +41,13 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
       <h2>此刻</h2>
       <p>正在把 AI 实验、交互练习和班级记忆整理成一条更清晰的河流。</p>
       <h2>Skills</h2>
-      <div class="p-chips" data-flow data-intersect style="--flow-step: 74ms">
-        <span class="p-chip p-chip--accent">AI</span>
-        <span class="p-chip p-chip--accent">TypeScript</span>
-        <span class="p-chip p-chip--accent">Games</span>
-        <span class="p-chip p-chip--accent">Python</span>
-        <span class="p-chip p-chip--accent">Web</span>
-      </div>
+      <about-chips class="p-chips" data-flow data-intersect style="--flow-step: 74ms">
+        <button type="button" class="p-chip p-chip--accent" data-stamp="智">AI</button>
+        <button type="button" class="p-chip p-chip--accent" data-stamp="码">TypeScript</button>
+        <button type="button" class="p-chip p-chip--accent" data-stamp="戏">Games</button>
+        <button type="button" class="p-chip p-chip--accent" data-stamp="蛇">Python</button>
+        <button type="button" class="p-chip p-chip--accent" data-stamp="网">Web</button>
+      </about-chips>
     </div>
 
     <div class="p-stack p-stack--2col p-stack--spaced">
@@ -85,67 +70,101 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
 <style lang="scss" is:global>
   /* ── 关于页动效（仅本页） ── */
 
-  /* 立轴照片：随指针沿中缝轻翻（data-leaf 供角度），
-     另铺一道随指针横移的受光，像光掠过裱好的相纸。 */
-  .p-about-photo {
-    position: relative;
-
-    &::after {
-      position: absolute;
-      z-index: 2;
-      inset: 0;
-
-      background: linear-gradient(
-        105deg,
-        transparent calc(var(--leaf-sheen, 0.5) * 100% - 26%),
-        color-mix(in srgb, #{color(primary)} 34%, transparent)
-          calc(var(--leaf-sheen, 0.5) * 100%),
-        transparent calc(var(--leaf-sheen, 0.5) * 100% + 26%)
-      );
-      content: '';
-      opacity: 0;
-      pointer-events: none;
-
-      transition: opacity 0.4s ease(out-quint);
+  /* 立轴占掉原来 figure 的格子：宽屏仍贴左栏，不改全局 .p-about 栅格语义 */
+  @media (min-width: 1080px) {
+    .p-about > .p-about-scroll {
+      position: sticky;
+      top: 5.75rem;
     }
 
-    &:hover::after {
-      opacity: 1;
-    }
-
-    /* 照片本体随之极缓地推近，纵深不靠位移全靠尺度 */
-    img {
-      transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    &:hover img {
-      transform: scale(1.035);
-    }
-
-    /* 落款处的朱砂短线：悬停时自左向右洇开 */
-    &__name {
-      position: relative;
-
-      &::after {
-        position: absolute;
-        bottom: -0.3em;
-        left: 0;
-
-        width: 100%;
-        height: 2px;
-
-        background: color(accent);
-        content: '';
-        transform: scaleX(0);
-        transform-origin: 0 50%;
-
-        transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-      }
+    .p-about > .p-about__colophon {
+      grid-column: 1 / -1;
     }
   }
 
-  .p-about-photo:hover .p-about-photo__name::after {
-    transform: scaleX(1);
+  /* 覆盖全局 .p-about-photo 的 overflow / 边框，让天杆地杆探出绫边 */
+  .p-about .p-about-photo.p-about-scroll {
+    overflow: visible;
+    border: 0;
+    background: none;
+    background-image: none;
+  }
+
+  /* 技能签改成按钮后，收掉默认按钮皮，手感仍是纸签 */
+  .p-about .p-chips .p-chip {
+    appearance: none;
+
+    position: relative;
+    overflow: visible;
+
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+
+    transition:
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.28s ease,
+      border-color 0.28s ease,
+      color 0.28s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+
+      background: color(secondary);
+      border-color: color(secondary);
+
+      color: color(primary);
+    }
+
+    &:hover::before {
+      color: color(accent);
+    }
+
+    &:focus-visible {
+      outline: 2px dashed color-mix(in srgb, #{color(accent)} 70%, transparent);
+      outline-offset: 3px;
+    }
+  }
+
+  /* 点签落印：朱砂字自触点弹出再淡去 */
+  .p-about-chip-stamp {
+    position: absolute;
+    top: -0.85rem;
+    right: -0.35rem;
+    z-index: 2;
+
+    display: grid;
+    place-items: center;
+
+    width: 1.35rem;
+    height: 1.35rem;
+
+    border: 1.5px solid color(accent-strong);
+    border-radius: 0.08rem;
+
+    color: color(accent-strong);
+    font: 700 0.62rem / 1 font-family(editorial);
+    pointer-events: none;
+
+    animation: about-chip-stamp 880ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
+  }
+
+  @keyframes about-chip-stamp {
+    0% {
+      opacity: 0;
+      transform: rotate(-18deg) scale(1.6);
+    }
+
+    55% {
+      opacity: 1;
+      transform: rotate(-4deg) scale(0.94);
+    }
+
+    100% {
+      opacity: 0;
+      transform: rotate(-8deg) scale(1) translateY(-0.35rem);
+    }
   }
 
   /* 正文小标题：入屏时把既有的压脚朱丝一笔描出 */
@@ -162,28 +181,6 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
     from {
       transform: scaleX(0);
     }
-  }
-
-  /* 技能签：悬停时轻提并翻墨 */
-  .p-chip {
-    transition:
-      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-      background 0.28s ease,
-      border-color 0.28s ease,
-      color 0.28s ease;
-  }
-
-  .p-about .p-chip:hover {
-    transform: translateY(-3px);
-
-    background: color(secondary);
-    border-color: color(secondary);
-
-    color: color(primary);
-  }
-
-  .p-about .p-chip:hover::before {
-    color: color(accent);
   }
 
   /* 落款印玺：正文收束处右下钤一枚，略小于首页卷尾 */
@@ -209,20 +206,21 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .p-about-photo::after,
-    .p-about-photo img,
-    .p-about-photo__name::after,
-    .p-chip {
+    .p-about .p-chips .p-chip {
       transition: none;
     }
 
-    .p-about-photo:hover img,
-    .p-about .p-chip:hover {
+    .p-about .p-chips .p-chip:hover {
       transform: none;
     }
 
+    .p-about-chip-stamp,
     .p-about .p-prose.is-in-view h2::after {
       animation: none;
+    }
+
+    .p-about-chip-stamp {
+      opacity: 1;
     }
   }
 </style>
