@@ -141,6 +141,8 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     letters: any[]
     works: any[]
     points: any[]
+    pointFill: string
+    pointSize: number
 
     tl: gsap.core.Timeline
     animationProgress: number
@@ -212,9 +214,13 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
       })
 
       this.points = []
+      this.pointFill = 'rgba(247, 241, 230, 0.48)'
+      this.pointSize = 2.5
 
       this.scrollProgress = 0
       this.smoothScrollProgress = 0
+      this.animationProgress = 0
+      this.pointsProgress = 1
       this.last = {
         animationProgress: 0,
         pointsProgress: 0,
@@ -427,16 +433,24 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     }
 
     /**
-     * Set canvas style
+     * 格点填色：作品内底始终是墨青/松烟，不跟 --color-primary 翻色。
+     * 暗色近纯白；亮色同规格但降透明度，避免宣纸感的刺眼白点。
      */
     setCtxStyle() {
-      const color = getComputedStyle(this.el).getPropertyValue(
-        '--color-primary'
+      const css = getComputedStyle(this.el)
+      const dark = document.documentElement.classList.contains(
+        'theme-contrasted'
       )
+      const paper = (
+        css.getPropertyValue('--color-white') || '#f7f1e6'
+      ).trim()
 
-      nextFrame(() => {
-        this.ctx.strokeStyle = color
-      })
+      this.pointFill = dark
+        ? 'rgba(247, 248, 246, 0.92)'
+        : `color-mix(in srgb, ${paper} 48%, transparent)`
+
+      this.last.pointsProgress = -1
+      if (this.bounding && this.points.length) this.drawPoints()
     }
 
     /**
@@ -883,7 +897,9 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       this.points = []
 
-      const gap = window.safeWidth > 767 ? 36 : 56
+      /* 制图点阵：点小、间距疏（约 52–56px），正交对齐 */
+      const gap = window.safeWidth > 767 ? 52 : 56
+      this.pointSize = window.safeWidth > 767 ? 2.5 : 2
       const cols = Math.ceil((bounding.width * 1.2) / gap)
       const rows = Math.ceil((bounding.height * 1.2) / gap)
 
@@ -943,16 +959,16 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 
       ctx.clearRect(0, 0, bounding.width, bounding.height)
 
-      ctx.beginPath()
+      ctx.fillStyle = this.pointFill
+      const size = this.pointSize
+      const half = size * 0.5
 
       points.forEach((point) => {
         const x = point.x + point.dx * (1 - pointsProgress) * 0.2 + point.flowX
         const y = point.y + point.dy * (1 - pointsProgress) * 0.2
 
-        ctx.rect(x, y, 0.5, 0.5)
+        ctx.fillRect(x - half, y - half, size, size)
       })
-
-      ctx.stroke()
 
       last.pointsProgress = rPointsProgress
       last.animationProgress = rAnimationProgress
