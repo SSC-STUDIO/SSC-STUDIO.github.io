@@ -1,0 +1,67 @@
+---
+/**
+ * ContactLetter — 联系页专用信笺
+ *
+ * 对照首页卷尾点空白激起纸面震波：点笺面（避开表单与链接）洇一滴墨。
+ * 合作方向可点一下钤勾。脚本缺席时正文与表单照常可读。
+ */
+---
+
+<contact-letter class="p-contact-letter">
+  <slot />
+</contact-letter>
+
+<script>
+  import { prefersReducedMotion, type Cleanup } from '../../motion/core'
+
+  const SKIP =
+    'a,button,input,textarea,select,label,summary,[role="button"],ink-seal3d,.js-stamp,.p-card__link,.p-form'
+
+  class ContactLetter extends HTMLElement {
+    stops: Cleanup[] = []
+    timers: number[] = []
+
+    connectedCallback() {
+      this.classList.add('is-live')
+
+      const onClick = (event: PointerEvent) => {
+        const target = event.target as Element | null
+        if (!target) return
+
+        const item = target.closest('.p-contact-letter li')
+        if (item instanceof HTMLElement && this.contains(item)) {
+          item.classList.toggle('is-ticked')
+          return
+        }
+
+        if (target.closest(SKIP)) return
+        if (prefersReducedMotion()) return
+
+        const rect = this.getBoundingClientRect()
+        const blot = document.createElement('i')
+        blot.className = 'p-contact-blot'
+        blot.setAttribute('aria-hidden', 'true')
+        blot.style.left = `${event.clientX - rect.left}px`
+        blot.style.top = `${event.clientY - rect.top}px`
+        this.appendChild(blot)
+
+        const timer = window.setTimeout(() => blot.remove(), 1100)
+        this.timers.push(timer)
+      }
+
+      this.addEventListener('click', onClick)
+      this.stops.push(() => this.removeEventListener('click', onClick))
+    }
+
+    disconnectedCallback() {
+      this.timers.forEach((id) => clearTimeout(id))
+      this.timers = []
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+  }
+
+  if (!customElements.get('contact-letter')) {
+    customElements.define('contact-letter', ContactLetter)
+  }
+</script>

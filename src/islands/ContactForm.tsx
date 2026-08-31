@@ -232,11 +232,22 @@ export default function ContactForm({
           <span className="p-form__field-hint">
             还差 {CONTENT_MIN - contentLength} 个字（至少 {CONTENT_MIN} 字）
           </span>
-        ) : contentLength > CONTENT_MAX * 0.8 ? (
+        ) : contentLength > 0 ? (
           <span className="p-form__field-hint">
             {contentLength} / {CONTENT_MAX} 字
           </span>
         ) : null}
+        <span
+          className="p-form__ink"
+          hidden={contentLength === 0}
+          aria-hidden="true"
+        >
+          <i
+            style={{
+              width: `${Math.min(100, (contentLength / CONTENT_MAX) * 100)}%`,
+            }}
+          />
+        </span>
       </label>
       <button type="submit" disabled={status === "submitting"}>
         {status === "submitting" ? "发送中…" : "发送"}

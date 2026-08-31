@@ -4,6 +4,7 @@ import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
+import ContactLetter from '@/components/pages/ContactLetter.astro'
 import InkSeal3D from '@/components/InkSeal3D.astro'
 import ContactForm from '@/islands/ContactForm'
 ---
@@ -13,7 +14,7 @@ import ContactForm from '@/islands/ContactForm'
   description="合作、交流和反馈都可以写到这里。信息清楚、克制，不堆无关隐私。"
 >
   <PageHero
-    kicker="写信"
+    kicker="信笺"
     title="联系"
     summary="合作、交流和反馈都可以写到这里。信息清楚、克制，不堆无关隐私。"
   />
@@ -24,35 +25,37 @@ import ContactForm from '@/islands/ContactForm'
       <span>3992237161@qq.com</span>
       <span>通常 48 小时内回复</span>
     </div>
-    <div class="p-stack p-stack--2col">
-      <PageCard kicker="合作" title="可以一起做的事">
-        <p>适合交流的方向：</p>
-        <ul data-flow data-intersect>
-          <li>网页与交互</li>
-          <li>开源实验</li>
-        </ul>
-        <div class="p-card__actions">
-          <a
-            class="p-card__link"
-            href="mailto:3992237161@qq.com"
-            data-copy-email
-            data-seal>邮件 3992237161@qq.com</a
-          >
-          <a
-            class="p-card__link p-card__link--ghost"
-            href="https://github.com/SSC-STUDIO"
-            target="_blank"
-            rel="noopener"
-            data-seal
-          >
-            GitHub
-          </a>
-        </div>
-      </PageCard>
-      <PageCard kicker="留言" title="写一封信">
-        <ContactForm client:load />
-      </PageCard>
-    </div>
+    <ContactLetter>
+      <div class="p-stack p-stack--2col">
+        <PageCard kicker="合作" title="可以一起做的事">
+          <p>适合交流的方向：</p>
+          <ul data-flow data-intersect>
+            <li>网页与交互</li>
+            <li>开源实验</li>
+          </ul>
+          <div class="p-card__actions">
+            <a
+              class="p-card__link"
+              href="mailto:3992237161@qq.com"
+              data-copy-email
+              data-seal>邮件 3992237161@qq.com</a
+            >
+            <a
+              class="p-card__link p-card__link--ghost"
+              href="https://github.com/SSC-STUDIO"
+              target="_blank"
+              rel="noopener"
+              data-seal
+            >
+              GitHub
+            </a>
+          </div>
+        </PageCard>
+        <PageCard kicker="留言" title="写一封信" class="p-contact__letter-card">
+          <ContactForm client:load />
+        </PageCard>
+      </div>
+    </ContactLetter>
     <aside class="p-contact__colophon" aria-label="落款">
       <InkSeal3D />
     </aside>
@@ -68,6 +71,45 @@ import ContactForm from '@/islands/ContactForm'
     --flow-step: 88ms;
   }
 
+  .p-contact-letter {
+    position: relative;
+
+    display: block;
+  }
+
+  /* 点笺面洇开的墨滴：脚本写入，缺席时没有，不影响阅读 */
+  .p-contact-blot {
+    position: absolute;
+    z-index: 2;
+
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: -0.55rem 0 0 -0.55rem;
+
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, #{color(secondary)} 42%, transparent),
+      color-mix(in srgb, #{color(accent)} 18%, transparent) 55%,
+      transparent 72%
+    );
+    pointer-events: none;
+
+    animation: contact-blot 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes contact-blot {
+    from {
+      opacity: 0.7;
+      transform: scale(0.2);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+  }
+
   /* 消息字数提示：不足 10 字时的柔和提醒，区别于红色错误 */
   .p-form__field-hint {
     margin: 0.25rem 0 0;
@@ -76,6 +118,59 @@ import ContactForm from '@/islands/ContactForm'
     font: 700 10px / 1.4 font-family(fraktion);
     letter-spacing: 0.08em;
     text-transform: none;
+  }
+
+  /* 墨量：随字数在笺底铺一道朱砂，上限仍是 2000 */
+  .p-form__ink {
+    display: block;
+
+    height: 3px;
+    margin-top: 0.45rem;
+
+    background: color-mix(in srgb, #{color(secondary)} 16%, transparent);
+    overflow: hidden;
+  }
+
+  .p-form__ink > i {
+    display: block;
+
+    height: 100%;
+
+    background: color(accent);
+    transform-origin: 0 50%;
+
+    transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* 信笺卡：暗格纸纹 + 折角，像摊开的一页信 */
+  .p-contact__letter-card {
+    position: relative;
+
+    background-image:
+      repeating-linear-gradient(
+        180deg,
+        transparent 0 1.55rem,
+        color-mix(in srgb, #{color(secondary)} 9%, transparent) 1.55rem 1.6rem
+      );
+    background-attachment: local;
+
+    &::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 1;
+
+      width: 1.6rem;
+      height: 1.6rem;
+
+      background: linear-gradient(
+        225deg,
+        color-mix(in srgb, #{color(accent)} 22%, #{color(primary)}) 50%,
+        transparent 51%
+      );
+      content: '';
+      pointer-events: none;
+    }
   }
 
   /* 卡内题识随整卡落墨依次抬起 */
@@ -96,6 +191,23 @@ import ContactForm from '@/islands/ContactForm'
     }
   }
 
+  @keyframes contact-tick {
+    0% {
+      opacity: 0;
+      transform: rotate(-12deg) scale(1.6);
+    }
+
+    62% {
+      opacity: 1;
+      transform: rotate(-2deg) scale(0.94);
+    }
+
+    100% {
+      opacity: 1;
+      transform: rotate(-4deg) scale(1);
+    }
+  }
+
   @keyframes contact-rise {
     from {
       opacity: 0;
@@ -103,8 +215,11 @@ import ContactForm from '@/islands/ContactForm'
     }
   }
 
-  /* 合作方向：朱砂点，悬停时推近一寸 */
+  /* 合作方向：朱砂点，悬停推近；点一下钤勾 */
   .p-contact .p-card__body li {
+    position: relative;
+
+    cursor: pointer;
     transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
@@ -113,6 +228,33 @@ import ContactForm from '@/islands/ContactForm'
 
     &::marker {
       color: color(accent);
+    }
+
+    &.is-ticked {
+      color: color(secondary);
+
+      &::after {
+        position: absolute;
+        top: 0.05em;
+        right: 0;
+
+        display: grid;
+        place-items: center;
+
+        width: 1.15rem;
+        height: 1.15rem;
+
+        border: 1.5px solid color(accent-strong);
+        border-radius: 0.08rem;
+
+        color: color(accent-strong);
+        font: 700 0.58rem / 1 font-family(editorial);
+
+        content: '可';
+        pointer-events: none;
+
+        animation: contact-tick 640ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
+      }
     }
   }
 
@@ -145,6 +287,15 @@ import ContactForm from '@/islands/ContactForm'
       );
       box-shadow: 0 0 0 3px color-mix(in srgb, #{color(accent)} 12%, transparent);
     }
+  }
+
+  /* 写到消息栏时，信笺折角染一点朱砂 */
+  .p-contact__letter-card:focus-within::before {
+    background: linear-gradient(
+      225deg,
+      color-mix(in srgb, #{color(accent)} 55%, #{color(primary)}) 50%,
+      transparent 51%
+    );
   }
 
   /* 发送键：进行中一道墨色自左洗过 */
@@ -227,6 +378,16 @@ import ContactForm from '@/islands/ContactForm'
     }
   }
 
+  /* 顶栏：像信头日期印，悬停时朱砂托起 */
+  .p-contact .p-detail-meta--bar {
+    transition: border-color 280ms ease, box-shadow 280ms ease;
+
+    &:hover {
+      border-color: color-mix(in srgb, #{color(accent)} 45%, transparent);
+      box-shadow: 0 0.28rem 0 color-mix(in srgb, #{color(accent)} 40%, transparent);
+    }
+  }
+
   /* 落款印玺：信末右下，略小于首页卷尾那枚 */
   .p-contact__colophon {
     display: flex;
@@ -255,13 +416,17 @@ import ContactForm from '@/islands/ContactForm'
     .p-contact .p-card.is-inked .p-card__body,
     html.js .p-contact .p-card.is-inked .p-form > *,
     .p-contact .p-form button[type='submit']:disabled::after,
-    .p-contact .p-form__status.is-ok::after {
+    .p-contact .p-form__status.is-ok::after,
+    .p-contact .p-card__body li.is-ticked::after,
+    .p-contact-blot {
       animation: none;
     }
 
     .p-contact .p-card__body li,
     .p-contact .p-form input,
-    .p-contact .p-form textarea {
+    .p-contact .p-form textarea,
+    .p-contact .p-detail-meta--bar,
+    .p-form__ink > i {
       transition: none;
     }
 
