@@ -735,6 +735,10 @@ function SequenceMemoryGame() {
 // Chimp test
 // ---------------------------------------------------------------------------
 
+function chimpShowDuration(level: number): number {
+  return 2000 + level * 300;
+}
+
 function ChimpTestGame() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [level, setLevel] = useState(1);
@@ -742,6 +746,8 @@ function ChimpTestGame() {
   const [cells, setCells] = useState<ChimpCell[]>([]);
   const [nextExpected, setNextExpected] = useState(1);
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  /** 点错的格子 — 先闪朱砂再进结算，让玩家看清错在哪。 */
+  const [wrongCell, setWrongCell] = useState<Cell | null>(null);
   const [bestLevel, setBestLevel] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [submitState, setSubmitState] = useState<ScoreSubmitState>("idle");
@@ -756,11 +762,12 @@ function ChimpTestGame() {
       setCells(newCells);
       setRevealed(new Set(newCells.map((c) => c.value)));
       setNextExpected(1);
+      setWrongCell(null);
       setPhase("showing");
       later(() => {
         setRevealed(new Set());
         setPhase("input");
-      }, 2000 + lvl * 300);
+      }, chimpShowDuration(lvl));
     },
     [later],
   );
@@ -774,7 +781,7 @@ function ChimpTestGame() {
 
   const handleCellClick = useCallback(
     (row: number, col: number) => {
-      if (phase !== "input") return;
+      if (phase !== "input" || wrongCell) return;
       const cell = cells.find((c) => c.row === row && c.col === col);
       if (!cell) return;
 
@@ -793,11 +800,15 @@ function ChimpTestGame() {
           setNextExpected(cell.value + 1);
         }
       } else {
+        // 先把点错的格子亮出来（含真实数字）晃一下，再进结算，
+        // 不然玩家连自己错在哪都没看见画面就切走了。
         setBestLevel((prev) => Math.max(prev, level - 1));
-        setPhase("gameover");
+        setWrongCell({ row, col });
+        setRevealed(new Set(cells.map((c) => c.value)));
+        later(() => setPhase("gameover"), 900);
       }
     },
-    [phase, cells, nextExpected, revealed, level, startRound, later],
+    [phase, wrongCell, cells, nextExpected, revealed, level, startRound, later],
   );
 
   const score = bestLevel || (phase === "gameover" ? level - 1 : 0);
@@ -836,10 +847,13 @@ function ChimpTestGame() {
               const col = i % gridSize;
               const cell = cells.find((c) => c.row === row && c.col === col);
               const isVisible = Boolean(cell && revealed.has(cell.value));
+              const isWrong = Boolean(
+                wrongCell && wrongCell.row === row && wrongCell.col === col,
+              );
               return (
                 <button
                   key={`${row},${col}`}
-                  className={`benchmark-grid-cell ${isVisible ? "active" : ""}`}
+                  className={`benchmark-grid-cell ${isVisible ? "active" : ""} ${isWrong ? "wrong" : ""}`}
                   onClick={() => handleCellClick(row, col)}
                   disabled={phase !== "input" || !cell}
                   type="button"
@@ -850,12 +864,22 @@ function ChimpTestGame() {
             })}
           </div>
           <small className="benchmark-grid-hint">
-            {phase === "showing"
-              ? `第 ${level} 级 — 记住数字位置`
-              : phase === "input"
-                ? `按 1-${cells.length} 顺序点击 (下一个: ${nextExpected})`
-                : null}
+            {wrongCell
+              ? `点错了 — 应该点 ${nextExpected}`
+              : phase === "showing"
+                ? `第 ${level} 级 — 记住数字位置`
+                : phase === "input"
+                  ? `按 1-${cells.length} 顺序点击 (下一个: ${nextExpected})`
+                  : null}
           </small>
+          {phase === "showing" ? (
+            <span
+              key={level}
+              className="benchmark-timebar"
+              style={{ animationDuration: `${chimpShowDuration(level)}ms` }}
+              aria-hidden="true"
+            />
+          ) : null}
         </div>
       ) : null}
 
