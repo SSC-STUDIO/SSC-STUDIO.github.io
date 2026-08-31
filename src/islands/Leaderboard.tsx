@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { benchmarkGames } from "../data/benchmarks";
 
 type ScoreItem = {
   id: string;
@@ -15,20 +16,16 @@ type LeaderboardResponse = {
 type BenchmarkTab = {
   id: string;
   label: string;
-  /** "ms" for reaction-based, "level" for progression-based games. */
   unit: "ms" | "level";
-  /** "asc" when a lower score is better (reaction time). */
   sort?: "asc" | "desc";
 };
 
-const BENCHMARK_TABS: BenchmarkTab[] = [
-  { id: "reaction-test", label: "反应时间", unit: "ms", sort: "asc" },
-  { id: "word-memory", label: "词语记忆", unit: "level" },
-  { id: "number-memory", label: "数字记忆", unit: "level" },
-  { id: "visual-memory", label: "视觉记忆", unit: "level" },
-  { id: "sequence-memory", label: "顺序记忆", unit: "level" },
-  { id: "chimp-test", label: "黑猩猩测试", unit: "level" },
-];
+const BENCHMARK_TABS: BenchmarkTab[] = benchmarkGames.map((game) => ({
+  id: game.id,
+  label: game.label,
+  unit: game.unit,
+  sort: game.sort,
+}));
 
 /** Initial number of entries shown before "显示更多". */
 const INITIAL_DISPLAY_COUNT = 10;
@@ -65,7 +62,7 @@ function barRatio(
 }
 
 /**
- * Leaderboard island — fetches all six benchmark leaderboards from the API
+ * Leaderboard island — fetches all benchmark leaderboards from the API
  * and presents them as switchable tabs. Data source and tab metadata follow
  * the materials repo `leaderboard-client.tsx` / `leaderboard/page.tsx`.
  */

@@ -7,6 +7,7 @@ import {
   uploadAttachment,
   type AttachmentMeta,
 } from "./media";
+import { formatTime } from "../utils/format-time";
 
 /**
  * Messages island — private direct messages between accounts.
@@ -97,15 +98,6 @@ function previewText(message: MessageDto | null): string {
   if (!message) return "";
   if (message.content) return message.content;
   return message.attachment ? "[附件]" : "";
-}
-
-function formatTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function formatShortTime(value: string): string {

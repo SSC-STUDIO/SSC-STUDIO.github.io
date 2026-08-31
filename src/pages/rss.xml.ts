@@ -1,41 +1,27 @@
 /**
- * /rss.xml — 文章 + 项目订阅源（零依赖手写 endpoint）
+ * /rss.xml — 文章 + 项目订阅源（标题/日期与正文同一份数据）
  */
 import type { APIRoute } from 'astro'
+import { articles } from '../data/articles'
+import { projects } from '../data/projects'
 
 const site = 'https://chenrunsen.cn'
 
 const items = [
-  {
-    title: '为什么要做一个自己的网站',
-    link: '/articles/why-build-personal-site/',
-    description: '关于这个空间的起点：把好奇、作品和记忆收进同一个可以滚动回放的地方。',
-    pubDate: '2026-04-18',
-  },
-  {
-    title: '一个 AI 原型的迭代回路',
-    link: '/articles/ai-prototype-loop/',
-    description: '从想法到可运行原型的最短路径：记录一次 AI 实验的完整迭代。',
-    pubDate: '2026-05-02',
-  },
-  {
-    title: 'MyWebsite 个人站',
-    link: '/projects/my-website/',
-    description: '个人站 monorepo：作品集、文章、Human Benchmark 与班级空间。',
-    pubDate: '2026-03-01',
-  },
-  {
-    title: 'AI Lab Notes',
-    link: '/projects/ai-lab-notes/',
-    description: '自托管 LLM 网关与 CV 实验：模型路由、故障回退、遥测，以及可复现的训练笔记。',
-    pubDate: '2026-04-10',
-  },
-  {
-    title: 'Interactive Game Kit',
-    link: '/projects/interactive-game-kit/',
-    description: '浏览器棋类、Roguelite 与 Godot 原型 — 手感、反馈与排行榜一体。',
-    pubDate: '2025-12-20',
-  },
+  ...articles.map((article) => ({
+    title: article.title,
+    link: `${article.href}/`,
+    description: article.summary,
+    pubDate: article.isoDate,
+  })),
+  ...projects
+    .filter((project) => project.rssDate)
+    .map((project) => ({
+      title: project.name,
+      link: `${project.href}/`,
+      description: project.summary,
+      pubDate: project.rssDate as string,
+    })),
 ]
 
 const escapeXml = (value: string) =>

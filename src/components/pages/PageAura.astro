@@ -53,7 +53,6 @@ const { class: className } = Astro.props
       if (!this.aura) return
 
       this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
-      this.unframe = onFrame(() => this.settle())
     }
 
     disconnectedCallback() {
@@ -67,6 +66,7 @@ const { class: className } = Astro.props
     aim(x: number, y: number) {
       this.aimX = x / Math.max(1, window.innerWidth)
       this.aimY = y / Math.max(1, window.innerHeight)
+      if (!this.unframe) this.unframe = onFrame(() => this.settle())
     }
 
     settle() {
@@ -75,7 +75,11 @@ const { class: className } = Astro.props
 
       const dx = this.aimX - this.curX
       const dy = this.aimY - this.curY
-      if (Math.abs(dx) < 0.0005 && Math.abs(dy) < 0.0005) return
+      if (Math.abs(dx) < 0.0005 && Math.abs(dy) < 0.0005) {
+        this.unframe?.()
+        this.unframe = null
+        return
+      }
 
       this.curX += dx * EASE
       this.curY += dy * EASE

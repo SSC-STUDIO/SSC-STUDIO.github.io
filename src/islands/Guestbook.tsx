@@ -6,6 +6,7 @@ import {
   uploadAttachment,
   type AttachmentMeta,
 } from "./media";
+import { formatTime } from "../utils/format-time";
 
 /**
  * Guestbook island — public comment feed with login-gated posting,
@@ -67,15 +68,6 @@ function submitOnCtrlEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     event.preventDefault();
     event.currentTarget.form?.requestSubmit();
   }
-}
-
-function formatTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 /** Apply `fn` to the comment or reply with the given id. */

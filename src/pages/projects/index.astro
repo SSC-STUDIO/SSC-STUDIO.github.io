@@ -5,86 +5,10 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
 import reposData from '@/data/github-repos.json'
+import { projects } from '@/data/projects'
 
 /** GitHub 数据由 `npm run sync:repos` 生成（构建期静态，不占用运行时配额） */
 const repos = reposData.repos
-
-const projects = [
-  {
-    href: '/projects/my-website',
-    kicker: 'active · 2026',
-    id: '#CRS-001/08',
-    title: 'MyWebsite 个人站',
-    cover: '/images/work-covers/my-website.svg',
-    summary:
-      'Chen Runsen 的个人站 monorepo：作品集、文章、Human Benchmark 与班级空间。',
-    tags: ['Astro', 'TypeScript', 'Fastify', 'Prisma', 'PostgreSQL'],
-  },
-  {
-    href: '/projects/ai-lab-notes',
-    kicker: 'active · 2026',
-    id: '#CRS-002/08',
-    title: 'AI Lab Notes',
-    cover: '/images/work-covers/ai-lab.svg',
-    summary:
-      '自托管 LLM 网关与 CV 实验：模型路由、故障回退、遥测，以及可复现的训练笔记。',
-    tags: ['Go', 'Python', 'PyTorch', 'LLM Ops', 'OpenAI API'],
-  },
-  {
-    href: '/projects/interactive-game-kit',
-    kicker: 'active · 2025',
-    id: '#CRS-003/08',
-    title: 'Interactive Game Kit',
-    cover: '/images/work-covers/game-kit.svg',
-    summary: '浏览器棋类、Roguelite 与 Godot 原型 — 手感、反馈与排行榜一体。',
-    tags: ['JavaScript', 'Godot', 'GDScript', 'TypeScript', 'Canvas'],
-  },
-  {
-    href: '/projects/games-lab',
-    kicker: 'active · 2025',
-    id: '#CRS-004/08',
-    title: 'Games Lab',
-    cover: '/images/work-covers/games.svg',
-    summary: '把棋盘规则、弹幕生存与 Godot 竞技场做成可试玩的游戏集合。',
-    tags: ['JavaScript', 'GDScript', 'Godot'],
-  },
-  {
-    href: '/projects/benchmarks',
-    kicker: 'active · 2025',
-    id: '#CRS-005/08',
-    title: 'Human Benchmarks',
-    cover: '/images/work-covers/benchmarks.svg',
-    summary: '反应、记忆、序列挑战 — 内置在 MyWebsite，分数可提交、可排行。',
-    tags: ['TypeScript', 'Fastify', 'Canvas'],
-  },
-  {
-    href: '/projects/class-space',
-    kicker: 'active · 2025',
-    id: '#CRS-006/08',
-    title: 'Class Space',
-    cover: '/images/work-covers/class.svg',
-    summary: '班级记忆现场：相册、同学档案与只属于我们这一班的片段。',
-    tags: ['Astro', 'TypeScript', 'Fastify'],
-  },
-  {
-    href: '/projects/articles',
-    kicker: 'active · 2025',
-    id: '#CRS-007/08',
-    title: 'Articles & Notes',
-    cover: '/images/work-covers/articles.svg',
-    summary: '把灵感写慢，把问题写透 — LLM 网关、CV 实验与工程复盘的文字记录。',
-    tags: ['Markdown', 'TypeScript'],
-  },
-  {
-    href: '/projects/honors',
-    kicker: 'active · 2024',
-    id: '#CRS-008/08',
-    title: 'Honors & Growth',
-    cover: '/images/work-covers/honors.svg',
-    summary: '创客、竞赛与成长节点 — 努力被看见的那些瞬间。',
-    tags: ['Scratch', '创客', '信息学'],
-  },
-]
 ---
 
 <BaseLayout
@@ -109,7 +33,7 @@ const projects = [
               href={project.href}
               kicker={project.kicker}
               id={project.id}
-              title={project.title}
+              title={project.name}
             >
               <span
                 class="p-projects__figure"

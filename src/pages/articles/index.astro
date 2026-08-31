@@ -4,28 +4,7 @@ import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
-
-/** 文章清单：新文在前；words 为正文约数，用来估算阅读时长（400 字/分钟） */
-const articles = [
-  {
-    href: '/articles/why-build-personal-site',
-    kicker: 'featured',
-    title: '为什么还在做个人网站',
-    summary: '在模板和社交平台之间，个人站仍然值得投入。',
-    date: '2026年3月1日',
-    words: 260,
-    tags: ['meta', 'writing'],
-  },
-  {
-    href: '/articles/ai-prototype-loop',
-    kicker: 'note',
-    title: 'AI 原型的快速迭代循环',
-    summary: '从想法到可点击 demo，我使用的四步循环。',
-    date: '2026年2月15日',
-    words: 200,
-    tags: ['ai', 'engineering'],
-  },
-]
+import { articles } from '@/data/articles'
 
 const total = articles.length
 const pad = (n: number) => String(n).padStart(2, '0')

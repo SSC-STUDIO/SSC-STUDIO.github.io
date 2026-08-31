@@ -116,10 +116,9 @@ const words = title.split(' ').map((word) =>
         passive: true,
       })
 
-      // 指针游移只在真指针设备上生效
+      // 指针游移只在真指针设备上生效；位移低于阈值就停帧
       if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
         this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
-        this.resume()
       }
     }
 
@@ -176,15 +175,23 @@ const words = title.split(' ').map((word) =>
         Math.max((y - rect.top) / Math.max(1, rect.height) - 0.5, -0.5),
         0.5
       )
+      this.resume()
     }
 
-    /** 追赶指针：只在还有可见位移时写样式，静止后自动闲下来 */
+    /** 追赶指针：位移低于阈值就停帧 */
     settle() {
       const hero = this.hero
       if (!hero) return
 
-      this.curX += (this.aimX - this.curX) * EASE
-      this.curY += (this.aimY - this.curY) * EASE
+      const dx = this.aimX - this.curX
+      const dy = this.aimY - this.curY
+      if (Math.abs(dx) < 0.0008 && Math.abs(dy) < 0.0008) {
+        this.suspend()
+        return
+      }
+
+      this.curX += dx * EASE
+      this.curY += dy * EASE
 
       hero.style.setProperty('--hero-px', this.curX.toFixed(4))
       hero.style.setProperty('--hero-py', this.curY.toFixed(4))

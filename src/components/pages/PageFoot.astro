@@ -6,6 +6,7 @@
  */
 import InkRail from '../InkRail.astro'
 import SealMark from '../SealMark.astro'
+import { navLinks } from '@/data/nav'
 
 interface Props {
   /** href of the current section, marks the matching eco link */
@@ -14,19 +15,7 @@ interface Props {
 
 const { current } = Astro.props
 
-const links = [
-  { href: '/', label: '首页' },
-  { href: '/projects', label: '项目' },
-  { href: '/articles', label: '文章' },
-  { href: '/about', label: '关于' },
-  { href: '/honors', label: '荣誉' },
-  { href: '/sponsor', label: '赞助' },
-  { href: '/leaderboard', label: '排行榜' },
-  { href: '/benchmarks', label: '反应力' },
-  { href: '/class', label: '班级空间' },
-  { href: '/guestbook', label: '留言簿' },
-  { href: '/contact', label: '联系' },
-]
+const links = navLinks
 ---
 
 <InkRail style="secondary" />

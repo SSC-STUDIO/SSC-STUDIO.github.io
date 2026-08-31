@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
+import { formatTime } from "../utils/format-time";
 
 /**
  * Class space island — members-only overview of the class archive.
@@ -67,15 +68,6 @@ type CommentsResponse = {
 
 const MAX_LENGTH = 2000;
 const LOGIN_PATH = "/account";
-
-function formatTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 /** One-line excerpt for the profile cards in the grid. */
 function bioExcerpt(bio: string): string {

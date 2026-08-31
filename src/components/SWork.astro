@@ -4,88 +4,17 @@ import InkMountains from './InkMountains.astro'
 import InkMeander from './InkMeander.astro'
 import InkScroll from './InkScroll.astro'
 import SealChar from './SealChar.astro'
+import { projects } from '@/data/projects'
 
-// Yeah, this should probably be in a CMS or content file.
-// But it’s my site, and editing it in code is faster than setting up yet another headless something.
-// Sometimes "quick and dirty" wins. Don’t @ me.
-const works = [
-  {
-    name: 'MyWebsite 个人站',
-    title: 'MyWebsite 个人站 · 2026',
-    href: '/',
-    img: '/images/work-covers/my-website.svg',
-    summary:
-      'Chen Runsen 的个人站 monorepo：作品集、文章、Human Benchmark 与班级空间。',
-    stack: ['Astro', 'TypeScript', 'Fastify', 'Prisma', 'PostgreSQL'],
-    key: '1w83',
-  },
-  {
-    name: 'AI Lab Notes',
-    title: 'AI Lab Notes · 2026',
-    href: 'https://github.com/SSC-STUDIO/Ai-Model-Gateway',
-    img: '/images/work-covers/ai-lab.svg',
-    summary:
-      '自托管 LLM 网关与 CV 实验：模型路由、故障回退、遥测，以及可复现的训练笔记。',
-    stack: ['Go', 'Python', 'PyTorch', 'LLM Ops', 'OpenAI API'],
-    key: 'p20h',
-  },
-  {
-    name: 'Interactive Game Kit',
-    title: 'Interactive Game Kit · 2025',
-    href: 'https://github.com/SSC-STUDIO/Multi-Board-Game-Collection',
-    img: '/images/work-covers/game-kit.svg',
-    summary:
-      '浏览器棋类、Roguelite 与 Godot 原型 — 手感、反馈与排行榜一体。',
-    stack: ['JavaScript', 'Godot', 'GDScript', 'TypeScript', 'Canvas'],
-    key: '965w',
-  },
-  {
-    name: 'Games Lab',
-    title: 'Games Lab · 2025',
-    href: 'https://github.com/SSC-STUDIO/Multi-Board-Game-Collection',
-    img: '/images/work-covers/games.svg',
-    summary: '把棋盘规则、弹幕生存与 Godot 竞技场做成可试玩的游戏集合。',
-    stack: ['JavaScript', 'GDScript', 'Godot'],
-    key: 'v9d8',
-  },
-  {
-    name: 'Human Benchmarks',
-    title: 'Human Benchmarks · 2025',
-    href: '/benchmarks',
-    img: '/images/work-covers/benchmarks.svg',
-    summary: '反应、记忆、序列挑战 — 内置在 MyWebsite，分数可提交、可排行。',
-    stack: ['TypeScript', 'Fastify', 'Canvas'],
-    key: '4hg5',
-  },
-  {
-    name: 'Class Space',
-    title: 'Class Space · 2025',
-    href: '/class',
-    img: '/images/work-covers/class.svg',
-    summary: '班级记忆现场：相册、同学档案与只属于我们这一班的片段。',
-    stack: ['Astro', 'TypeScript', 'Fastify'],
-    key: 'sgc6',
-  },
-  {
-    name: 'Articles & Notes',
-    title: 'Articles & Notes · 2025',
-    href: '/articles',
-    img: '/images/work-covers/articles.svg',
-    summary:
-      '把灵感写慢，把问题写透 — LLM 网关、CV 实验与工程复盘的文字记录。',
-    stack: ['Markdown', 'TypeScript'],
-    key: 'yfjd',
-  },
-  {
-    name: 'Honors & Growth',
-    title: 'Honors & Growth · 2024',
-    href: '/honors',
-    img: '/images/work-covers/honors.svg',
-    summary: '创客、竞赛与成长节点 — 努力被看见的那些瞬间。',
-    stack: ['Scratch', '创客', '信息学'],
-    key: 'yyfm',
-  },
-]
+const works = projects.map((project) => ({
+  name: project.name,
+  title: project.title,
+  href: project.href,
+  img: project.cover,
+  summary: project.summary,
+  stack: project.tags,
+  key: project.homeKey,
+}))
 
 const total = String(works.length).padStart(2, '0')
 
@@ -146,7 +75,7 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
         }
       </aside>
 
-      <canvas class="s__canvas js-canvas"></canvas>
+      <canvas class="s__canvas js-canvas" aria-hidden="true"></canvas>
     </div><!-- .s__inner -->
 
     <div class="s__mask-outer">

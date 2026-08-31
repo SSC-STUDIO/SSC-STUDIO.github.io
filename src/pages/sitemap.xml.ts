@@ -1,36 +1,33 @@
 /**
- * /sitemap.xml — 全站路由索引
+ * /sitemap.xml — 公开路由索引（私密页不收录）
  */
 import type { APIRoute } from 'astro'
+import { articles } from '../data/articles'
+import { projects } from '../data/projects'
+import { benchmarkGames } from '../data/benchmarks'
+import { navLinks } from '../data/nav'
 
 const site = 'https://chenrunsen.cn'
 
 const routes = [
-  { path: '/', priority: '1.0' },
-  { path: '/about/', priority: '0.8' },
-  { path: '/projects/', priority: '0.8' },
-  { path: '/projects/my-website/', priority: '0.6' },
-  { path: '/projects/ai-lab-notes/', priority: '0.6' },
-  { path: '/projects/interactive-game-kit/', priority: '0.6' },
-  { path: '/articles/', priority: '0.8' },
-  { path: '/articles/why-build-personal-site/', priority: '0.6' },
-  { path: '/articles/ai-prototype-loop/', priority: '0.6' },
-  { path: '/honors/', priority: '0.8' },
-  { path: '/benchmarks/', priority: '0.8' },
-  { path: '/benchmarks/reaction-test/', priority: '0.6' },
-  { path: '/benchmarks/number-memory/', priority: '0.6' },
-  { path: '/benchmarks/visual-memory/', priority: '0.6' },
-  { path: '/benchmarks/sequence-memory/', priority: '0.6' },
-  { path: '/benchmarks/chimp-test/', priority: '0.6' },
-  { path: '/benchmarks/word-memory/', priority: '0.6' },
-  { path: '/benchmarks/schulte-grid/', priority: '0.6' },
-  { path: '/leaderboard/', priority: '0.7' },
-  { path: '/class/', priority: '0.7' },
-  { path: '/class/gallery/', priority: '0.6' },
-  { path: '/guestbook/', priority: '0.7' },
-  { path: '/sponsor/', priority: '0.5' },
-  { path: '/contact/', priority: '0.7' },
-  { path: '/account/', priority: '0.4' },
+  ...navLinks
+    .filter((link) => link.sitemap)
+    .map((link) => ({
+      path: link.href === '/' ? '/' : `${link.href}/`,
+      priority: link.priority ?? '0.6',
+    })),
+  ...projects.map((project) => ({
+    path: `${project.href}/`,
+    priority: '0.6',
+  })),
+  ...articles.map((article) => ({
+    path: `${article.href}/`,
+    priority: '0.6',
+  })),
+  ...benchmarkGames.map((game) => ({
+    path: `${game.href}/`,
+    priority: '0.6',
+  })),
 ]
 
 export const GET: APIRoute = () => {

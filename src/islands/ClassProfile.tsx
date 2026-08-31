@@ -6,6 +6,7 @@ import {
   ClassOfflineNotice,
   roleLabel,
 } from "./ClassSpace";
+import { formatTime } from "../utils/format-time";
 
 /**
  * Class profile island — one member's file inside the class space.
@@ -42,16 +43,6 @@ type Visits = {
 
 /** Slugs already counted this page load — the visit POST fires once. */
 const countedVisits = new Set<string>();
-
-function formatTime(value?: string): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function paragraphs(text: string): string[] {
   return text

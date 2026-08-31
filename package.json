@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "check": "astro check",
     "sync:repos": "node scripts/sync-github.mjs"
   },
   "dependencies": {
