@@ -44,10 +44,13 @@ const frames = [
     src: `/legacy-assets/step/step_${i}.jpg`,
     caption: `成长轨迹 · ${String(i + 1).padStart(2, '0')}<br/>Step · Journey`,
   })),
-  ...Array.from({ length: 8 }, (_, i) => ({
-    src: `/legacy-assets/my_classmate/${i + 1}.jpg`,
-    caption: `班级记忆 · ${String(i + 1).padStart(2, '0')}<br/>Class Space`,
-  })),
+  // 素材库编号跳号（没有 4/5/6），用实际存在的文件列表
+  ...['1.jpg', '2.jpg', '3.jpg', '7.jpg', '8.jpg', '9.jpg', '10.jpg', '11.jpg'].map(
+    (file, i) => ({
+      src: `/legacy-assets/my_classmate/${file}`,
+      caption: `班级记忆 · ${String(i + 1).padStart(2, '0')}<br/>Class Space`,
+    })
+  ),
 ]
 
 const ecosystem = [
@@ -108,6 +111,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   <InkMountains compact />
   <InkBloom class="s__bloom" size={260} />
   <div class="s__smiley js-smiley" aria-hidden="true">
+    <span class="s__smiley__ring"></span>
+    <span class="s__smiley__pips">
+      <i></i>
+      <i></i>
+      <i></i>
+      <i></i>
+    </span>
     <SenMark size={72} />
   </div>
 
@@ -195,6 +205,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     </div><!-- .s__catcher__normal-wrapper -->
   </div><!-- .s__catcher -->
 
+  <canvas class="s__field js-field" aria-hidden="true"></canvas>
+
   <svg class="s__svg js-svg">
     <path class="s__svg__circular-path js-lines-circular-path" d=""></path>
   </svg>
@@ -233,10 +245,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     frameDelta,
     type Cleanup,
   } from '../motion/core'
+  import { createField, type Field2D } from '../motion/field'
 
   class Section {
     el: HTMLElement
     svg: HTMLElement
+    fieldCanvas: HTMLCanvasElement
+    fieldCtx: CanvasRenderingContext2D | null
+    field: Field2D
+    dots: { x: number; y: number; ox: number; oy: number; p: number }[]
     objectsWrapper: HTMLElement
     ruler: HTMLElement
 
@@ -300,6 +317,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       // Elements
       this.el = document.querySelector('.s-my-way')
       this.svg = this.el.querySelector('.js-svg')
+      this.fieldCanvas = this.el.querySelector('.js-field')
+      this.fieldCtx = this.fieldCanvas ? this.fieldCanvas.getContext('2d') : null
+      this.field = createField(7.13)
+      this.dots = []
       this.objectsWrapper = this.el.querySelector('.js-objects')
       this.ruler = this.el.querySelector('.js-ruler')
 
@@ -362,10 +383,12 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.setSize()
       this.setScroll()
       this.setLines()
+      this.setDots()
 
       this.bindEvents()
 
       this.firstObjects()
+      this.syncVisibility()
     }
 
     /**
@@ -413,17 +436,30 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Intersect handler
      */
     onIntersect(e) {
-      this.isPaused = !e.detail.isIntersecting
-      this.canThrow = e.detail.isIntersecting
+      this.applyVisibility(!!e.detail.isIntersecting)
+    }
 
-      if (!this.isPaused) {
-        this.thrownObjects.forEach((object) => {
-          object.isWaiting = false
-        })
+    syncVisibility() {
+      const rect = this.el.getBoundingClientRect()
+      const visible =
+        this.el.classList.contains('is-in-view') ||
+        (rect.bottom > 80 && rect.top < window.innerHeight - 40)
+      this.applyVisibility(visible)
+    }
 
-        if (this.scroll.p > 0.58) {
-          this.launchEcosystemCards()
-        }
+    applyVisibility(visible: boolean) {
+      this.isPaused = !visible
+      this.canThrow = visible
+
+      if (!visible) return
+
+      this.thrownObjects.forEach((object) => {
+        object.isWaiting = false
+        object.el.classList.remove('is-waiting')
+      })
+
+      if (this.scroll.p > 0.58) {
+        this.launchEcosystemCards()
       }
     }
 
@@ -473,6 +509,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.setSize()
       this.setScroll()
       this.setLines()
+      this.setDots()
     }
 
     /**
@@ -511,6 +548,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       this.svg.style.width = this.bounding.width + 'px'
       this.svg.style.height = this.bounding.height + 'px'
+
+      if (this.fieldCanvas && this.fieldCtx) {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        this.fieldCanvas.width = Math.round(this.bounding.width * dpr)
+        this.fieldCanvas.height = Math.round(this.bounding.height * dpr)
+        this.fieldCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
 
       this.smiley.bounding = this.smiley.el.getBoundingClientRect()
       this.smiley.rel.x =
@@ -617,6 +661,71 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       })
 
       lines.circularPath.setAttribute('d', d)
+    }
+
+    /**
+     * 背景点阵：垫在辐射线后面，指针近处微微让开
+     */
+    setDots() {
+      const { bounding } = this
+      if (!bounding?.width || !bounding.height) return
+
+      const gap = bounding.width < 720 ? 42 : 32
+      const cols = Math.ceil(bounding.width / gap) + 1
+      const rows = Math.ceil(bounding.height / gap) + 1
+      this.dots = []
+
+      for (let i = 0; i <= cols; i++) {
+        for (let j = 0; j <= rows; j++) {
+          const ox = (i + (j % 2) * 0.5) * gap
+          const oy = j * gap
+          this.dots.push({
+            x: ox,
+            y: oy,
+            ox,
+            oy,
+            p: (i * 13 + j * 7) * 0.017,
+          })
+        }
+      }
+
+      this.drawDots(performance.now())
+    }
+
+    drawDots(time: number) {
+      const ctx = this.fieldCtx
+      const { bounding, mouse, field, smiley } = this
+      if (!ctx || !bounding?.width) return
+
+      ctx.clearRect(0, 0, bounding.width, bounding.height)
+
+      const mx = mouse.set ? mouse.sx : smiley.rel.x
+      const my = mouse.set ? mouse.sy : smiley.rel.y
+      const t = time * 0.00018
+      ctx.fillStyle =
+        getComputedStyle(this.el).getPropertyValue('--color-secondary').trim() ||
+        '#1c2a22'
+
+      for (const dot of this.dots) {
+        const n = field.sample(dot.ox * 0.004 + t, dot.oy * 0.0035)
+        let x = dot.ox + n * 6
+        let y = dot.oy + n * 4
+        const dx = x - mx
+        const dy = y - my
+        const d = Math.hypot(dx, dy)
+        if (d < 140 && d > 0.001) {
+          const push = (1 - d / 140) ** 2 * 18
+          x += (dx / d) * push
+          y += (dy / d) * push
+        }
+
+        const near = Math.max(0, 1 - d / 220)
+        ctx.globalAlpha = 0.12 + near * 0.28
+        ctx.beginPath()
+        ctx.arc(x, y, 1.05 + near * 0.7, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.globalAlpha = 1
     }
 
     /**
@@ -794,6 +903,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.thrownObjects.forEach((object) => {
         object.move(time)
       })
+
+      if (!this.isPaused) this.drawDots(time)
 
       if (this.isPaused) return
 
@@ -1080,6 +1191,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       background: color(primary);
       border: 1.5px solid color-mix(in srgb, #{color(accent)} 70%, transparent);
+      border-radius: 999rem;
       box-shadow: inset 0 0 0 3px color(primary);
 
       color: color(accent);
@@ -1092,6 +1204,72 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         width: 62%;
         height: 62%;
       }
+
+      &__ring {
+        position: absolute;
+        inset: -0.7rem;
+
+        border: 1.4px dashed
+          color-mix(in srgb, #{color(secondary)} 55%, transparent);
+        border-radius: 999rem;
+
+        pointer-events: none;
+      }
+
+      &__pips {
+        position: absolute;
+        inset: -0.15rem;
+
+        pointer-events: none;
+
+        i {
+          position: absolute;
+
+          width: 5px;
+          height: 5px;
+
+          background: color(accent);
+          border-radius: 50%;
+
+          opacity: 0.85;
+
+          &:nth-child(1) {
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          }
+
+          &:nth-child(2) {
+            top: 50%;
+            right: 0;
+            transform: translate(50%, -50%);
+          }
+
+          &:nth-child(3) {
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 50%);
+          }
+
+          &:nth-child(4) {
+            top: 50%;
+            left: 0;
+            transform: translate(-50%, -50%);
+          }
+        }
+      }
+    }
+
+    .s__field {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+
+      display: block;
+      width: 100%;
+      height: 100%;
+
+      pointer-events: none;
     }
 
     @media (prefers-reduced-motion: reduce) {
