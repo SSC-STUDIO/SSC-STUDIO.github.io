@@ -107,6 +107,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   <InkBubbles class="s__bubbles" />
   <div class="s__smiley js-smiley" aria-hidden="true">
     <span class="s__smiley__ring"></span>
+    <span class="s__smiley__cardinals">
+      <b>北</b>
+      <b>东</b>
+      <b>南</b>
+      <b>西</b>
+    </span>
+    <span class="s__smiley__needle"></span>
     <span class="s__smiley__pips">
       <i></i>
       <i></i>
@@ -306,10 +313,19 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     unframe: Cleanup | null = null
     destroyed = false
     reduced = false
+    ripples: { x: number; y: number; born: number }[] = []
+    compassDeg = 0
+    compassAim = 0
+    paperPress = 0
+    catcherRx = 0
+    catcherRy = 0
+    catcherPulse = 0
+    pulseTimers: number[] = []
     onObjectDragStart = (e: Event) => this.objectDragStart(e)
     onObjectDragEnd = (e: Event) => this.objectDragEnd(e)
     onTouchMoveBound = (e: Event) => this.onTouchMove(e)
     onIntersectBound = (e: Event) => this.onIntersect(e)
+    onBlankClickBound = (e: Event) => this.onBlankClick(e)
 
     /**
      * Constructor
@@ -425,6 +441,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         this.onTouchMoveBound
       )
       this.el?.removeEventListener('intersect', this.onIntersectBound)
+      this.el?.removeEventListener('click', this.onBlankClickBound)
+      this.pulseTimers.forEach((id) => clearTimeout(id))
+      this.pulseTimers = []
+      this.ripples = []
     }
 
     /**
@@ -459,6 +479,9 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.el.addEventListener('intersect', this.onIntersectBound, {
         passive: true,
       })
+
+      // 点空白：不抢飞来物的「轻点细看」，只给纸面一记微感
+      this.el.addEventListener('click', this.onBlankClickBound)
     }
 
     startFrame() {
@@ -737,22 +760,35 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       const mx = mouse.set ? mouse.sx : smiley.rel.x
       const my = mouse.set ? mouse.sy : smiley.rel.y
-      const t = time * 0.00018
+      const t = this.reduced ? 0 : time * 0.00018
       ctx.fillStyle =
         getComputedStyle(this.el).getPropertyValue('--color-secondary').trim() ||
         '#1c2a22'
 
       for (const dot of this.dots) {
-        const n = field.sample(dot.ox * 0.004 + t, dot.oy * 0.0035)
+        const n = this.reduced ? 0 : field.sample(dot.ox * 0.004 + t, dot.oy * 0.0035)
         let x = dot.ox + n * 6
         let y = dot.oy + n * 4
         const dx = x - mx
         const dy = y - my
         const d = Math.hypot(dx, dy)
-        if (d < 140 && d > 0.001) {
+        if (!this.reduced && d < 140 && d > 0.001) {
           const push = (1 - d / 140) ** 2 * 18
           x += (dx / d) * push
           y += (dy / d) * push
+        }
+
+        for (const ripple of this.ripples) {
+          const t = (time - ripple.born) / 720
+          if (t < 0 || t > 1) continue
+          const waveR = 10 + t * 92
+          const dd = Math.hypot(x - ripple.x, y - ripple.y)
+          const band = Math.abs(dd - waveR)
+          if (band < 28 && dd > 0.001) {
+            const push = (1 - band / 28) * (1 - t) * 11
+            x += ((x - ripple.x) / dd) * push
+            y += ((y - ripple.y) / dd) * push
+          }
         }
 
         const near = Math.max(0, 1 - d / 220)
@@ -760,6 +796,24 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         ctx.beginPath()
         ctx.arc(x, y, 1.05 + near * 0.7, 0, Math.PI * 2)
         ctx.fill()
+      }
+
+      const accent =
+        getComputedStyle(this.el).getPropertyValue('--color-accent').trim() ||
+        '#c23a2b'
+      ctx.strokeStyle = accent
+      for (let i = this.ripples.length - 1; i >= 0; i--) {
+        const ripple = this.ripples[i]
+        const t = (time - ripple.born) / 720
+        if (t >= 1) {
+          this.ripples.splice(i, 1)
+          continue
+        }
+        ctx.globalAlpha = (1 - t) * 0.3
+        ctx.lineWidth = 1.15
+        ctx.beginPath()
+        ctx.arc(ripple.x, ripple.y, 10 + t * 92, 0, Math.PI * 2)
+        ctx.stroke()
       }
       ctx.globalAlpha = 1
     }
@@ -816,9 +870,43 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Initial objects
      */
     firstObjects() {
-      if (this.reduced) return
+      if (this.reduced) {
+        // 减弱动效仍要能细看：静静摆几帧在画面里，不飞、不自动抛
+        const n = Math.min(3, this.objects.length)
+        const gap = Math.min(220, window.safeWidth * 0.22)
 
-      const totalObjects =  Math.max(Math.min(Math.round(window.safeWidth * 0.025), 5), 2)
+        for (let i = 0; i < n; i++) {
+          const object = this.objects.splice(
+            Math.floor(Math.random() * this.objects.length),
+            1
+          )[0]
+
+          object.set(false)
+          object.isWaiting = false
+          object.el.classList.remove('is-waiting')
+          object.s = 1
+          object.x = (i - (n - 1) / 2) * gap
+          object.y = 36
+          object.z = 120
+          object.rx = 0
+          object.ry = 0
+          object.rz = 0
+          object.vx = 0
+          object.vy = 0
+          object.vz = 0
+          object.vrx = 0
+          object.vry = 0
+          this.thrownObjects.push(object)
+          object.move(performance.now())
+        }
+
+        return
+      }
+
+      const totalObjects = Math.max(
+        Math.min(Math.round(window.safeWidth * 0.025), 5),
+        2
+      )
 
       for (let i = 0; i < totalObjects; i++) {
         const object = this.objects.splice(
@@ -833,6 +921,81 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     /**
+     * 点空白纸面：墨圈破泡 / 远山近推由子组件自己听；
+     * 这里只做本卷微感——点阵涟漪、罗盘一指、大字洇一下、纸雕近压。
+     * 点在飞来物上不触发，以免抢走「轻点放大细看」。
+     */
+    onBlankClick(e: Event) {
+      if (this.destroyed || this.reduced || !this.bounding) return
+
+      const target = e.target as Element | null
+      if (!target) return
+      if (target.closest('.a-object, a, button, [role="button"]')) return
+
+      const ev = e as PointerEvent
+      const x = ev.clientX - this.bounding.left
+      const y = ev.clientY - this.bounding.top
+
+      this.ripples.push({ x, y, born: performance.now() })
+      if (this.ripples.length > 5) this.ripples.shift()
+
+      this.paperPress = 1
+      this.catcherPulse = 1
+      this.el.classList.add('is-blank-pulse')
+
+      if (target.closest('.js-smiley')) {
+        this.compassAim = 0
+      } else {
+        this.compassAim =
+          Math.atan2(x - this.smiley.rel.x, -(y - this.smiley.rel.y)) *
+          (180 / Math.PI)
+      }
+
+      const tid = window.setTimeout(() => {
+        if (this.destroyed) return
+        this.el.classList.remove('is-blank-pulse')
+      }, 520)
+      this.pulseTimers.push(tid)
+    }
+
+    /**
+     * 罗盘指向、大字倾侧、纸雕近压：每帧轻轻跟上
+     */
+    updateFeel() {
+      const { mouse, smiley, el } = this
+
+      if (this.inspectedObject) {
+        this.compassAim =
+          Math.atan2(this.inspectedObject.x, -this.inspectedObject.y) *
+          (180 / Math.PI)
+      } else if (mouse.set && !this.el.classList.contains('is-blank-pulse')) {
+        this.compassAim =
+          Math.atan2(mouse.sx - smiley.rel.x, -(mouse.sy - smiley.rel.y)) *
+          (180 / Math.PI)
+      }
+
+      let delta = this.compassAim - this.compassDeg
+      delta = ((delta + 540) % 360) - 180
+      this.compassDeg += delta * 0.08
+      smiley.el?.style.setProperty('--needle', this.compassDeg.toFixed(2) + 'deg')
+
+      if (mouse.set && this.bounding?.width) {
+        const nx = mouse.sx / this.bounding.width - 0.5
+        const ny = mouse.sy / this.bounding.height - 0.5
+        this.catcherRy += (nx * 9 - this.catcherRy) * 0.06
+        this.catcherRx += (-ny * 4.4 - this.catcherRx) * 0.06
+      }
+
+      this.paperPress += (0 - this.paperPress) * 0.08
+      this.catcherPulse += (0 - this.catcherPulse) * 0.1
+
+      el.style.setProperty('--paper-press', this.paperPress.toFixed(3))
+      el.style.setProperty('--catcher-pulse', this.catcherPulse.toFixed(3))
+      el.style.setProperty('--catcher-rx', this.catcherRx.toFixed(3) + 'deg')
+      el.style.setProperty('--catcher-ry', this.catcherRy.toFixed(3) + 'deg')
+    }
+
+    /**
      * Object move end
      */
     objectMoveEnd(object) {
@@ -842,6 +1005,35 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         this.ecosystemObjects.push(object)
       } else {
         this.objects.push(object)
+      }
+
+      // 减弱动效下细看后退场，再静静补一帧，保证还能点开
+      if (
+        this.reduced &&
+        this.thrownObjects.length < 2 &&
+        this.objects.length > 0
+      ) {
+        const next = this.objects.splice(
+          Math.floor(Math.random() * this.objects.length),
+          1
+        )[0]
+        next.set(false)
+        next.isWaiting = false
+        next.el.classList.remove('is-waiting')
+        next.s = 1
+        next.x = (Math.random() - 0.5) * Math.min(240, window.safeWidth * 0.3)
+        next.y = 28
+        next.z = 120
+        next.rx = 0
+        next.ry = 0
+        next.rz = 0
+        next.vx = 0
+        next.vy = 0
+        next.vz = 0
+        next.vrx = 0
+        next.vry = 0
+        this.thrownObjects.push(next)
+        next.move(performance.now())
       }
     }
 
@@ -998,6 +1190,16 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       object.isVanishing = true
       object.el.classList.add('is-vanishing')
 
+      if (this.reduced) {
+        object.vx = 0
+        object.vy = 0
+        object.vrx = 0
+        object.vry = 0
+        object.vanishDelay = 360
+        object.vanishStart = performance.now()
+        return
+      }
+
       if (gentle) {
         object.vx *= 0.3
         object.vy = Math.min(object.vy * 0.3, 0) - 0.4
@@ -1024,6 +1226,18 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     tick(time) {
       const { scroll, el, mouse } = this
 
+      if (this.reduced) {
+        mouse.sx = mouse.x
+        mouse.sy = mouse.y
+        scroll.sp = scroll.p
+        el.style.setProperty('--scroll-progress', String(scroll.sp))
+        this.thrownObjects.forEach((object) => {
+          object.move(time)
+        })
+        if (!this.isPaused) this.drawDots(time)
+        return
+      }
+
       // Smooth mouse movement
       mouse.sx += (mouse.x - mouse.sx) * 0.1
       mouse.sy += (mouse.y - mouse.sy) * 0.1
@@ -1037,6 +1251,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       el.style.setProperty('--scroll-progress', String(scroll.sp))
 
+      this.updateFeel()
+
       // Move objects
       this.thrownObjects.forEach((object) => {
         object.move(time)
@@ -1046,11 +1262,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       if (this.isPaused) return
 
-      if (
-        !this.reduced &&
-        this.canThrow &&
-        time - this.lastThrow > this.throwDelay
-      ) {
+      if (this.canThrow && time - this.lastThrow > this.throwDelay) {
         this.throwObject()
       }
     }
@@ -1217,38 +1429,59 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         this.s += (1 - this.s) * 0.5
       } else if (this.isInspecting) {
         // 细看：弹簧飞至画面中央，端正放大，轻微呼吸浮动
-        this.vx += (this.inspectX - this.x) * 0.06
-        this.vy += (this.inspectY - this.y) * 0.06
-        this.vz += (this.inspectZ - this.z) * 0.25
+        if (this.parent.reduced) {
+          this.x = this.inspectX
+          this.y = this.inspectY
+          this.z = this.inspectZ
+          this.rx = Math.round(this.rx / 360) * 360
+          this.ry = Math.round(this.ry / 360) * 360
+          this.rz = 0
+          this.s = 1
+        } else {
+          this.vx += (this.inspectX - this.x) * 0.06
+          this.vy += (this.inspectY - this.y) * 0.06
+          this.vz += (this.inspectZ - this.z) * 0.25
 
-        this.vx *= 0.86
-        this.vy *= 0.86
-        this.vz *= 0.72
+          this.vx *= 0.86
+          this.vy *= 0.86
+          this.vz *= 0.72
 
-        this.x += this.vx
-        this.y += this.vy + Math.sin(time * 0.0016) * 0.35
-        this.z += this.vz
+          this.x += this.vx
+          this.y += this.vy + Math.sin(time * 0.0016) * 0.35
+          this.z += this.vz
 
-        // 转回正面（就近归零，不多转圈）
-        this.rx += (Math.round(this.rx / 360) * 360 - this.rx) * 0.14
-        this.ry += (Math.round(this.ry / 360) * 360 - this.ry) * 0.14
-        this.rz += (0 - this.rz) * 0.14
+          // 转回正面（就近归零，不多转圈）
+          this.rx += (Math.round(this.rx / 360) * 360 - this.rx) * 0.14
+          this.ry += (Math.round(this.ry / 360) * 360 - this.ry) * 0.14
+          this.rz += (0 - this.rz) * 0.14
 
-        this.s += (1 - this.s) * 0.3
-      } else if (this.isVanishing) {
-        this.vy += 0.5
-
-        this.x += this.vx
-        this.y += this.vy
-
-        this.rx += this.vrx
-        this.ry += this.vry
-
-        if (time - this.vanishStart > this.vanishDelay) {
-          this.isWaiting = true
-          this.el.classList.add('is-waiting')
-          this.parent.objectMoveEnd(this)
+          this.s += (1 - this.s) * 0.3
         }
+      } else if (this.isVanishing) {
+        if (this.parent.reduced) {
+          this.s += (0 - this.s) * 0.22
+          if (time - this.vanishStart > this.vanishDelay) {
+            this.isWaiting = true
+            this.el.classList.add('is-waiting')
+            this.parent.objectMoveEnd(this)
+          }
+        } else {
+          this.vy += 0.5
+
+          this.x += this.vx
+          this.y += this.vy
+
+          this.rx += this.vrx
+          this.ry += this.vry
+
+          if (time - this.vanishStart > this.vanishDelay) {
+            this.isWaiting = true
+            this.el.classList.add('is-waiting')
+            this.parent.objectMoveEnd(this)
+          }
+        }
+      } else if (this.parent.reduced) {
+        // 静置：不漂移，只把坐标写回，保证细看仍可点
       } else {
         if (this.z > 1000) {
           this.isWaiting = true
@@ -1309,6 +1542,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   .s-my-way {
     --padding: 40rem;
     --smiley-size: 5.625rem;
+    --paper-press: 0;
+    --catcher-pulse: 0;
+    --catcher-rx: 0deg;
+    --catcher-ry: 0deg;
 
     @include flex(column, center, center);
     /* 云气地纹的静态圆环已并入 InkBubbles 动画层——
@@ -1337,6 +1574,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     /* 墨圈泡泡：与底纹圆环同族，自卷底缓缓上浮（压在物件与大字之下） */
     .s__bubbles {
       z-index: 1;
+    }
+
+    /* 点空白时远山纸雕再近推一寸阴影，不改 InkMountains 本身 */
+    :global(.ink-mountains--dimensional) {
+      filter: drop-shadow(
+        0 calc(var(--paper-press, 0) * -6px)
+          calc(var(--paper-press, 0) * 14px)
+          color-mix(in srgb, #{color(secondary)} 20%, transparent)
+      );
     }
 
     @include mq(desktop-lg) {
@@ -1396,6 +1642,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     .s__smiley {
+      --needle: 0deg;
+
       @include flex(row, center, center);
 
       position: relative;
@@ -1433,6 +1681,67 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         /* 罗盘缓转：虚线环顺时针慢走，衬出「路引」的行进感 */
         animation: sm-way-spin 42s linear infinite;
         will-change: transform;
+      }
+
+      &__cardinals {
+        position: absolute;
+        inset: -1.4rem;
+
+        pointer-events: none;
+
+        b {
+          position: absolute;
+
+          color: color-mix(in srgb, #{color(secondary)} 52%, transparent);
+          font: 600 9px / 1 font-family(editorial);
+          letter-spacing: 0.08em;
+
+          &:nth-child(1) {
+            top: 0;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          }
+
+          &:nth-child(2) {
+            top: 50%;
+            right: 0;
+            transform: translate(50%, -50%);
+          }
+
+          &:nth-child(3) {
+            bottom: 0;
+            left: 50%;
+            transform: translate(-50%, 50%);
+          }
+
+          &:nth-child(4) {
+            top: 50%;
+            left: 0;
+            transform: translate(-50%, -50%);
+          }
+        }
+      }
+
+      &__needle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+
+        width: 1.5px;
+        height: 38%;
+        margin-top: -38%;
+        margin-left: -0.75px;
+
+        background: linear-gradient(
+          color(accent),
+          color-mix(in srgb, #{color(accent)} 22%, transparent)
+        );
+        border-radius: 1px;
+
+        pointer-events: none;
+
+        transform-origin: 50% 100%;
+        transform: rotate(var(--needle, 0deg));
       }
 
       &__pips {
@@ -1495,12 +1804,36 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       pointer-events: none;
     }
 
+    &.is-blank-pulse {
+      .s__smiley__ring {
+        border-color: color-mix(in srgb, #{color(accent)} 88%, transparent);
+        filter: drop-shadow(
+          0 0 7px color-mix(in srgb, #{color(accent)} 42%, transparent)
+        );
+      }
+
+      .s__smiley__needle {
+        filter: drop-shadow(
+          0 0 4px color-mix(in srgb, #{color(accent)} 55%, transparent)
+        );
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .s__smiley,
       .s__smiley__ring,
       .s__smiley__pips,
       .s__bloom {
         animation: none;
+      }
+
+      .s__smiley__needle {
+        transform: none;
+      }
+
+      .s__catcher {
+        transform: none;
+        filter: none;
       }
     }
 
@@ -1604,7 +1937,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       transform: translate3d(
           calc(var(--x) - 50%),
           calc(var(--y) - 50%),
-          var(--z)
+          calc(var(--z) + var(--paper-press, 0) * 36px)
         )
         rotateX(calc(var(--rx) * 1deg)) rotateY(calc(var(--ry) * 1deg))
         rotateZ(calc(var(--rz) * 1deg)) scale(var(--s));
@@ -1637,6 +1970,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
           padding: 1.5rem 1.5rem 0;
 
           background: color(secondary);
+          box-shadow: inset 0 0 0 1px
+            color-mix(in srgb, #fff 14%, transparent);
         }
 
         .a__img {
@@ -2037,6 +2372,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
         cursor: zoom-out;
 
+        filter: drop-shadow(0 16px 26px rgba(30, 10, 60, 0.18));
+
+        .a__inner {
+          box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent),
+            3px 4px 0 color-mix(in srgb, #{color(secondary)} 16%, transparent),
+            6px 8px 0 color-mix(in srgb, #{color(secondary)} 8%, transparent);
+        }
+
         &:after,
         .a__side {
           display: none;
@@ -2183,6 +2527,15 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       perspective: calc(var(--distortion) * 0.85em);
       user-select: none;
 
+      filter: drop-shadow(
+        0 calc(var(--catcher-pulse, 0) * 10px)
+          calc(var(--catcher-pulse, 0) * 22px)
+          color-mix(in srgb, #{color(accent)} 28%, transparent)
+      );
+      transform: rotateX(var(--catcher-rx, 0deg))
+        rotateY(var(--catcher-ry, 0deg));
+      transform-style: preserve-3d;
+
       font: 700 calc(var(--padding) * 1.2) / 1 font-family(bigger);
       line-height: 0.82;
       text-align: center;
@@ -2273,6 +2626,9 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         @include ink-column-rule($offset: 0.5em);
 
         will-change: transform;
+
+        /* 点空白：大字微微洇朱，像碑帖被按了一下 */
+        filter: contrast(calc(1 + var(--catcher-pulse, 0) * 0.14));
 
         &--distorted {
           bottom: 0;
