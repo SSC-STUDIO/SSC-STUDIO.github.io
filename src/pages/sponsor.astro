@@ -18,6 +18,7 @@ import PageAura from '@/components/pages/PageAura.astro'
 
   <main class="p-page p-page--wide p-sponsor">
     <PageAura />
+    <span class="p-sponsor__glyph" aria-hidden="true">资</span>
     <div class="p-stack p-stack--cards">
       <PageCard kicker="why" title="为什么支持">
         <p>
@@ -68,6 +69,7 @@ import PageAura from '@/components/pages/PageAura.astro'
       </PageCard>
       <div class="p-sponsor-qr" data-reveal data-leaf>
         <span class="p-sponsor-qr__sheen" aria-hidden="true"></span>
+        <span class="p-sponsor-qr__stamp" aria-hidden="true">谢</span>
         <img
           src="/images/qr-code.svg"
           alt="网站二维码"
@@ -108,6 +110,48 @@ import PageAura from '@/components/pages/PageAura.astro'
     color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
     font: 400 0.85rem / 1.5 font-family(editorial);
     letter-spacing: 0.06em;
+  }
+
+  /* 卷底题字 */
+  .p-sponsor__glyph {
+    position: absolute;
+    top: 0.35rem;
+    right: clamp(1rem, 4vw, 2.5rem);
+    z-index: -1;
+
+    color: color(secondary);
+    font: 700 clamp(5rem, 16vw, 9rem) / 1 font-family(bigger);
+
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* 卡面受光 */
+  .p-sponsor .p-card::after {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+
+    background: linear-gradient(
+      105deg,
+      transparent 36%,
+      color-mix(in srgb, #{color(primary)} 28%, transparent) 50%,
+      transparent 64%
+    );
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-18%);
+    transition:
+      opacity 420ms ease,
+      transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-sponsor .p-card:hover::after,
+  .p-sponsor .p-card:focus-visible::after {
+    opacity: 1;
+    transform: translateX(18%);
   }
 
   /* ══════════════════════════════════════════════════════
@@ -163,6 +207,7 @@ import PageAura from '@/components/pages/PageAura.astro'
   .p-sponsor .p-sponsor-qr {
     --qr-lift: 0px;
 
+    position: relative;
     overflow: hidden;
 
     transform: perspective(60rem) translate3d(0, var(--qr-lift), 0)
@@ -243,6 +288,38 @@ import PageAura from '@/components/pages/PageAura.astro'
     z-index: 2;
   }
 
+  /* 册页右上钤「谢」：悬停时落印 */
+  .p-sponsor .p-sponsor-qr__stamp {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.75rem;
+    z-index: 3;
+
+    display: grid;
+    place-items: center;
+
+    width: 1.7rem;
+    height: 1.7rem;
+
+    border: 1.5px solid color-mix(in srgb, #{color(accent-strong)} 70%, transparent);
+
+    color: color(accent-strong);
+    font: 700 0.72rem / 1 font-family(editorial);
+
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.4) rotate(-10deg);
+    transition:
+      opacity 420ms cubic-bezier(0.2, 1.35, 0.32, 1),
+      transform 420ms cubic-bezier(0.2, 1.35, 0.32, 1);
+  }
+
+  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__stamp,
+  .p-sponsor .p-sponsor-qr:focus-within .p-sponsor-qr__stamp {
+    opacity: 0.88;
+    transform: scale(1) rotate(-6deg);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .p-sponsor .p-card.is-inked .p-card__head,
     .p-sponsor .p-card.is-inked .p-card__title,
@@ -250,12 +327,23 @@ import PageAura from '@/components/pages/PageAura.astro'
       animation: none;
     }
 
+    .p-sponsor .p-card::after,
     .p-sponsor .p-card__body li,
     .p-sponsor .p-sponsor-qr,
     .p-sponsor .p-sponsor-qr img,
     .p-sponsor .p-sponsor-qr__sheen,
-    .p-sponsor .p-sponsor-qr__thanks {
+    .p-sponsor .p-sponsor-qr__thanks,
+    .p-sponsor .p-sponsor-qr__stamp {
       transition: none;
+    }
+
+    .p-sponsor .p-card::after {
+      opacity: 0;
+    }
+
+    .p-sponsor .p-sponsor-qr__stamp {
+      opacity: 0.72;
+      transform: rotate(-6deg);
     }
 
     .p-sponsor .p-card__body li:hover,
