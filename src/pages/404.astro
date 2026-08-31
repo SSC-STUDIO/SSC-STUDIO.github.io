@@ -22,6 +22,7 @@ const verseChars = Array.from(verse)
     <PageAura />
     <div class="p-empty" data-intersect>
       <lost-ink class="p-404__strays" data-intersect aria-hidden="true"></lost-ink>
+      <span class="p-404__seal" aria-hidden="true">迷</span>
       <p class="p-empty__title">此处空白</p>
       <p class="p-empty__message">
         你访问的地址没有对应内容。如果是从旧链接跳转过来，站点重建后部分路径已调整。
@@ -268,6 +269,32 @@ const verseChars = Array.from(verse)
       --nf-py: 0;
     }
 
+    /* 「迷」印：落在空框右上，入屏后钤下 */
+    .p-404__seal {
+      position: absolute;
+      top: 1.1rem;
+      right: 1.2rem;
+      z-index: 3;
+
+      display: grid;
+      place-items: center;
+
+      width: 2.1rem;
+      height: 2.1rem;
+
+      border: 1.5px solid color-mix(in srgb, #{color(accent-strong)} 70%, transparent);
+
+      color: color(accent-strong);
+      font: 700 0.78rem / 1 font-family(bigger);
+
+      pointer-events: none;
+      transform: rotate(-9deg);
+    }
+
+    .p-empty.is-in-view .p-404__seal {
+      animation: p-404-seal 660ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    }
+
     /* 迷失路径回显：等宽小字，如批注一笔 */
     .p-404__path {
       position: relative;
@@ -278,6 +305,8 @@ const verseChars = Array.from(verse)
       color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
       font: 400 0.8rem / 1.5 font-family(editorial);
       letter-spacing: 0.06em;
+
+      animation: nf-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms backwards;
 
       code {
         padding: 0.2em 0.5em;
@@ -416,6 +445,13 @@ const verseChars = Array.from(verse)
     }
   }
 
+  @keyframes p-404-seal {
+    from {
+      opacity: 0;
+      transform: scale(1.7) rotate(-14deg);
+    }
+  }
+
   /* 入口按钮：悬停时朱丝自左扫入（落印涟漪交给 [data-seal]） */
   .p-404 .p-card__actions {
     position: relative;
@@ -437,7 +473,9 @@ const verseChars = Array.from(verse)
   @media (prefers-reduced-motion: reduce) {
     .p-404__verse.is-in-view .char,
     .p-404 .p-empty.is-in-view .p-empty__title,
-    .p-404 .p-empty.is-in-view .p-empty__message {
+    .p-404 .p-empty.is-in-view .p-empty__message,
+    .p-404 .p-empty.is-in-view .p-404__seal,
+    .p-404__path {
       animation: none;
     }
 
