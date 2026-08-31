@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import MessagesConsole from '@/islands/MessagesConsole'
 ---
 
@@ -17,6 +18,7 @@ import MessagesConsole from '@/islands/MessagesConsole'
   />
 
   <main class="p-page p-page--wide">
+    <PageAura />
     <PageCard kicker="private" title="Inbox">
       <MessagesConsole client:load />
     </PageCard>
@@ -253,14 +255,19 @@ import MessagesConsole from '@/islands/MessagesConsole'
     }
 
     &__bubble {
+      /* 入场自哪一侧浮起：对方自左、自己自右 */
+      --bubble-from: -0.55rem;
+
       max-width: 78%;
       padding: 0.55rem 0.8rem 0.4rem;
       border-radius: 4px;
       background: color-mix(in srgb, #{color(secondary)} 12%, transparent);
       color: color(secondary);
-      animation: p-msg-bubble-in 0.35s ease(out-cubic) backwards;
+      animation: p-msg-bubble-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 
       &.is-mine {
+        --bubble-from: 0.55rem;
+
         align-self: flex-end;
         background: color-mix(in srgb, #{color(accent)} 26%, transparent);
       }
@@ -317,24 +324,313 @@ import MessagesConsole from '@/islands/MessagesConsole'
   @keyframes p-msg-bubble-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translate3d(var(--bubble-from, 0), 6px, 0);
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     私密控制台的动效：克制为要——列表错峰、条目提起、
+     按钮落印、加载态墨色呼吸。默认态一律是「已落定」，
+     动效只在类落上之后播，fill-mode 取 backwards。
+     ══════════════════════════════════════════════════════ */
+
+  /* 会话检查中：极缓的墨色呼吸。
+     这个节点存在于 SSR 输出里，循环次数必须取有限值——
+     无限动画会被离屏暂停器在 React 补水前写上 inline style，
+     触发 hydration 属性不匹配告警。 */
+  .p-msg__hint--checking {
+    animation: p-msg-breathe 3.2s ease-in-out 120;
+  }
+
+  @keyframes p-msg-breathe {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* 未登录的门闩：徽记如落印，说明与入口随后落定 */
+  .p-msg .p-lock__badge {
+    animation: p-msg-seal-drop 640ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    animation-delay: 90ms;
+  }
+
+  .p-msg .p-lock__message {
+    animation: p-msg-fade-in 520ms ease backwards;
+    animation-delay: 220ms;
+  }
+
+  .p-msg .p-lock .p-card__actions {
+    animation: p-msg-fade-in 520ms ease backwards;
+    animation-delay: 320ms;
+  }
+
+  @keyframes p-msg-seal-drop {
+    from {
+      opacity: 0;
+      transform: scale(1.6) rotate(-6deg);
+    }
+  }
+
+  /* ── 加载骨架：三行墨条次第呼吸 ── */
+
+  .p-msg__skeleton {
+    margin: 0;
+    padding: 0.85rem 1rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+
+    list-style: none;
+  }
+
+  .p-msg__skeleton--thread {
+    padding: 0;
+    gap: 0.7rem;
+  }
+
+  .p-msg__skeleton-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    animation: p-msg-fade-in 420ms ease backwards;
+    animation-delay: calc(var(--sk-i, 0) * 90ms);
+  }
+
+  .p-msg__skeleton--thread .p-msg__skeleton-row:nth-child(even) {
+    align-items: flex-end;
+  }
+
+  .p-msg__skeleton-bar {
+    display: block;
+    height: 0.62rem;
+
+    border-radius: 2px;
+    background: color-mix(in srgb, #{color(secondary)} 16%, transparent);
+
+    animation: p-msg-ink-pulse 1.9s ease-in-out infinite;
+    animation-delay: calc(var(--sk-i, 0) * 150ms);
+  }
+
+  .p-msg__skeleton-bar--head {
+    width: 45%;
+    background: color-mix(in srgb, #{color(secondary)} 24%, transparent);
+  }
+
+  .p-msg__skeleton-bar--body {
+    width: 82%;
+  }
+
+  .p-msg__skeleton--thread .p-msg__skeleton-bar--head {
+    width: 30%;
+  }
+
+  .p-msg__skeleton--thread .p-msg__skeleton-bar--body {
+    width: 58%;
+    height: 1.4rem;
+  }
+
+  @keyframes p-msg-ink-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes p-msg-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.4rem);
+    }
+  }
+
+  /* ── 会话条目：逐条落墨，悬停时朱丝自上而下扫入 ── */
+
+  .p-msg__conv,
+  .p-msg__recipient {
+    position: relative;
+
+    transition:
+      background 0.25s ease(out-cubic),
+      transform 0.18s ease(out-cubic);
+
+    animation: p-msg-row-in 460ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--conv-i, 0) * 46ms);
+
+    &::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+
+      width: 2px;
+
+      background: linear-gradient(
+        180deg,
+        color(accent),
+        color(accent-strong)
+      );
+
+      content: '';
+      pointer-events: none;
+
+      transform: scaleY(0);
+      transform-origin: top center;
+      transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &:hover::before,
+    &:focus-visible::before,
+    &.is-active::before {
+      transform: scaleY(1);
+    }
+
+    /* 按下如落印：整条贴回纸面 */
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  @keyframes p-msg-row-in {
+    from {
+      opacity: 0;
+      transform: translate3d(-0.5rem, 0, 0);
+    }
+  }
+
+  /* 未读徽记：一记极缓的朱砂呼吸（挂载后才出现，可安心用 infinite） */
+  .p-msg__conv-unread {
+    animation: p-msg-unread 2.6s ease-in-out infinite;
+  }
+
+  @keyframes p-msg-unread {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.12);
+    }
+  }
+
+  /* ── 新消息 / 重试：落印手感 ── */
+
+  .p-msg__new,
+  .p-msg__retry {
+    transition:
+      background 0.25s ease(out-cubic),
+      border-color 0.25s ease(out-cubic),
+      transform 0.18s ease(out-cubic);
+
+    &:active {
+      transform: translateY(1px) scale(0.98);
+    }
+  }
+
+  .p-msg__retry:hover {
+    background: color-mix(in srgb, #{color(accent)} 28%, transparent);
+    border-color: color(accent);
+  }
+
+  /* 对话头：换人时轻轻落定 */
+  .p-msg__pane-head {
+    animation: p-msg-fade-in 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  /* 发送键：进行中一道墨色自左洗过 */
+  .p-msg__composer button[type='submit'] {
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(accent)} 58%, transparent),
+        transparent
+      );
+
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &:disabled::after {
+      opacity: 1;
+      animation: p-msg-ink-run 1.2s linear infinite;
+    }
+  }
+
+  @keyframes p-msg-ink-run {
+    from {
+      transform: translateX(-100%);
     }
 
     to {
-      opacity: 1;
-      transform: translateY(0);
+      transform: translateX(100%);
+    }
+  }
+
+  /* 写信框：落笔时边框转朱砂 */
+  .p-msg__composer textarea {
+    transition:
+      background-color 320ms ease,
+      box-shadow 320ms ease;
+
+    &:focus {
+      background-color: color-mix(
+        in srgb,
+        var(--daypart-lamp) 6%,
+        #{color(primary)}
+      );
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .p-msg__new,
     .p-msg__recipient,
-    .p-msg__conv {
+    .p-msg__conv,
+    .p-msg__conv::before,
+    .p-msg__recipient::before,
+    .p-msg__retry,
+    .p-msg__composer textarea {
       transition: none;
     }
 
-    .p-msg__bubble {
+    .p-msg .p-lock__badge,
+    .p-msg .p-lock__message,
+    .p-msg .p-lock .p-card__actions,
+    .p-msg__bubble,
+    .p-msg__hint--checking,
+    .p-msg__conv,
+    .p-msg__recipient,
+    .p-msg__conv-unread,
+    .p-msg__pane-head,
+    .p-msg__skeleton-row,
+    .p-msg__skeleton-bar,
+    .p-msg__composer button[type='submit']:disabled::after {
       animation: none;
+    }
+
+    .p-msg__conv:active,
+    .p-msg__recipient:active,
+    .p-msg__new:active,
+    .p-msg__retry:active {
+      transform: none;
     }
   }
 </style>

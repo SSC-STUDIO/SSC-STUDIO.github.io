@@ -43,6 +43,46 @@ type ConversationDto = PeerDto & {
 
 const LOGIN_PATH = "/account?returnTo=/messages";
 const MAX_LENGTH = 2000;
+/** 错峰入场的档位上限：长列表不该让最后一条等上好几秒 */
+const FLOW_CAP = 10;
+const SKELETON_ROWS = [0, 1, 2];
+
+/**
+ * 加载骨架 —— 墨色呼吸的占位条。
+ *
+ * 纯装饰（aria-hidden），真正的加载播报交给同级的 sr-only status，
+ * 读屏用户听到的仍是一句「正在加载」，而不是一串空条。
+ */
+function InkSkeleton({
+  variant,
+  label,
+}: {
+  variant: "rail" | "thread";
+  label: string;
+}) {
+  return (
+    <>
+      <p className="u-sr-only" role="status">
+        {label}
+      </p>
+      <ul
+        className={`p-msg__skeleton p-msg__skeleton--${variant}`}
+        aria-hidden="true"
+      >
+        {SKELETON_ROWS.map((i) => (
+          <li
+            key={i}
+            className="p-msg__skeleton-row"
+            style={{ "--sk-i": i } as React.CSSProperties}
+          >
+            <span className="p-msg__skeleton-bar p-msg__skeleton-bar--head" />
+            <span className="p-msg__skeleton-bar p-msg__skeleton-bar--body" />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
 
 /** Submit the surrounding form on Ctrl/Cmd + Enter. */
 function submitOnCtrlEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -296,7 +336,9 @@ export default function MessagesConsole() {
   return (
     <div className="p-msg">
       {session === "loading" ? (
-        <p className="p-msg__hint">正在检查会话…</p>
+        <p className="p-msg__hint p-msg__hint--checking" role="status">
+          正在检查会话…
+        </p>
       ) : session === "out" ? (
         <div className="p-lock">
           <p className="p-lock__badge">login required</p>
@@ -333,11 +375,16 @@ export default function MessagesConsole() {
                     暂时没有可私信的同学（需要有账号）。
                   </p>
                 ) : (
-                  recipients.map((r) => (
+                  recipients.map((r, index) => (
                     <button
                       type="button"
                       key={r.userId}
                       className="p-msg__recipient"
+                      style={
+                        {
+                          "--conv-i": Math.min(index, FLOW_CAP),
+                        } as React.CSSProperties
+                      }
                       onClick={() => void openThread(r.userId)}
                     >
                       {r.displayName}
@@ -349,7 +396,7 @@ export default function MessagesConsole() {
             ) : null}
 
             {listState === "loading" ? (
-              <p className="p-msg__state">正在加载会话…</p>
+              <InkSkeleton variant="rail" label="正在加载会话…" />
             ) : listState === "error" ? (
               <div className="p-msg__state">
                 <p>会话加载失败。</p>
@@ -367,11 +414,16 @@ export default function MessagesConsole() {
               </p>
             ) : (
               <ul className="p-msg__list">
-                {sortedConversations.map((c) => (
+                {sortedConversations.map((c, index) => (
                   <li key={c.userId}>
                     <button
                       type="button"
                       className={`p-msg__conv${activeUserId === c.userId ? " is-active" : ""}${c.unreadCount > 0 ? " is-unread" : ""}`}
+                      style={
+                        {
+                          "--conv-i": Math.min(index, FLOW_CAP),
+                        } as React.CSSProperties
+                      }
                       onClick={() => void openThread(c.userId)}
                     >
                       <span className="p-msg__conv-name">
@@ -418,7 +470,7 @@ export default function MessagesConsole() {
 
                 <div className="p-msg__thread" ref={threadRef}>
                   {threadState === "loading" ? (
-                    <p className="p-msg__state">正在加载对话…</p>
+                    <InkSkeleton variant="thread" label="正在加载对话…" />
                   ) : threadState === "error" ? (
                     <p className="p-msg__state">对话加载失败，请重试。</p>
                   ) : thread.length === 0 ? (
