@@ -2,6 +2,10 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import PageAura from '@/components/pages/PageAura.astro'
+
+const verse = '行到水穷处，坐看云起时'
+const verseChars = Array.from(verse)
 ---
 
 <BaseLayout
@@ -15,7 +19,9 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page p-404">
-    <div class="p-empty">
+    <PageAura />
+    <div class="p-empty" data-intersect>
+      <lost-ink class="p-404__strays" data-intersect aria-hidden="true"></lost-ink>
       <p class="p-empty__title">此处空白</p>
       <p class="p-empty__message">
         你访问的地址没有对应内容。如果是从旧链接跳转过来，站点重建后部分路径已调整。
@@ -23,12 +29,27 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <p class="p-404__path" hidden>
         迷失于 <code data-lost-path></code>
       </p>
-      <div class="p-card__actions">
-        <a class="p-card__link" href="/"> 返回首页 </a>
-        <a class="p-card__link p-card__link--ghost" href="/articles"> 去看文章 </a>
-        <a class="p-card__link p-card__link--ghost" href="/contact"> 联系我 </a>
+      <div class="p-card__actions" data-flow data-intersect>
+        <a class="p-card__link" href="/" data-seal> 返回首页 </a>
+        <a class="p-card__link p-card__link--ghost" href="/articles" data-seal>
+          去看文章
+        </a>
+        <a class="p-card__link p-card__link--ghost" href="/contact" data-seal>
+          联系我
+        </a>
       </div>
-      <p class="p-404__verse">行到水穷处，坐看云起时</p>
+      <p class="p-404__verse" data-intersect>
+        <span class="u-sr-only">{verse}</span>
+        <span class="p-404__verse__ink" aria-hidden="true">
+          {
+            verseChars.map((char, index) => (
+              <span class="char" style={`--char-i:${index}`}>
+                {char}
+              </span>
+            ))
+          }
+        </span>
+      </p>
     </div>
     <script is:inline>
       ;(function () {
@@ -44,10 +65,207 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   <PageFoot />
 </BaseLayout>
 
+<script>
+  import {
+    onFrame,
+    onPointer,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+
+  type Stray = {
+    node: HTMLElement
+    x: number
+    y: number
+    vx: number
+    vy: number
+  }
+
+  /** 墨点数量：够看出「四处游走」，又不至于抢走正文 */
+  const COUNT = 9
+  /** 指针推开墨点的半径（px）与力度 */
+  const PUSH_RADIUS = 130
+  const PUSH_FORCE = 26
+
+  /**
+   * lost-ink —— 迷路的墨点
+   *
+   * 几粒墨点在「此处空白」的框内无目的地游走，撞到边就折回来；
+   * 指针靠近时被轻轻推开，像水面上被搅动的浮尘。
+   * 同时把指针位置写成 --nf-px / --nf-py，供「空」字水印随之漂移。
+   *
+   * 自定义元素生命周期天然对齐 SPA 换页；宿主离屏时停帧；
+   * reduced-motion 下一粒墨点也不生成。
+   */
+  class LostInk extends HTMLElement {
+    empty: HTMLElement | null = null
+    strays: Stray[] = []
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+
+    width = 0
+    height = 0
+    pointerX = -9999
+    pointerY = -9999
+    inView = true
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+
+      this.empty = this.closest('.p-empty')
+
+      // 尺寸未知时先不撒墨点，交给 ResizeObserver 的首次回调
+      const ro = new ResizeObserver(() => this.measure())
+      ro.observe(this)
+      this.stops.push(() => ro.disconnect())
+
+      this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+
+      this.addEventListener('intersect', this.onIntersect as EventListener, {
+        passive: true,
+      })
+
+      this.measure()
+    }
+
+    disconnectedCallback() {
+      this.suspend()
+      this.removeEventListener('intersect', this.onIntersect as EventListener)
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.strays.forEach((stray) => stray.node.remove())
+      this.strays = []
+      this.empty = null
+    }
+
+    onIntersect = (event: CustomEvent) => {
+      this.inView = !!event.detail?.isIntersecting
+      if (this.inView) this.resume()
+      else this.suspend()
+    }
+
+    resume() {
+      if (this.unframe || !this.inView || !this.strays.length) return
+      this.unframe = onFrame((_time, delta) => this.step(delta))
+    }
+
+    suspend() {
+      this.unframe?.()
+      this.unframe = null
+    }
+
+    measure() {
+      const rect = this.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+
+      this.width = rect.width
+      this.height = rect.height
+
+      if (!this.strays.length) {
+        this.seed()
+        this.resume()
+      }
+    }
+
+    seed() {
+      for (let i = 0; i < COUNT; i++) {
+        const node = document.createElement('span')
+        node.className = 'p-404__stray'
+        // 少数染朱砂，与站点其它墨点同族
+        if (i % 4 === 0) node.classList.add('is-accent')
+        node.style.setProperty('--stray-r', `${2 + Math.random() * 4}px`)
+        this.appendChild(node)
+
+        const angle = Math.random() * Math.PI * 2
+        const speed = 9 + Math.random() * 16
+
+        this.strays.push({
+          node,
+          x: Math.random() * this.width,
+          y: Math.random() * this.height,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+        })
+      }
+    }
+
+    aim(x: number, y: number) {
+      const rect = this.getBoundingClientRect()
+      this.pointerX = x - rect.left
+      this.pointerY = y - rect.top
+
+      const empty = this.empty
+      if (!empty || !this.width || !this.height) return
+
+      empty.style.setProperty(
+        '--nf-px',
+        (this.pointerX / this.width - 0.5).toFixed(4)
+      )
+      empty.style.setProperty(
+        '--nf-py',
+        (this.pointerY / this.height - 0.5).toFixed(4)
+      )
+    }
+
+    step(delta: number) {
+      const dt = Math.min(delta, 50) / 1000
+
+      for (const stray of this.strays) {
+        // 指针推开：距离越近推得越狠，出了半径就完全不管
+        const dx = stray.x - this.pointerX
+        const dy = stray.y - this.pointerY
+        const dist = Math.hypot(dx, dy)
+
+        if (dist < PUSH_RADIUS && dist > 0.001) {
+          const push = ((PUSH_RADIUS - dist) / PUSH_RADIUS) * PUSH_FORCE
+          stray.vx += (dx / dist) * push * dt
+          stray.vy += (dy / dist) * push * dt
+        }
+
+        // 阻尼：推力过后回到闲游速度
+        stray.vx *= 0.992
+        stray.vy *= 0.992
+
+        stray.x += stray.vx * dt
+        stray.y += stray.vy * dt
+
+        // 撞边折回
+        if (stray.x < 0) {
+          stray.x = 0
+          stray.vx = Math.abs(stray.vx)
+        } else if (stray.x > this.width) {
+          stray.x = this.width
+          stray.vx = -Math.abs(stray.vx)
+        }
+
+        if (stray.y < 0) {
+          stray.y = 0
+          stray.vy = Math.abs(stray.vy)
+        } else if (stray.y > this.height) {
+          stray.y = this.height
+          stray.vy = -Math.abs(stray.vy)
+        }
+
+        stray.node.style.transform = `translate3d(${stray.x.toFixed(1)}px, ${stray.y.toFixed(1)}px, 0)`
+      }
+    }
+  }
+
+  if (!customElements.get('lost-ink')) {
+    customElements.define('lost-ink', LostInk)
+  }
+</script>
+
 <style lang="scss" is:global>
   /* ── 404 专属：迷失路径、卷末诗与「空」字呼吸 ── */
 
   .p-404 {
+    /* 由 <lost-ink> 写入：指针在空框内的相对位置 ±0.5 */
+    .p-empty {
+      --nf-px: 0;
+      --nf-py: 0;
+    }
+
     /* 迷失路径回显：等宽小字，如批注一笔 */
     .p-404__path {
       position: relative;
@@ -95,11 +313,13 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       }
     }
 
-    /* 「空」字水印缓缓呼吸，只动 opacity 与 transform */
+    /* 「空」字水印缓缓呼吸，并随指针极轻地漂移 */
     .p-empty::before {
       animation: p-404-breathe 8s ease(in-out-sine) infinite;
+    }
 
-      @media (prefers-reduced-motion: reduce) {
+    @media (prefers-reduced-motion: reduce) {
+      .p-empty::before {
         animation: none;
       }
     }
@@ -109,12 +329,127 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     0%,
     100% {
       opacity: 0.04;
-      transform: translate(-50%, -50%) scale(1);
+      transform: translate(
+          calc(-50% + var(--nf-px, 0) * 1.6rem),
+          calc(-50% + var(--nf-py, 0) * 1.1rem)
+        )
+        scale(1);
     }
 
     50% {
       opacity: 0.08;
-      transform: translate(-50%, -50%) scale(1.05);
+      transform: translate(
+          calc(-50% + var(--nf-px, 0) * 1.6rem),
+          calc(-50% + var(--nf-py, 0) * 1.1rem)
+        )
+        scale(1.05);
+    }
+  }
+
+  /* ── 迷路的墨点 ──
+     宿主铺满整个空框，但一律不吃指针事件；
+     墨点由 <lost-ink> 在客户端生成，脚本缺席时这里什么也没有。 */
+
+  .p-404__strays {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    display: block;
+    overflow: hidden;
+
+    pointer-events: none;
+  }
+
+  .p-404__stray {
+    position: absolute;
+    top: calc(var(--stray-r, 3px) * -1);
+    left: calc(var(--stray-r, 3px) * -1);
+
+    width: calc(var(--stray-r, 3px) * 2);
+    height: calc(var(--stray-r, 3px) * 2);
+
+    border-radius: 50%;
+    background: color-mix(in srgb, #{color(secondary)} 26%, transparent);
+
+    &.is-accent {
+      background: color-mix(in srgb, #{color(accent)} 55%, transparent);
+    }
+  }
+
+  /* ── 卷末诗逐字浮现 ──
+     默认态即落定态：观察者不触发也照常可读，
+     只在 .is-in-view 落上之后才播，fill-mode 取 backwards。 */
+
+  .p-404__verse .char {
+    display: inline-block;
+  }
+
+  .p-404__verse.is-in-view .char {
+    animation: nf-verse 720ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--char-i, 0) * 78ms);
+  }
+
+  @keyframes nf-verse {
+    from {
+      opacity: 0;
+      transform: translateY(0.5em);
+    }
+  }
+
+  /* 空框内的文案随之落定，与诗句拉开层次 */
+  .p-404 .p-empty.is-in-view .p-empty__title {
+    animation: nf-rise 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .p-404 .p-empty.is-in-view .p-empty__message {
+    animation: nf-rise 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: 120ms;
+  }
+
+  @keyframes nf-rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.7rem);
+    }
+  }
+
+  /* 入口按钮：悬停时朱丝自左扫入（落印涟漪交给 [data-seal]） */
+  .p-404 .p-card__actions {
+    position: relative;
+    z-index: 2;
+  }
+
+  .p-404 .p-card__link {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover,
+    &:focus-visible {
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-404__verse.is-in-view .char,
+    .p-404 .p-empty.is-in-view .p-empty__title,
+    .p-404 .p-empty.is-in-view .p-empty__message {
+      animation: none;
+    }
+
+    .p-404__strays {
+      display: none;
+    }
+
+    .p-404 .p-card__link {
+      transition: none;
+    }
+
+    .p-404 .p-card__link:hover,
+    .p-404 .p-card__link:focus-visible {
+      transform: none;
     }
   }
 </style>
