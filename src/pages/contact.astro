@@ -3,12 +3,14 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
+import InkSeal3D from '@/components/InkSeal3D.astro'
 import ContactForm from '@/islands/ContactForm'
 ---
 
 <BaseLayout
   title="联系 · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="合作、交流和反馈都可以写到这里。信息清楚、克制，不堆无关隐私。"
 >
   <PageHero
     kicker="写信"
@@ -16,27 +18,32 @@ import ContactForm from '@/islands/ContactForm'
     summary="合作、交流和反馈都可以写到这里。信息清楚、克制，不堆无关隐私。"
   />
 
-  <main class="p-page p-page--wide">
-    <div class="p-detail-meta p-detail-meta--bar" data-reveal>
+  <main class="p-page p-page--wide p-contact">
+    <PageAura />
+    <div class="p-detail-meta p-detail-meta--bar" data-reveal data-lift>
       <span>3992237161@qq.com</span>
       <span>通常 48 小时内回复</span>
     </div>
-    <div class="p-stack p-stack--2col" data-reveal>
+    <div class="p-stack p-stack--2col" data-flow data-intersect>
       <PageCard kicker="合作" title="可以一起做的事">
         <p>适合交流的方向：</p>
-        <ul>
+        <ul data-flow data-intersect>
           <li>网页与交互</li>
           <li>开源实验</li>
         </ul>
         <div class="p-card__actions">
-          <a class="p-card__link" href="mailto:3992237161@qq.com"
-             data-copy-email>邮件 3992237161@qq.com</a
+          <a
+            class="p-card__link"
+            href="mailto:3992237161@qq.com"
+            data-copy-email
+            data-seal>邮件 3992237161@qq.com</a
           >
           <a
             class="p-card__link p-card__link--ghost"
             href="https://github.com/SSC-STUDIO"
             target="_blank"
             rel="noopener"
+            data-seal
           >
             GitHub
           </a>
@@ -46,15 +53,22 @@ import ContactForm from '@/islands/ContactForm'
         <ContactForm client:load />
       </PageCard>
     </div>
+    <aside class="p-contact__colophon" aria-label="落款">
+      <InkSeal3D />
+    </aside>
   </main>
 
   <PageFoot current="/contact" />
 </BaseLayout>
 
 <style lang="scss" is:global>
-  /* ── 联系页打磨(仅本页) ── */
+  /* ── 联系页：信笺落墨与印玺落款（仅本页） ── */
 
-  /* 消息字数提示:不足 10 字时的柔和提醒,区别于红色错误 */
+  .p-contact {
+    --flow-step: 88ms;
+  }
+
+  /* 消息字数提示：不足 10 字时的柔和提醒，区别于红色错误 */
   .p-form__field-hint {
     margin: 0.25rem 0 0;
 
@@ -62,5 +76,148 @@ import ContactForm from '@/islands/ContactForm'
     font: 700 10px / 1.4 font-family(fraktion);
     letter-spacing: 0.08em;
     text-transform: none;
+  }
+
+  /* 卡内题识随整卡落墨依次抬起 */
+  .p-contact .p-card.is-inked {
+    .p-card__head {
+      animation: contact-rise 460ms ease backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 160ms);
+    }
+
+    .p-card__title {
+      animation: contact-rise 540ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 230ms);
+    }
+
+    .p-card__body {
+      animation: contact-rise 540ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      animation-delay: calc(var(--reveal-delay, 0ms) + 310ms);
+    }
+  }
+
+  @keyframes contact-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.55rem, 0);
+    }
+  }
+
+  /* 合作方向：朱砂点，悬停时推近一寸 */
+  .p-contact .p-card__body li {
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover {
+      transform: translateX(3px);
+    }
+
+    &::marker {
+      color: color(accent);
+    }
+  }
+
+  /* 表单字段错峰落定；默认态即落定，fill-mode 取 backwards */
+  .p-contact .p-form > * {
+    animation: contact-rise 480ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(280ms + var(--field-i, 0) * 68ms);
+  }
+
+  @for $i from 1 through 6 {
+    .p-contact .p-form > :nth-child(#{$i}) {
+      --field-i: #{$i - 1};
+    }
+  }
+
+  /* 落笔时笺面微微受光 */
+  .p-contact .p-form input,
+  .p-contact .p-form textarea {
+    transition:
+      border-color 280ms ease,
+      box-shadow 280ms ease,
+      background-color 280ms ease;
+
+    &:focus {
+      background-color: color-mix(
+        in srgb,
+        var(--daypart-lamp) 7%,
+        #{color(primary)}
+      );
+      box-shadow: 0 0 0 3px color-mix(in srgb, #{color(accent)} 12%, transparent);
+    }
+  }
+
+  /* 发送键：进行中一道墨色自左洗过 */
+  .p-contact .p-form button[type='submit'] {
+    position: relative;
+    overflow: hidden;
+
+    &:disabled::after {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(accent)} 55%, transparent),
+        transparent
+      );
+
+      content: '';
+      pointer-events: none;
+
+      animation: contact-ink-run 1.2s linear infinite;
+    }
+  }
+
+  @keyframes contact-ink-run {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /* 落款印玺：信末右下，略小于首页卷尾那枚 */
+  .p-contact__colophon {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 2.25rem;
+
+    .ink-seal3d {
+      --body-w: 3.6rem;
+      --body-h: 2.7rem;
+      --knob-w: 1.5rem;
+      --knob-h: 1.55rem;
+      --hover-gap: 2.6rem;
+
+      width: 8.6rem;
+    }
+
+    .ink-seal3d .scene {
+      height: 10.4rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-contact .p-card.is-inked .p-card__head,
+    .p-contact .p-card.is-inked .p-card__title,
+    .p-contact .p-card.is-inked .p-card__body,
+    .p-contact .p-form > *,
+    .p-contact .p-form button[type='submit']:disabled::after {
+      animation: none;
+    }
+
+    .p-contact .p-card__body li,
+    .p-contact .p-form input,
+    .p-contact .p-form textarea {
+      transition: none;
+    }
+
+    .p-contact .p-card__body li:hover {
+      transform: none;
+    }
   }
 </style>
