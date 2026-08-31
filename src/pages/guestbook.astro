@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import Guestbook from '@/islands/Guestbook'
 ---
 
@@ -16,16 +17,160 @@ import Guestbook from '@/islands/Guestbook'
     summary="把脚印留在这条河边——问题、想法、路过的心情，都欢迎。"
   />
 
-  <main class="p-page p-page--wide">
+  <main
+    class="p-page p-page--wide p-riverbank"
+    data-handscroll
+    data-handscroll-parallax="9"
+  >
+    <PageAura />
+    <div class="p-riverbank__water" aria-hidden="true">
+      <span class="p-riverbank__ring" style="--ring-i:0"></span>
+      <span class="p-riverbank__ring" style="--ring-i:1"></span>
+      <span class="p-riverbank__ring" style="--ring-i:2"></span>
+    </div>
     <PageCard kicker="riverbank" title="Footprints">
       <Guestbook client:load />
     </PageCard>
+    <river-drift aria-hidden="true"></river-drift>
   </main>
 
   <PageFoot current="/guestbook" />
 </BaseLayout>
 
+<script>
+  import {
+    onFrame,
+    onPointer,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+
+  /** 指针追赶系数：越小水面越黏滞 */
+  const EASE = 0.06
+
+  /**
+   * river-drift —— 河面随指针缓缓偏移
+   *
+   * 只往宿主写 --river-px / --river-py（±0.5），
+   * 具体哪一层走多远交给样式决定；自定义元素生命周期对齐 SPA 换页。
+   */
+  class RiverDrift extends HTMLElement {
+    page: HTMLElement | null = null
+    stops: Cleanup[] = []
+    unframe: Cleanup | null = null
+
+    aimX = 0
+    aimY = 0
+    curX = 0
+    curY = 0
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        return
+      }
+
+      this.page = this.closest('.p-riverbank')
+      if (!this.page) return
+
+      this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+      this.unframe = onFrame(() => this.settle())
+    }
+
+    disconnectedCallback() {
+      this.unframe?.()
+      this.unframe = null
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.page = null
+    }
+
+    aim(x: number, y: number) {
+      this.aimX = x / Math.max(1, window.innerWidth) - 0.5
+      this.aimY = y / Math.max(1, window.innerHeight) - 0.5
+    }
+
+    settle() {
+      const page = this.page
+      if (!page) return
+
+      this.curX += (this.aimX - this.curX) * EASE
+      this.curY += (this.aimY - this.curY) * EASE
+
+      page.style.setProperty('--river-px', this.curX.toFixed(4))
+      page.style.setProperty('--river-py', this.curY.toFixed(4))
+    }
+  }
+
+  if (!customElements.get('river-drift')) {
+    customElements.define('river-drift', RiverDrift)
+  }
+</script>
+
 <style lang="scss" is:global>
+  /* ── 留言簿：河岸足迹 ──
+     环境层是一圈圈自河心荡开的水纹；条目逐条落墨；
+     落笔时朱丝栏显形，发布成功钤一记朱砂印。
+     所有入场默认态即落定态，动效只是增强。 */
+
+  river-drift {
+    display: none;
+  }
+
+  .p-riverbank {
+    /* 由 <river-drift> 写入：指针横纵偏移 ±0.5 */
+    --river-px: 0;
+    --river-py: 0;
+  }
+
+  /* 河面水纹：定位取 fixed 只画一屏，长页滚动氛围仍连贯 */
+  .p-riverbank__water {
+    position: fixed;
+    bottom: -16vh;
+    left: 50%;
+    z-index: -1;
+
+    width: min(46rem, 88vw);
+    aspect-ratio: 1;
+
+    pointer-events: none;
+
+    transform: translate3d(
+      calc(-50% + var(--river-px) * 2.6rem),
+      calc(var(--scroll-shift, 0vh) + var(--river-py) * 1.4rem),
+      0
+    );
+  }
+
+  .p-riverbank__ring {
+    position: absolute;
+    inset: 0;
+
+    border: 1px solid color-mix(in srgb, #{color(accent)} 30%, transparent);
+    border-radius: 50%;
+
+    opacity: 0;
+
+    animation: gb-river 13s ease(out-sine) infinite;
+    animation-delay: calc(var(--ring-i, 0) * 4.3s);
+  }
+
+  @keyframes gb-river {
+    0% {
+      opacity: 0;
+      transform: scale(0.1);
+    }
+
+    14% {
+      opacity: 0.55;
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+
   .p-guestbook {
     /* 接近字数上限时出现的计数器（岛内 hidden 控制显隐） */
     &__count {
@@ -41,6 +186,366 @@ import Guestbook from '@/islands/Guestbook'
     &__retry:focus-visible {
       outline: 2px solid color(accent);
       outline-offset: 2px;
+    }
+  }
+
+  /* ── 落笔：便签框在有焦点时如朱丝笺显形 ── */
+
+  .p-guestbook__composer {
+    transition:
+      border-color 320ms ease(out-cubic),
+      box-shadow 320ms ease(out-cubic);
+
+    &::after {
+      transition:
+        width 320ms ease(out-cubic),
+        height 320ms ease(out-cubic),
+        border-color 320ms ease(out-cubic);
+    }
+
+    &:focus-within {
+      border-color: color-mix(in srgb, #{color(accent)} 70%, #{color(secondary)});
+      box-shadow: 0 0 0 3px color-mix(in srgb, #{color(accent)} 11%, transparent);
+    }
+
+    &:focus-within::after {
+      width: 1.15rem;
+      height: 1.15rem;
+      border-color: color(accent-strong);
+    }
+  }
+
+  /* 朱丝栏：静息时几不可见，落笔时八行笺的红线显形 */
+  .p-guestbook__composer textarea {
+    transition:
+      background-color 340ms ease,
+      box-shadow 340ms ease;
+
+    &:focus {
+      background-color: color-mix(
+        in srgb,
+        var(--daypart-lamp) 7%,
+        #{color(primary)}
+      );
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent calc(1.9rem - 1px),
+        color-mix(in srgb, #{color(accent)} 32%, transparent) calc(1.9rem - 1px),
+        color-mix(in srgb, #{color(accent)} 32%, transparent) 1.9rem
+      );
+    }
+  }
+
+  /* 发布键：进行中一道墨色自左向右洗过 */
+  .p-guestbook__composer button[type='submit'] {
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(accent)} 60%, transparent),
+        transparent
+      );
+
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &:disabled::after {
+      opacity: 1;
+      animation: gb-ink-run 1.15s linear infinite;
+    }
+  }
+
+  @keyframes gb-ink-run {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /* 落印：发布成功时一记朱砂印钤在便签右上角，落定后自行退场 */
+  .p-guestbook__stamp {
+    position: absolute;
+    top: -0.75rem;
+    right: 1.6rem;
+    z-index: 3;
+
+    display: grid;
+    place-items: center;
+
+    width: 2.6rem;
+    height: 2.6rem;
+
+    border: 1.5px solid color(accent-strong);
+    border-radius: 0.15rem;
+
+    color: color(accent-strong);
+    font: 700 0.72rem / 1 font-family(editorial);
+    letter-spacing: 0.08em;
+
+    pointer-events: none;
+
+    animation: gb-stamp 1.5s cubic-bezier(0.2, 1.35, 0.32, 1) forwards;
+
+    &::before {
+      content: '已留痕';
+      writing-mode: horizontal-tb;
+    }
+  }
+
+  @keyframes gb-stamp {
+    0% {
+      opacity: 0;
+      transform: scale(1.9) rotate(-8deg);
+    }
+
+    22% {
+      opacity: 1;
+      transform: scale(1) rotate(-4deg);
+    }
+
+    70% {
+      opacity: 1;
+      transform: scale(1) rotate(-4deg);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.06) rotate(-4deg);
+    }
+  }
+
+  /* ── 脚印逐条落墨 ──
+     默认态即落定态（观察者缺席也照常可读），
+     fill-mode 取 backwards，落定后把 transform 交还给 [data-lift] 的轻提。 */
+
+  .p-guestbook__item {
+    animation: gb-step-in 620ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--gb-i, 0) * 62ms);
+
+    /* 左侧编号随之淡入，慢半拍 */
+    &::before {
+      animation: gb-no-in 640ms ease backwards;
+      animation-delay: calc(var(--gb-i, 0) * 62ms + 180ms);
+    }
+  }
+
+  .p-guestbook__reply {
+    animation: gb-step-in 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--gb-i, 0) * 54ms);
+  }
+
+  /* 展开回复：自上缘卷开 */
+  .p-guestbook__thread {
+    animation: gb-unfold 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes gb-step-in {
+    from {
+      opacity: 0;
+      transform: translate3d(-0.85rem, 0.45rem, 0);
+    }
+  }
+
+  @keyframes gb-no-in {
+    from {
+      opacity: 0;
+      transform: translateX(-0.4rem);
+    }
+  }
+
+  @keyframes gb-unfold {
+    from {
+      opacity: 0;
+      transform: translateY(-0.35rem);
+    }
+  }
+
+  /* 点赞：朱心一跃。类名切换即重放，无需 JS 编排 */
+  .p-guestbook__like.is-liked {
+    animation: gb-heart 520ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  }
+
+  @keyframes gb-heart {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    38% {
+      transform: scale(1.16);
+    }
+  }
+
+  /* 条目与动作键的按压手感 */
+  .p-guestbook__action:active:not(:disabled),
+  .p-guestbook__like:active:not(:disabled),
+  .p-guestbook__retry:active {
+    transform: translateY(1px);
+  }
+
+  /* 未登录的门闩：徽记如落印，说明与入口随后落定 */
+  .p-guestbook .p-lock__badge {
+    animation: gb-seal-drop 640ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    animation-delay: 90ms;
+  }
+
+  .p-guestbook .p-lock__message {
+    animation: gb-unfold 520ms ease backwards;
+    animation-delay: 220ms;
+  }
+
+  .p-guestbook .p-lock .p-card__actions {
+    animation: gb-unfold 520ms ease backwards;
+    animation-delay: 320ms;
+  }
+
+  @keyframes gb-seal-drop {
+    from {
+      opacity: 0;
+      transform: scale(1.6) rotate(-6deg);
+    }
+  }
+
+  /* ── 河面三态：打捞中 / 空 / 捞不上来 ── */
+
+  .p-guestbook__state {
+    position: relative;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  /* 打捞中：一道墨色自左洗过，配极缓的呼吸。
+     循环次数取有限值而非 infinite —— 这个节点存在于 SSR 输出里，
+     若挂上无限动画，离屏暂停器（utils/idle-anim）会在 React 补水前
+     往它身上写 inline style，触发 hydration 属性不匹配告警。 */
+  .p-guestbook__state--loading {
+    animation: gb-breathe 3.4s ease-in-out 120;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(secondary)} 8%, transparent),
+        transparent
+      );
+
+      content: '';
+      pointer-events: none;
+
+      animation: gb-ink-run 2.3s ease(in-out-sine) 120;
+    }
+  }
+
+  /* 空：河面还很安静——两圈水纹自中心荡开 */
+  .p-guestbook__state--empty {
+    &::before,
+    &::after {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: -1;
+
+      width: 9rem;
+      height: 9rem;
+      margin: -4.5rem 0 0 -4.5rem;
+
+      border: 1px solid color-mix(in srgb, #{color(accent)} 38%, transparent);
+      border-radius: 50%;
+
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+
+      animation: gb-still-water 7.4s ease(out-sine) infinite;
+    }
+
+    &::after {
+      animation-delay: 2.5s;
+    }
+  }
+
+  @keyframes gb-still-water {
+    0% {
+      opacity: 0;
+      transform: scale(0.12);
+    }
+
+    16% {
+      opacity: 0.8;
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.55);
+    }
+  }
+
+  @keyframes gb-breathe {
+    0%,
+    100% {
+      opacity: 0.62;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* ── 减弱动效降级 ── */
+  @media (prefers-reduced-motion: reduce) {
+    .p-riverbank__water {
+      display: none;
+    }
+
+    .p-guestbook .p-lock__badge,
+    .p-guestbook .p-lock__message,
+    .p-guestbook .p-lock .p-card__actions,
+    .p-guestbook__item,
+    .p-guestbook__item::before,
+    .p-guestbook__reply,
+    .p-guestbook__thread,
+    .p-guestbook__like.is-liked,
+    .p-guestbook__state--loading,
+    .p-guestbook__state--loading::after,
+    .p-guestbook__state--empty::before,
+    .p-guestbook__state--empty::after,
+    .p-guestbook__composer button[type='submit']:disabled::after,
+    .p-guestbook__stamp {
+      animation: none;
+    }
+
+    .p-guestbook__state--empty::before,
+    .p-guestbook__state--empty::after,
+    .p-guestbook__stamp {
+      display: none;
+    }
+
+    .p-guestbook__composer,
+    .p-guestbook__composer::after,
+    .p-guestbook__composer textarea {
+      transition: none;
+    }
+
+    .p-guestbook__action:active:not(:disabled),
+    .p-guestbook__like:active:not(:disabled),
+    .p-guestbook__retry:active {
+      transform: none;
     }
   }
 </style>

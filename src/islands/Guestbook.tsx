@@ -98,8 +98,13 @@ function updateComment(
   });
 }
 
+/** 错峰入场的档位上限：长列表不该让最后一条等上好几秒 */
+const FLOW_CAP = 12;
+
 type CommentItemProps = {
   comment: CommentDto;
+  /** 落墨次序，写进 --gb-i 供页面样式错峰 */
+  index: number;
   canInteract: boolean;
   threadOpen: boolean;
   replyDraft: string;
@@ -139,6 +144,7 @@ function LikeButton({
 
 function CommentItem({
   comment,
+  index,
   canInteract,
   threadOpen,
   replyDraft,
@@ -150,7 +156,11 @@ function CommentItem({
   onLike,
 }: CommentItemProps) {
   return (
-    <li className="p-guestbook__item">
+    <li
+      className="p-guestbook__item"
+      data-lift
+      style={{ "--gb-i": Math.min(index, FLOW_CAP) } as React.CSSProperties}
+    >
       <div className="p-guestbook__meta">
         <span className="p-guestbook__author">{comment.authorName}</span>
         <time className="p-guestbook__time" dateTime={comment.createdAt}>
@@ -179,8 +189,16 @@ function CommentItem({
         <div className="p-guestbook__thread">
           {comment.replies.length > 0 ? (
             <ol className="p-guestbook__replies">
-              {comment.replies.map((reply) => (
-                <li key={reply.id} className="p-guestbook__reply">
+              {comment.replies.map((reply, replyIndex) => (
+                <li
+                  key={reply.id}
+                  className="p-guestbook__reply"
+                  style={
+                    {
+                      "--gb-i": Math.min(replyIndex, FLOW_CAP),
+                    } as React.CSSProperties
+                  }
+                >
                   <div className="p-guestbook__meta">
                     <span className="p-guestbook__author">
                       {reply.authorName}
@@ -252,6 +270,8 @@ export default function Guestbook() {
   const [recipientId, setRecipientId] = useState("");
   const [uploadBusy, setUploadBusy] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentMeta | null>(null);
+  // 发布成功后的落印：非 0 时钤一记朱砂印，动画收梢后自行归零
+  const [stamp, setStamp] = useState(0);
 
   const sortedComments = useMemo(
     () =>
@@ -379,6 +399,7 @@ export default function Guestbook() {
         setRecipientId("");
         setVisibility("public");
         setAttachment(null);
+        setStamp(Date.now());
         setNotice(
           peer
             ? `已私发给${peer.displayName}，可在“消息”页查看。`
@@ -413,6 +434,7 @@ export default function Guestbook() {
         setComments((current) => [created, ...current]);
         setDraft("");
         setAttachment(null);
+        setStamp(Date.now());
       }
     } catch {
       setNotice("发布失败，请检查网络后重试。");
@@ -646,6 +668,15 @@ export default function Guestbook() {
                 ? "私发给TA"
                 : "发布留言"}
           </button>
+
+          {stamp ? (
+            <span
+              key={stamp}
+              className="p-guestbook__stamp"
+              aria-hidden="true"
+              onAnimationEnd={() => setStamp(0)}
+            />
+          ) : null}
         </form>
       )}
 
@@ -654,9 +685,14 @@ export default function Guestbook() {
       </p>
 
       {feed === "loading" ? (
-        <p className="p-guestbook__state">正在打捞河边的脚印…</p>
+        <p
+          className="p-guestbook__state p-guestbook__state--loading"
+          role="status"
+        >
+          正在打捞河边的脚印…
+        </p>
       ) : feed === "error" ? (
-        <div className="p-guestbook__state">
+        <div className="p-guestbook__state p-guestbook__state--error">
           <p>留言暂时没有捞上来。</p>
           <button
             type="button"
@@ -667,15 +703,16 @@ export default function Guestbook() {
           </button>
         </div>
       ) : sortedComments.length === 0 ? (
-        <p className="p-guestbook__state">
+        <p className="p-guestbook__state p-guestbook__state--empty">
           河面还很安静——做第一个留下脚印的人。
         </p>
       ) : (
         <ol className="p-guestbook__list">
-          {sortedComments.map((comment) => (
+          {sortedComments.map((comment, index) => (
             <CommentItem
               key={comment.id}
               comment={comment}
+              index={index}
               canInteract={session === "in"}
               threadOpen={Boolean(openThreads[comment.id])}
               replyDraft={replyDrafts[comment.id] ?? ""}
