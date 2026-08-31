@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">Honors & Growth</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2024</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2024 起 · 持续收录</span>
+      <span>project 08 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -31,14 +39,16 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <figcaption>FIG.01 · Honors & Growth</figcaption>
     </figure>
     <div class="p-prose" data-reveal>
+      <h2>荣誉墙</h2>
       <p>
         奖项不是终点，是一些被照亮的路标：信息学竞赛（CSP-J、NOC）、
         创客与车辆模型、书法与综合素养。每一张奖状背后都对应一段具体的
-        准备过程——它们都被扫描存档，收进同一面荣誉墙。
+        准备过程——它们都被扫描存档，收进同一面<a href="/honors">荣誉墙</a>。
       </p>
+      <h2>成长河流</h2>
       <p>
         奖项之外，成长更像一条河：从小学毕业到初中毕业，再到如今这个
-        长期项目。荣誉页里的"成长河流"时间线，把这些节点连成了可以
+        长期项目。荣誉页里的「成长河流」时间线，把这些节点连成了可以
         顺流而下的形状。
       </p>
     </div>
@@ -49,11 +59,154 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     </div>
     <div class="p-card__actions" data-reveal>
       <a class="p-card__link" href="/honors"> 荣誉墙与成长河流 </a>
+      <a class="p-card__link" href="/about"> 关于我 </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/articles">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">Articles & Notes</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a class="p-projnav__link p-projnav__link--next" href="/projects/my-website">
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">MyWebsite 个人站</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>

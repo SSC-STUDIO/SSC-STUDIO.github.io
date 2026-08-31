@@ -50,3 +50,17 @@ import ContactForm from '@/islands/ContactForm'
 
   <PageFoot current="/contact" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 联系页打磨(仅本页) ── */
+
+  /* 消息字数提示:不足 10 字时的柔和提醒,区别于红色错误 */
+  .p-form__field-hint {
+    margin: 0.25rem 0 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 700 10px / 1.4 font-family(fraktion);
+    letter-spacing: 0.08em;
+    text-transform: none;
+  }
+</style>

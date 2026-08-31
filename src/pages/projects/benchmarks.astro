@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">Human Benchmarks</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2025</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2025 · 持续迭代</span>
+      <span>project 05 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -32,13 +40,45 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     </figure>
     <div class="p-prose" data-reveal>
       <p>
-        一套给"眼、手、脑"做体检的小游戏合集：反应测试、数字记忆、视觉记忆、
-        序列记忆、黑猩猩测试、词语记忆，以及最新加入的自研项目——舒尔特表。
-        每一项都有明确的状态机与难度曲线，成绩可以匿名或登录后提交。
+        一套给「眼、手、脑」做体检的小游戏合集，每一项都有明确的状态机与难度曲线，成绩可以匿名或登录后提交。
       </p>
+      <h2>七个项目</h2>
+      <ul>
+        <li>
+          <a href="/benchmarks/reaction-test">反应测试</a> —
+          绿灯亮起的瞬间按下去；
+        </li>
+        <li>
+          <a href="/benchmarks/sequence-memory">序列记忆</a> —
+          复现越来越长的闪烁序列；
+        </li>
+        <li>
+          <a href="/benchmarks/number-memory">数字记忆</a> —
+          一眼记住越来越长的数字；
+        </li>
+        <li>
+          <a href="/benchmarks/visual-memory">视觉记忆</a> —
+          记住亮起过的方块位置；
+        </li>
+        <li>
+          <a href="/benchmarks/chimp-test">黑猩猩测试</a> —
+          按顺序点掉被遮住的数字；
+        </li>
+        <li>
+          <a href="/benchmarks/word-memory">词语记忆</a> —
+          判断这个词是否出现过；
+        </li>
+        <li>
+          <a href="/benchmarks/schulte-grid">舒尔特表</a> —
+          自研项目，注意力扫描训练。
+        </li>
+      </ul>
+      <h2>怎么跑起来的</h2>
       <p>
-        分数统一进入排行榜，和来过这个站的人比一比。React
-        孤岛渲染游戏本体，Fastify 提供分数 API，全部跑在同一套系统里。
+        React 孤岛渲染游戏本体，Fastify 提供分数
+        API，全部跑在同一套系统里；分数统一进入<a href="/leaderboard"
+          >排行榜</a
+        >，和来过这个站的人比一比。
       </p>
     </div>
     <div class="p-chips" data-reveal>
@@ -49,12 +89,153 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     <div class="p-card__actions" data-reveal>
       <a class="p-card__link" href="/benchmarks"> 开始挑战 </a>
       <a class="p-card__link" href="/leaderboard"> 查看排行榜 </a>
-      <a class="p-card__link" href="/benchmarks/reaction-test"> 反应测试 </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/games-lab">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">Games Lab</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a class="p-projnav__link p-projnav__link--next" href="/projects/class-space">
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">Class Space</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>

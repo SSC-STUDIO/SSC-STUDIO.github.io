@@ -15,9 +15,17 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page">
+    <nav class="p-crumbs" data-reveal aria-label="所在位置">
+      <a href="/">首页</a>
+      <span class="p-crumbs__sep">/</span>
+      <a href="/projects">项目</a>
+      <span class="p-crumbs__sep">/</span>
+      <span aria-current="page">Articles & Notes</span>
+    </nav>
     <div class="p-detail-meta" data-reveal>
-      <span>2025</span>
-      <span>active</span>
+      <span class="p-detail-meta__badge">active</span>
+      <span>2025 · 持续写作</span>
+      <span>project 07 / 08</span>
     </div>
     <figure class="p-detail-figure" data-reveal>
       <img
@@ -31,14 +39,20 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <figcaption>FIG.01 · Articles & Notes</figcaption>
     </figure>
     <div class="p-prose" data-reveal>
+      <h2>为什么写</h2>
       <p>
-        文章是这个站的"慢部分"：把一次实验的弯路、一个架构选择的权衡、
+        文章是这个站的「慢部分」：把一次实验的弯路、一个架构选择的权衡、
         一次 rebuild 的完整复盘写下来。不追热点，只写自己踩过的坑和
         验证过的答案。
       </p>
+      <h2>写什么</h2>
       <p>
         主题大致三类：AI 实验（模型路由、CV 训练笔记）、工程方法论
-        （monorepo、测试与发布）、以及这个网站自身的生长记录。
+        （monorepo、测试与发布）、以及这个网站自身的生长记录。已发布的两篇：<a
+          href="/articles/why-build-personal-site"
+          >《为什么要做一个自己的网站》</a
+        >与<a href="/articles/ai-prototype-loop">《AI 原型的迭代回路》</a
+        >。
       </p>
     </div>
     <div class="p-chips" data-reveal>
@@ -47,16 +61,154 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     </div>
     <div class="p-card__actions" data-reveal>
       <a class="p-card__link" href="/articles"> 全部文章 </a>
-      <a class="p-card__link" href="/articles/why-build-personal-site">
-        为什么要做一个自己的网站
-      </a>
-      <a class="p-card__link" href="/articles/ai-prototype-loop"> AI 原型的迭代回路 </a>
       <a class="p-card__link" href="/rss.xml"> RSS 订阅 </a>
     </div>
-    <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/projects">← 全部项目</a>
-    </p>
+    <nav class="p-projnav" data-reveal aria-label="相邻项目">
+      <a class="p-projnav__link" href="/projects/class-space">
+        <span class="p-projnav__dir">← 上一个</span>
+        <span class="p-projnav__name">Class Space</span>
+      </a>
+      <a class="p-projnav__link p-projnav__link--index" href="/projects">
+        全部项目
+      </a>
+      <a class="p-projnav__link p-projnav__link--next" href="/projects/honors">
+        <span class="p-projnav__dir">下一个 →</span>
+        <span class="p-projnav__name">Honors & Growth</span>
+      </a>
+    </nav>
   </main>
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 详情页公共小件（面包屑 + 相邻项目导航）──
+   * 注：8 个项目详情页各自内联一份，待共享层开放后应上移到 _pages.scss。
+   */
+
+  .p-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+
+    margin: 0 0 1.35rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+    font: 700 10px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+    text-transform: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    [aria-current='page'] {
+      color: color(secondary);
+    }
+
+    &__sep {
+      color: color-mix(in srgb, #{color(accent)} 70%, transparent);
+    }
+  }
+
+  .p-projnav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.75rem;
+
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+
+    border-top: 1.5px dashed color-mix(in srgb, #{color(accent)} 45%, transparent);
+
+    &__link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+
+      padding: 0.9rem 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+
+      text-decoration: none;
+
+      transition:
+        transform 0.45s ease(out-quint),
+        border-color 0.2s ease;
+
+      &:hover,
+      &:focus-visible {
+        border-color: color(accent);
+        transform: translateY(-2px);
+      }
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          transform: none;
+        }
+      }
+    }
+
+    &__link--next {
+      text-align: right;
+      align-items: flex-end;
+    }
+
+    &__link--index {
+      align-self: center;
+
+      padding: 0.6rem 0.9rem;
+
+      border: 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+
+      &:hover,
+      &:focus-visible {
+        color: color(accent);
+      }
+    }
+
+    &__dir {
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 9px / 1 font-family(fraktion);
+      letter-spacing: 0.18em;
+      text-transform: none;
+    }
+
+    &__name {
+      color: color(secondary);
+      font: 400 0.95rem / 1.35 font-family(editorial);
+    }
+
+    @include mq(phone) {
+      grid-template-columns: 1fr;
+
+      &__link--next {
+        text-align: left;
+        align-items: flex-start;
+      }
+
+      &__link--index {
+        order: 3;
+        justify-self: center;
+      }
+    }
+  }
+</style>
