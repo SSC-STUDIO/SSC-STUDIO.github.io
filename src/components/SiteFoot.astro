@@ -82,6 +82,17 @@ const term = getSolarTerm()
 
     @include ink-rule(top);
 
+    &::before {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+
+      @include ink-leiwen($cell: 20px, $strength: 0.055);
+
+      content: '';
+      pointer-events: none;
+    }
+
     @include mq(phone) {
       padding: 1rem;
     }

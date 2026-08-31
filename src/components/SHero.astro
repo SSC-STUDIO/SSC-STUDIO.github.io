@@ -24,6 +24,11 @@ import DateSeal from './DateSeal.astro'
 
   <StudioCard />
 
+  <aside class="s__titling" aria-hidden="true">
+    <span class="s__titling__name">润森</span>
+    <span class="s__titling__note">造物</span>
+  </aside>
+
   <div class="s__content js-content">
     <InkRail
       class="s__separator js-separator"
@@ -461,6 +466,49 @@ import DateSeal from './DateSeal.astro'
     @include mq(sm-height) {
       min-height: calc(100svh - 4.5rem - 1px);
       align-items: center;
+    }
+
+    .s__titling {
+      @include flex(row, flex-start, flex-start);
+
+      position: absolute;
+      top: 38%;
+      right: clamp(0.55rem, 2.2vw, 1.75rem);
+      z-index: 5;
+
+      gap: 0.85em;
+
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+
+      color: color(songyan);
+      font: 600 0.82rem / 1.15 font-family(songti);
+      letter-spacing: 0.46em;
+
+      pointer-events: none;
+
+      &__name {
+        padding-bottom: 0.35em;
+
+        border-bottom: 1.5px solid
+          color-mix(in srgb, #{color(zhusha)} 62%, transparent);
+      }
+
+      &__note {
+        color: color(zhuqing);
+        font-weight: 400;
+        letter-spacing: 0.58em;
+        opacity: 0.72;
+      }
+
+      @include mq(tablet) {
+        top: 32%;
+        font-size: 0.74rem;
+      }
+
+      @include mq(phone) {
+        display: none;
+      }
     }
 
     .s__waves {
