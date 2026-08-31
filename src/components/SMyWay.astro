@@ -918,17 +918,18 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       const wStyle = getComputedStyle(this.objectsWrapper)
 
       // 放大倍率按视口归一：宽高双约束取小者（竖构图照片本体就很高，
-      // 只按宽放大会溢出视口），换算成透视 z 位移
+      // 只按宽放大会溢出视口），换算成透视 z 位移。
+      // 超高帧允许缩到完整可见——「看清内容」优先于「更大」
       const perspective = parseFloat(wStyle.perspective) || 1200
       const baseW = object.el.offsetWidth || 500
       const baseH = object.el.offsetHeight || baseW
       const scale = Math.min(
         1.6,
         Math.max(
-          1.05,
+          0.62,
           Math.min(
             (window.safeWidth * 0.52) / baseW,
-            (window.safeHeight * 0.68) / baseH
+            (window.safeHeight * 0.8) / baseH
           )
         )
       )
