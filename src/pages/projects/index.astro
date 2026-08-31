@@ -97,36 +97,40 @@ const projects = [
   />
 
   <main class="p-page p-page--wide">
-    <div class="p-grid p-grid--stagger">
-      {
-        projects.map((project) => (
-          <PageCard
-            href={project.href}
-            kicker={project.kicker}
-            id={project.id}
-            title={project.title}
-          >
-            <img
-              class="p-detail-cover"
-              src={project.cover}
-              alt=""
-              width="540"
-              height="318"
-              loading="lazy"
-            />
-            <p>{project.summary}</p>
-            <div class="p-card__tags">
-              {project.tags.map((tag) => (
-                <span class="p-card__tag">{tag}</span>
-              ))}
-            </div>
-          </PageCard>
-        ))
-      }
-    </div>
-  </main>
+    <section class="p-projects" aria-label="作品集">
+      <p class="p-projects__label">selected works · 八件作品</p>
+      <div class="p-grid p-grid--stagger">
+        {
+          projects.map((project) => (
+            <PageCard
+              href={project.href}
+              kicker={project.kicker}
+              id={project.id}
+              title={project.title}
+            >
+              <span class="p-projects__figure">
+                <img
+                  class="p-detail-cover"
+                  src={project.cover}
+                  alt=""
+                  width="540"
+                  height="318"
+                  loading="lazy"
+                />
+              </span>
+              <p>{project.summary}</p>
+              <div class="p-card__tags">
+                {project.tags.map((tag) => (
+                  <span class="p-card__tag">{tag}</span>
+                ))}
+              </div>
+              <span class="p-projects__go">进入项目</span>
+            </PageCard>
+          ))
+        }
+      </div>
+    </section>
 
-  <main class="p-page p-page--wide">
     <section class="p-gh" data-reveal>
       <div class="p-gh__head">
         <span class="p-gh__kicker">open source · 开源</span>
@@ -182,3 +186,140 @@ const projects = [
 
   <PageFoot current="/projects" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 作品集网格:册页陈列,悬停时封面轻推、朱砂勾脚 ── */
+
+  .p-projects {
+    margin-bottom: 3.5rem;
+
+    /* 区块小引:细字压行,朱砂淡入收尾 */
+    &__label {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+
+      margin: 0 0 1.5rem;
+
+      color: color-mix(in srgb, #{color(secondary)} 65%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.22em;
+      text-transform: none;
+
+      &::after {
+        content: '';
+        flex: 1;
+        height: 1.5px;
+
+        background: linear-gradient(
+          90deg,
+          color-mix(in srgb, #{color(accent)} 70%, transparent),
+          transparent
+        );
+      }
+    }
+
+    /* 封面裱进画框,hover 时如轻轻推近一步 */
+    &__figure {
+      display: block;
+      overflow: hidden;
+
+      margin: 0 0 1rem;
+
+      border: 1px solid color-mix(in srgb, #{color(secondary)} 30%, transparent);
+
+      .p-detail-cover {
+        margin: 0;
+        border: 0;
+
+        transform-origin: center;
+        transition: transform 0.6s ease(out-quint);
+      }
+    }
+
+    /* 去向提示:默认静默,悬停时箭头前行 */
+    &__go {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+
+      margin-top: 0.9rem;
+
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.14em;
+      text-transform: none;
+
+      &::after {
+        content: '→';
+        transition: transform 0.35s ease(out-quint);
+      }
+    }
+
+    .p-card {
+      &:hover,
+      &:focus-visible {
+        .p-detail-cover {
+          transform: scale(1.035);
+        }
+
+        .p-projects__go {
+          color: color(accent);
+
+          &::after {
+            transform: translateX(4px);
+          }
+        }
+
+        .p-card__title::after {
+          transform: scaleX(1);
+          opacity: 1;
+        }
+      }
+
+      /* 标题脚下一划朱丝,悬停时展满 */
+      .p-card__title::after {
+        content: '';
+        display: block;
+
+        width: 2.6rem;
+        height: 2px;
+        margin-top: 0.45rem;
+
+        background: color(accent);
+
+        opacity: 0.45;
+        transform: scaleX(0.35);
+        transform-origin: left;
+        transition:
+          transform 0.45s ease(out-quint),
+          opacity 0.3s ease;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover,
+        &:focus-visible {
+          .p-detail-cover {
+            transform: none;
+          }
+
+          .p-projects__go::after {
+            transform: none;
+          }
+        }
+      }
+    }
+
+    /* 洇墨错落:八张卡片依次入场 */
+    @for $i from 1 through 8 {
+      .p-grid > :nth-child(#{$i}) {
+        --reveal-delay: #{($i - 1) * 55}ms;
+      }
+    }
+  }
+
+  /* GitHub 陈列与作品集之间留一段呼吸 */
+  .p-gh {
+    padding-top: 0;
+  }
+</style>
