@@ -300,9 +300,14 @@ export default function AccountConsole({
   const user = session?.user ?? null;
 
   return (
-    <div className="p-account" data-return-to={returnTo}>
+    <div
+      className="p-account"
+      data-return-to={returnTo}
+      data-panel={panel}
+      data-mode={mode}
+    >
       {panel === "loading" ? (
-        <section className="p-account__panel">
+        <section className="p-account__panel" key="loading">
           <p className="p-card__kicker">session</p>
           <h2 className="p-card__title">检查会话</h2>
           <p className="p-account__hint" role="status">
@@ -317,7 +322,7 @@ export default function AccountConsole({
       ) : null}
 
       {panel === "out" ? (
-        <section className="p-account__panel">
+        <section className="p-account__panel" key={`out-${mode}`}>
           <p className="p-card__kicker">{mode === "login" ? "login" : "register"}</p>
           <h2 className="p-card__title">
             {mode === "login" ? "登录账号" : "注册账号"}
@@ -480,7 +485,7 @@ export default function AccountConsole({
       ) : null}
 
       {panel === "in" && user ? (
-        <section className="p-account__panel">
+        <section className="p-account__panel" key="in">
           <p className="p-card__kicker">signed in</p>
           {user.role === "member" && user.realName ? (
             <p className="p-account__badge">已认证为班级同学</p>
