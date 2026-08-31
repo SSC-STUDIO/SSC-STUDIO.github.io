@@ -10,11 +10,19 @@
  * reduced-motion 下完全不启动。
  *
  * 自定义元素生命周期 + data-intersect 暂停：SPA 换页与离屏都安全。
+ *
+ * skip：可选追加选择器（逗号分隔），点到这些节点上不破泡。
+ * 缺省为空，默认 SKIP 名单与原先完全一致。
  */
-const { class: className } = Astro.props
+const { class: className, skip = '' } = Astro.props
 ---
 
-<ink-bubbles class:list={className} data-intersect aria-hidden="true">
+<ink-bubbles
+  class:list={className}
+  data-intersect
+  data-skip={skip || undefined}
+  aria-hidden="true"
+>
   <canvas class="js-canvas" aria-hidden="true"></canvas>
 </ink-bubbles>
 
@@ -135,7 +143,9 @@ const { class: className } = Astro.props
     onHostClick = (e: Event) => {
       if (this.reduced || !this.width) return
       const target = e.target as Element | null
-      if (!target || target.closest(SKIP)) return
+      const extra = this.dataset.skip
+      const skip = extra ? `${SKIP},${extra}` : SKIP
+      if (!target || target.closest(skip)) return
 
       const rect = this.getBoundingClientRect()
       const ev = e as PointerEvent

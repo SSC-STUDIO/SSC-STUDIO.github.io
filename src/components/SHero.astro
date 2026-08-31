@@ -15,7 +15,10 @@ import DateSeal from './DateSeal.astro'
 
 <div class="s-hero" data-intersect>
   <InkMist class="s__mist" />
-  <InkBubbles class="s__bubbles" />
+  <InkBubbles
+    class="s__bubbles"
+    skip=".s__title,.js-star,.seal-mark,[data-date-seal],.s__moon,.s__fish,.s__bamboo,.s__titling"
+  />
   <InkBamboo class="s__bamboo" size={280} flip />
   <InkMoon class="s__moon" size={190} />
   <InkFish class="s__fish" size={200} />
@@ -44,7 +47,7 @@ import DateSeal from './DateSeal.astro'
 
     <h1 class="s__title" aria-label="CHEN RUNSEN">
       <span class="s__title__word js-word">CHEN</span>
-      <span class="s__title__asset js-star" aria-hidden="true">
+      <span class="s__title__asset js-star js-sen-press" aria-hidden="true">
         <SenMark size={72} />
       </span>
       <span class="s__title__word s__title__word--seal js-word">RUNSEN</span>
@@ -270,11 +273,8 @@ import DateSeal from './DateSeal.astro'
         this.el.removeEventListener('intersect', this.onIntersect)
       )
 
-      const title = this.el.querySelector('.s__title')
-      title?.addEventListener('click', this.onTitleClick)
-      this.stops.push(() =>
-        title?.removeEventListener('click', this.onTitleClick)
-      )
+      this.el.addEventListener('click', this.onHeroClick)
+      this.stops.push(() => this.el.removeEventListener('click', this.onHeroClick))
 
       this.startFrame()
       this.startIdle()
@@ -296,23 +296,85 @@ import DateSeal from './DateSeal.astro'
     }
 
     /**
-     * 点字走墨：点到哪一枚就滑哪一枚；点到题名空隙则错峰带过几枚。
-     * 对齐内页卷首「字可玩」、关于页「先暗示再会给彩头」。
+     * 首屏点击分发：森标重生、印章/日戳钤下、点字走墨。
+     * 对齐立体印玺「点而钤之」、内页卷首落章涟漪。
      */
-    onTitleClick = (e: Event) => {
-      if (this.destroyed || this.isWaiting || prefersReducedMotion()) return
+    onHeroClick = (e: Event) => {
+      if (this.destroyed) return
 
-      const char = (e.target as Element | null)?.closest(
-        '.char'
-      ) as HTMLElement | null
+      const t = e.target as Element | null
+      if (!t) return
+
+      if (t.closest('.js-sen-press, .sen-mark')) {
+        if (!prefersReducedMotion()) this.pressSen()
+        return
+      }
+
+      if (t.closest('.seal-mark--hero')) {
+        if (!prefersReducedMotion()) this.pressSeal()
+        return
+      }
+
+      if (t.closest('[data-date-seal]')) {
+        if (!prefersReducedMotion()) this.pressDate()
+        return
+      }
+
+      if (!t.closest('.s__title')) return
+      if (this.isWaiting || prefersReducedMotion()) return
+
+      const char = t.closest('.char') as HTMLElement | null
       if (char && this.el.contains(char)) {
         this.nudgeChar(char)
         return
       }
 
-      if ((e.target as Element | null)?.closest('.js-star, .seal-mark')) return
-
       this.rippleChars()
+    }
+
+    /** 点森标：重放生长，三木再破土一次 */
+    pressSen() {
+      const sen = this.el.querySelector('.js-sen-press .sen-mark')
+      if (!sen) return
+
+      sen.classList.remove('sen-mark--grow')
+      void (sen as HTMLElement).offsetWidth
+      sen.classList.add('sen-mark--grow')
+
+      const timer = window.setTimeout(() => {
+        sen.classList.remove('sen-mark--grow')
+      }, 1800)
+      this.charTimers.push(timer)
+    }
+
+    /** 点朱砂印：下压再弹，涟漪洇开 */
+    pressSeal() {
+      const seal = this.el.querySelector('.seal-mark--hero')
+      if (!seal) return
+
+      seal.classList.remove('is-chopped')
+      void (seal as HTMLElement).offsetWidth
+      seal.classList.add('is-chopped')
+
+      const timer = window.setTimeout(() => {
+        seal.classList.remove('is-chopped')
+      }, 1100)
+      this.charTimers.push(timer)
+    }
+
+    /** 点日戳：如随手重钤一方 */
+    pressDate() {
+      const seal = this.el.querySelector('[data-date-seal]')
+      if (!seal) return
+
+      seal.classList.remove('is-chopped')
+      void (seal as HTMLElement).offsetWidth
+      seal.classList.add('is-chopped')
+
+      const timer = window.setTimeout(() => {
+        seal.classList.remove('is-chopped')
+      }, 800)
+      this.charTimers.push(timer)
     }
 
     /**
@@ -753,15 +815,48 @@ import DateSeal from './DateSeal.astro'
       }
     }
 
-    /* 日戳：与右上角时钟成对角 */
+    /* 日戳：与右上角时钟成对角；可点重钤 */
     .s__seal {
       top: 84px;
       left: clamp(16px, 4vw, 48px);
       z-index: 6;
 
+      cursor: pointer;
+
       @include mq(phone) {
         top: 64px;
         left: 1rem;
+      }
+    }
+
+    :global(.date-seal) {
+      cursor: pointer;
+    }
+
+    :global(.date-seal.is-chopped) {
+      animation: s-hero-date-stamp 640ms cubic-bezier(0.2, 1.35, 0.32, 1);
+    }
+
+    @keyframes s-hero-date-stamp {
+      0% {
+        transform: rotate(-3deg) scale(1);
+      }
+      22% {
+        transform: rotate(0deg) scale(0.88);
+      }
+      55% {
+        transform: rotate(-4deg) scale(1.06);
+      }
+      100% {
+        transform: rotate(-3deg) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      :global(.date-seal),
+      :global(.date-seal.is-chopped) {
+        cursor: default;
+        animation: none;
       }
     }
 
@@ -884,11 +979,20 @@ import DateSeal from './DateSeal.astro'
         width: 0.18em;
         height: 0.18em;
         color: color(secondary);
+        cursor: pointer;
 
         :global(svg) {
           display: block;
           width: 100%;
           height: 100%;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+          &:hover {
+            transform: rotate(14deg);
+          }
         }
       }
 
@@ -901,6 +1005,54 @@ import DateSeal from './DateSeal.astro'
         width: clamp(36px, 6vw, 64px);
         height: auto;
         margin: 0;
+
+        cursor: pointer;
+        transform-origin: 70% 80%;
+      }
+
+      :global(.seal-mark--hero.is-chopped) {
+        animation: s-hero-seal-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1);
+      }
+
+      :global(.seal-mark--hero.is-chopped .seal-mark__splash) {
+        transform-box: view-box;
+        transform-origin: 32px 32px;
+
+        animation: s-hero-seal-splash 860ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      :global(.seal-mark--hero.is-chopped .seal-mark__splash--soft) {
+        animation-duration: 1.04s;
+        animation-delay: 80ms;
+      }
+
+      @keyframes s-hero-seal-stamp {
+        0% {
+          transform: scale(1) rotate(-2deg);
+        }
+        18% {
+          transform: scale(0.86) rotate(0deg);
+        }
+        42% {
+          transform: scale(1.08) rotate(-3deg);
+        }
+        100% {
+          transform: scale(1) rotate(-2deg);
+        }
+      }
+
+      @keyframes s-hero-seal-splash {
+        0% {
+          opacity: 0;
+          transform: scale(0.42);
+        }
+        16% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.45);
+        }
       }
 
       @keyframes s-hero-move-to-left {
@@ -1007,6 +1159,20 @@ import DateSeal from './DateSeal.astro'
           &:before {
             display: none;
           }
+        }
+
+        .s__title__asset,
+        :global(.seal-mark--hero),
+        :global(.date-seal) {
+          cursor: default;
+        }
+
+        .s__title__asset,
+        :global(.seal-mark--hero.is-chopped),
+        :global(.seal-mark--hero.is-chopped .seal-mark__splash),
+        :global(.date-seal.is-chopped) {
+          animation: none;
+          transition: none;
         }
       }
     }
