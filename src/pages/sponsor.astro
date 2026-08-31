@@ -7,7 +7,7 @@ import PageCard from '@/components/pages/PageCard.astro'
 
 <BaseLayout
   title="Sponsor · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="支持陈润森的长期创作：GitHub Star、邮件交流与分享传播——被看见，就是最好的赞助。"
 >
   <PageHero
     kicker="support"
@@ -15,7 +15,7 @@ import PageCard from '@/components/pages/PageCard.astro'
     summary="如果这个站点对你有启发，欢迎用合适的方式支持长期创作与实验。"
   />
 
-  <main class="p-page p-page--wide">
+  <main class="p-page p-page--wide p-sponsor">
     <div class="p-stack p-stack--cards">
       <PageCard kicker="why" title="为什么支持">
         <p>
@@ -26,8 +26,19 @@ import PageCard from '@/components/pages/PageCard.astro'
       <PageCard kicker="how" title="如何支持">
         <p>目前可通过以下方式表达支持：</p>
         <ul>
-          <li>GitHub Star 与关注 — @SSC-STUDIO</li>
-          <li>邮件交流优质合作机会 — 3992237161@qq.com</li>
+          <li>
+            GitHub Star 与关注 —
+            <a
+              href="https://github.com/SSC-STUDIO"
+              target="_blank"
+              rel="noopener"
+            >@SSC-STUDIO</a>
+          </li>
+          <li>
+            邮件交流优质合作机会 —
+            <a href="mailto:3992237161@qq.com" data-copy-email
+              >3992237161@qq.com</a>
+          </li>
           <li>把站点分享给同样需要灵感的朋友</li>
         </ul>
         <div class="p-card__actions">
@@ -60,11 +71,38 @@ import PageCard from '@/components/pages/PageCard.astro'
           height="120"
         />
         <p>
-          扫码或邮件 <a href="mailto:3992237161@qq.com" data-copy-email>3992237161@qq.com</a>
+          扫码把这个站点带走，或写信到
+          <a href="mailto:3992237161@qq.com" data-copy-email>3992237161@qq.com</a>
         </p>
+        <p class="p-sponsor-qr__thanks">谢谢你走到这一页 — 被看见，就是最好的赞助。</p>
       </div>
     </div>
   </main>
 
   <PageFoot current="/sponsor" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 赞助页专属：卡内链接与收尾谢语 ── */
+
+  /* 卡片正文里的行内链接：朱砂下划线，与 p-prose 一致 */
+  .p-sponsor .p-card__body a:not(.p-card__link) {
+    color: color(secondary);
+    text-decoration: underline;
+    text-decoration-color: color(accent);
+    text-underline-offset: 0.2em;
+
+    &:hover {
+      color: color(accent);
+    }
+  }
+
+  /* 收尾谢语：小字一行，如卷末跋语 */
+  .p-sponsor .p-sponsor-qr__thanks {
+    margin-top: 0.65rem;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 400 0.85rem / 1.5 font-family(editorial);
+    letter-spacing: 0.06em;
+  }
+</style>
