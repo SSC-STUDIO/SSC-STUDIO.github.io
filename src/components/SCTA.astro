@@ -5,12 +5,13 @@ import SealMark from './SealMark.astro'
 import InkCloud from './InkCloud.astro'
 import InkLattice from './InkLattice.astro'
 import InkBubbles from './InkBubbles.astro'
+import InkSeal3D from './InkSeal3D.astro'
 
 const lines = [['一', '起', '做'], ['点', '东', '西']]
 ---
 
 <section class="s-cta" data-intersect>
-  <InkMountains />
+  <InkMountains dimensional />
   <InkMist class="s__mist" />
   <InkBubbles class="s__bubbles" />
   <InkCloud height={13} width="min(30rem, 72vw)" class="s__cloud" />
@@ -118,6 +119,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
   <span class="s__couplet s__couplet--east" aria-hidden="true">以好奇为灯</span>
   <span class="s__couplet s__couplet--west" aria-hidden="true">以长期为舟</span>
+
+  <InkSeal3D class="s__seal3d" />
 
   <div class="s__grid js-grid">
     <svg class="s__grid__svg js-grid-svg">
@@ -812,6 +815,18 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         &:nth-child(3) {
           display: none;
         }
+      }
+    }
+
+    /* 立体印玺：信末左下钤印处，与右下窗棂对角 */
+    .s__seal3d {
+      position: absolute;
+      bottom: clamp(2.4rem, 7vh, 5rem);
+      left: clamp(1.25rem, 6vw, 6rem);
+      z-index: 3;
+
+      @include mq(tablet-sm) {
+        display: none;
       }
     }
 

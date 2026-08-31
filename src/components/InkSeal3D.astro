@@ -1,0 +1,479 @@
+---
+/**
+ * InkSeal3D — 可把玩的立体印玺（纯 CSS 3D，零依赖）
+ *
+ * 一枚悬在纸面上方的石印：暖白石身、朱砂印面、墨绿印钮。
+ * 指针靠近时印随指尖倾侧（可四面端详），点一下便「钤印」——
+ * 印身下压接纸，纸面洇出一枚白文「润森」，再点收印重盖。
+ *
+ * 降级：reduced-motion 或无 JS 时静态斜置、印痕常显，内容不受影响；
+ * 触屏无 tilt，点按钤印仍可用。SPA 换页由自定义元素生命周期自理。
+ */
+import SealMark from './SealMark.astro'
+
+const { class: className } = Astro.props
+---
+
+<ink-seal3d class:list={['ink-seal3d', className]}>
+  <div class="scene">
+    <button
+      class="stamp js-stamp"
+      type="button"
+      aria-label="钤印 — 盖下润森印章"
+    >
+      <span class="stamp__pivot js-pivot">
+        {/* 印身：石质立方 */}
+        <span class="cube cube--body">
+          <i class="face face--front"></i>
+          <i class="face face--back"></i>
+          <i class="face face--left"></i>
+          <i class="face face--right"></i>
+          <i class="face face--top"></i>
+          <i class="face face--bottom"></i>
+        </span>
+        {/* 印钮：小一号墨绿方钮 */}
+        <span class="cube cube--knob">
+          <i class="face face--front"></i>
+          <i class="face face--back"></i>
+          <i class="face face--left"></i>
+          <i class="face face--right"></i>
+          <i class="face face--top"></i>
+        </span>
+      </span>
+    </button>
+
+    <span class="imprint js-imprint" aria-hidden="true">
+      {/* hero 变体是行内展示；watermark 变体自带右下角绝对定位，不能用 */}
+      <SealMark size={52} variant="hero" />
+    </span>
+
+    <span class="hint" aria-hidden="true">摩挲 · 点而钤之</span>
+  </div>
+</ink-seal3d>
+
+<script>
+  import { prefersReducedMotion, type Cleanup } from '../motion/core'
+
+  class InkSeal3D extends HTMLElement {
+    pivot: HTMLElement | null = null
+    stamp: HTMLElement | null = null
+
+    /** 展示斜角（静息姿态） */
+    baseRx = -22
+    baseRy = 30
+
+    rx = this.baseRx
+    ry = this.baseRy
+    trx = this.baseRx
+    try_ = this.baseRy
+
+    raf = 0
+    stamping = false
+    timeouts: number[] = []
+    stops: Cleanup[] = []
+
+    connectedCallback() {
+      this.pivot = this.querySelector('.js-pivot')
+      this.stamp = this.querySelector('.js-stamp')
+      if (!this.pivot || !this.stamp) return
+
+      this.classList.add('is-live')
+
+      if (prefersReducedMotion()) {
+        // 静态斜置 + 印痕常显，不绑任何动效
+        this.classList.add('is-stamped')
+        return
+      }
+
+      const onMove = (e: PointerEvent) => {
+        if (this.stamping) return
+        const rect = this.getBoundingClientRect()
+        const nx = (e.clientX - rect.left) / rect.width - 0.5
+        const ny = (e.clientY - rect.top) / rect.height - 0.5
+        this.trx = this.baseRx - ny * 34
+        this.try_ = this.baseRy + nx * 46
+        this.wake()
+      }
+      const onLeave = () => {
+        this.trx = this.baseRx
+        this.try_ = this.baseRy
+        this.wake()
+      }
+      const onClick = () => this.stampIt()
+
+      this.addEventListener('pointermove', onMove)
+      this.addEventListener('pointerleave', onLeave)
+      this.stamp.addEventListener('click', onClick)
+      this.stops.push(() => {
+        this.removeEventListener('pointermove', onMove)
+        this.removeEventListener('pointerleave', onLeave)
+        this.stamp?.removeEventListener('click', onClick)
+      })
+
+      this.apply()
+    }
+
+    disconnectedCallback() {
+      cancelAnimationFrame(this.raf)
+      this.raf = 0
+      this.timeouts.forEach((t) => clearTimeout(t))
+      this.timeouts = []
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+    }
+
+    wake() {
+      if (this.raf) return
+      this.raf = requestAnimationFrame(() => this.tick())
+    }
+
+    tick() {
+      this.rx += (this.trx - this.rx) * 0.14
+      this.ry += (this.try_ - this.ry) * 0.14
+      this.apply()
+
+      const settled =
+        Math.abs(this.trx - this.rx) < 0.05 && Math.abs(this.try_ - this.ry) < 0.05
+      this.raf = settled ? 0 : requestAnimationFrame(() => this.tick())
+    }
+
+    apply() {
+      this.pivot?.style.setProperty('--rx', this.rx.toFixed(2) + 'deg')
+      this.pivot?.style.setProperty('--ry', this.ry.toFixed(2) + 'deg')
+    }
+
+    stampIt() {
+      if (this.stamping) return
+
+      // 已有印痕：先收印（淡出）再允许重盖
+      if (this.classList.contains('is-stamped')) {
+        this.classList.remove('is-stamped')
+        return
+      }
+
+      this.stamping = true
+      this.classList.add('is-stamping')
+
+      // 下压接纸的瞬间洇出印痕（与 keyframes 的触纸点对齐）
+      this.timeouts.push(
+        window.setTimeout(() => this.classList.add('is-stamped'), 420)
+      )
+      this.timeouts.push(
+        window.setTimeout(() => {
+          this.classList.remove('is-stamping')
+          this.stamping = false
+        }, 1050)
+      )
+    }
+  }
+
+  if (!customElements.get('ink-seal3d')) {
+    customElements.define('ink-seal3d', InkSeal3D)
+  }
+</script>
+
+<style lang="scss">
+  .ink-seal3d {
+    --body-w: 4.6rem; /* 印身边长 */
+    --body-h: 3.4rem; /* 印身高度 */
+    --knob-w: 1.9rem;
+    --knob-h: 2rem;
+    --hover-gap: 3.4rem; /* 悬空高度（印面到纸面） */
+
+    position: relative;
+
+    display: block;
+    width: 11rem;
+
+    user-select: none;
+
+    .scene {
+      position: relative;
+
+      height: 13.5rem;
+
+      perspective: 620px;
+      perspective-origin: 50% 18%;
+    }
+
+    .stamp {
+      position: absolute;
+      top: 0.6rem;
+      left: 50%;
+
+      width: var(--body-w);
+      height: calc(var(--body-h) + var(--knob-h));
+      margin-left: calc(var(--body-w) / -2);
+
+      padding: 0;
+      background: none;
+      border: 0;
+
+      cursor: pointer;
+
+      transform-style: preserve-3d;
+
+      &:focus-visible {
+        outline: 2px dashed color-mix(in srgb, color(accent) 70%, transparent);
+        outline-offset: 6px;
+      }
+    }
+
+    .stamp__pivot {
+      --rx: -22deg;
+      --ry: 30deg;
+
+      position: absolute;
+      inset: 0;
+
+      transform-style: preserve-3d;
+      transform: rotateX(var(--rx)) rotateY(var(--ry));
+
+      will-change: transform;
+    }
+
+    /* 钤印：下压转正 → 触纸稍驻 → 弹回斜置。
+       animation 直接覆盖 tilt 的 transform */
+    &.is-stamping .stamp__pivot {
+      animation: ink-seal-press 1.05s ease(in-out-quint) both;
+    }
+
+    @keyframes ink-seal-press {
+      0% {
+        transform: rotateX(var(--rx)) rotateY(var(--ry)) translateY(0);
+      }
+
+      36% {
+        transform: rotateX(0deg) rotateY(0deg) translateY(var(--hover-gap));
+
+        animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+      }
+
+      52% {
+        transform: rotateX(0deg) rotateY(0deg) translateY(var(--hover-gap));
+      }
+
+      100% {
+        transform: rotateX(-22deg) rotateY(30deg) translateY(0);
+      }
+    }
+
+    /* ── 立方体装配 ── */
+    .cube {
+      position: absolute;
+      transform-style: preserve-3d;
+
+      .face {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        display: block;
+        width: 100%;
+        height: 100%;
+
+        backface-visibility: hidden;
+      }
+    }
+
+    /* 印身：暖白石质，边缘墨线 */
+    .cube--body {
+      top: var(--knob-h);
+      left: 0;
+
+      width: var(--body-w);
+      height: var(--body-h);
+
+      .face {
+        background: linear-gradient(
+          172deg,
+          color(paper-warm),
+          color-mix(in srgb, color(paper-warm) 82%, #6b5c48)
+        );
+        border: 1.5px solid color-mix(in srgb, color(secondary) 46%, transparent);
+      }
+
+      .face--front {
+        transform: translateZ(calc(var(--body-w) / 2));
+      }
+
+      .face--back {
+        transform: rotateY(180deg) translateZ(calc(var(--body-w) / 2));
+      }
+
+      .face--left {
+        width: var(--body-w);
+        transform: rotateY(-90deg) translateZ(calc(var(--body-w) / 2));
+      }
+
+      .face--right {
+        width: var(--body-w);
+        transform: rotateY(90deg) translateZ(calc(var(--body-w) / 2));
+
+        background: linear-gradient(
+          172deg,
+          color-mix(in srgb, color(paper-warm) 88%, #6b5c48),
+          color-mix(in srgb, color(paper-warm) 70%, #4a3f31)
+        );
+      }
+
+      .face--top {
+        height: var(--body-w);
+        transform: rotateX(90deg) translateZ(calc(var(--body-h) / 2))
+          translateY(calc((var(--body-w) - var(--body-h)) / -2));
+      }
+
+      /* 印面：蘸满朱砂 */
+      .face--bottom {
+        height: var(--body-w);
+        transform: rotateX(-90deg) translateZ(calc(var(--body-h) / 2))
+          translateY(calc((var(--body-w) - var(--body-h)) / 2));
+
+        background: radial-gradient(
+          circle at 42% 38%,
+          #d84a3a,
+          #c03528 58%,
+          #99281e
+        );
+        border-color: #8c241b;
+      }
+    }
+
+    /* 印钮：墨绿小方钮 */
+    .cube--knob {
+      top: 0;
+      left: calc((var(--body-w) - var(--knob-w)) / 2);
+
+      width: var(--knob-w);
+      height: var(--knob-h);
+
+      .face {
+        background: linear-gradient(
+          172deg,
+          color-mix(in srgb, color(secondary) 88%, #fff),
+          color(secondary)
+        );
+        border: 1px solid color-mix(in srgb, #000 25%, color(secondary));
+      }
+
+      .face--front {
+        transform: translateZ(calc(var(--knob-w) / 2));
+      }
+
+      .face--back {
+        transform: rotateY(180deg) translateZ(calc(var(--knob-w) / 2));
+      }
+
+      .face--left {
+        transform: rotateY(-90deg) translateZ(calc(var(--knob-w) / 2));
+      }
+
+      .face--right {
+        transform: rotateY(90deg) translateZ(calc(var(--knob-w) / 2));
+
+        background: color-mix(in srgb, color(secondary) 78%, #000);
+      }
+
+      .face--top {
+        height: var(--knob-w);
+        transform: rotateX(90deg) translateZ(calc(var(--knob-h) / 2))
+          translateY(calc((var(--knob-w) - var(--knob-h)) / -2));
+      }
+    }
+
+    /* 纸面印痕：钤印后洇出 */
+    .imprint :global(.seal-mark) {
+      width: 52px;
+      margin: 0;
+    }
+
+    .imprint {
+      position: absolute;
+      bottom: 1.9rem;
+      left: 50%;
+
+      display: block;
+
+      opacity: 0;
+      transform: translateX(-50%) scale(0.86) rotate(-4deg);
+
+      transition:
+        opacity 0.45s ease,
+        transform 0.45s ease(out-quint);
+
+      pointer-events: none;
+    }
+
+    &.is-stamped .imprint {
+      opacity: 0.92;
+      transform: translateX(-50%) scale(1) rotate(-4deg);
+
+      transition:
+        opacity 0.3s ease,
+        transform 0.42s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    /* 印下的投影：随悬浮呼吸 */
+    .scene::after {
+      position: absolute;
+      bottom: 2.6rem;
+      left: 50%;
+
+      width: 4.2rem;
+      height: 0.85rem;
+
+      background: radial-gradient(
+        ellipse,
+        color-mix(in srgb, color(secondary) 26%, transparent),
+        transparent 68%
+      );
+
+      transform: translateX(-50%);
+
+      content: '';
+      pointer-events: none;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+
+      color: color(secondary);
+      font: 600 10.5px / 1 font-family(editorial);
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      white-space: nowrap;
+
+      opacity: 0.55;
+      transform: translateX(-50%);
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover .hint {
+      opacity: 0.95;
+    }
+
+    /* 无 JS：不显示交互提示，印痕常显（is-live 由脚本打上） */
+    &:not(.is-live) {
+      .hint {
+        display: none;
+      }
+
+      .imprint {
+        opacity: 0.92;
+        transform: translateX(-50%) scale(1) rotate(-4deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stamp {
+        cursor: default;
+      }
+
+      &.is-stamping .stamp__pivot {
+        animation: none;
+      }
+    }
+  }
+</style>
