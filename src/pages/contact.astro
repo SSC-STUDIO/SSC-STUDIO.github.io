@@ -24,7 +24,7 @@ import ContactForm from '@/islands/ContactForm'
       <span>3992237161@qq.com</span>
       <span>通常 48 小时内回复</span>
     </div>
-    <div class="p-stack p-stack--2col" data-flow data-intersect>
+    <div class="p-stack p-stack--2col">
       <PageCard kicker="合作" title="可以一起做的事">
         <p>适合交流的方向：</p>
         <ul data-flow data-intersect>
@@ -116,8 +116,9 @@ import ContactForm from '@/islands/ContactForm'
     }
   }
 
-  /* 表单字段错峰落定；默认态即落定，fill-mode 取 backwards */
-  .p-contact .p-form > * {
+  /* 表单字段错峰落定：只在卡片已显影后播。
+     无 JS 或显影管线未接管时字段保持落定可读，绝不预先藏字。 */
+  html.js .p-contact .p-card.is-inked .p-form > * {
     animation: contact-rise 480ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: calc(280ms + var(--field-i, 0) * 68ms);
   }
@@ -179,6 +180,53 @@ import ContactForm from '@/islands/ContactForm'
     }
   }
 
+  /* 成信：状态行旁钤一记「收」印 */
+  .p-contact .p-form__status.is-ok {
+    position: relative;
+    padding-right: 3.4rem;
+  }
+
+  .p-contact .p-form__status.is-ok::after {
+    position: absolute;
+    top: 50%;
+    right: 0;
+
+    display: grid;
+    place-items: center;
+
+    width: 1.85rem;
+    height: 1.85rem;
+
+    border: 1.5px solid color(accent-strong);
+    border-radius: 0.12rem;
+
+    color: color(accent-strong);
+    font: 700 0.72rem / 1 font-family(editorial);
+
+    content: '收';
+    pointer-events: none;
+
+    animation: contact-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    transform: translateY(-50%);
+  }
+
+  @keyframes contact-stamp {
+    0% {
+      opacity: 0;
+      transform: translateY(-50%) rotate(-12deg) scale(1.7);
+    }
+
+    62% {
+      opacity: 1;
+      transform: translateY(-50%) rotate(-2deg) scale(0.94);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(-50%) rotate(-4deg) scale(1);
+    }
+  }
+
   /* 落款印玺：信末右下，略小于首页卷尾那枚 */
   .p-contact__colophon {
     display: flex;
@@ -205,8 +253,9 @@ import ContactForm from '@/islands/ContactForm'
     .p-contact .p-card.is-inked .p-card__head,
     .p-contact .p-card.is-inked .p-card__title,
     .p-contact .p-card.is-inked .p-card__body,
-    .p-contact .p-form > *,
-    .p-contact .p-form button[type='submit']:disabled::after {
+    html.js .p-contact .p-card.is-inked .p-form > *,
+    .p-contact .p-form button[type='submit']:disabled::after,
+    .p-contact .p-form__status.is-ok::after {
       animation: none;
     }
 
