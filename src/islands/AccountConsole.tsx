@@ -305,7 +305,14 @@ export default function AccountConsole({
         <section className="p-account__panel">
           <p className="p-card__kicker">session</p>
           <h2 className="p-card__title">检查会话</h2>
-          <p className="p-account__hint">正在连接 API…</p>
+          <p className="p-account__hint" role="status">
+            正在连接 API…
+          </p>
+          <div className="p-account__skeleton" aria-hidden="true">
+            <span style={{ "--sk-i": 0 } as React.CSSProperties} />
+            <span style={{ "--sk-i": 1 } as React.CSSProperties} />
+            <span style={{ "--sk-i": 2 } as React.CSSProperties} />
+          </div>
         </section>
       ) : null}
 

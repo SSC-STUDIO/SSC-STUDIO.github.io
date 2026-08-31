@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 import AccountConsole from '@/islands/AccountConsole'
 ---
 
@@ -16,6 +17,7 @@ import AccountConsole from '@/islands/AccountConsole'
   />
 
   <main class="p-page">
+    <PageAura />
     <AccountConsole client:load />
   </main>
 
@@ -80,9 +82,265 @@ import AccountConsole from '@/islands/AccountConsole'
     }
   }
 
+  /* ══════════════════════════════════════════════════════
+     账号台的动效：私密控制台，克制为要——
+     面板换态时整版落定、字段依次落墨、按钮落印、
+     会话检查期一段墨色呼吸的骨架。
+     默认态一律是「已落定」，fill-mode 取 backwards。
+     ══════════════════════════════════════════════════════ */
+
+  /* 换态即换页：登录 / 注册 / 已登录三块面板各自落定 */
+  .p-account__panel {
+    animation: acc-panel-in 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes acc-panel-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.7rem, 0);
+    }
+  }
+
+  /* 面板内依次落墨：题识 → 标题 → 切换 → 提示 */
+  .p-account__panel > .p-card__kicker {
+    animation: acc-rise 480ms ease backwards;
+    animation-delay: 90ms;
+  }
+
+  .p-account__panel > .p-card__title {
+    animation: acc-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: 150ms;
+  }
+
+  .p-account__switch,
+  .p-account__panel > .p-account__hint {
+    animation: acc-rise 480ms ease backwards;
+    animation-delay: 230ms;
+  }
+
+  /* 表单逐字段落定 */
+  .p-account .p-form > * {
+    animation: acc-rise 480ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(300ms + var(--field-i, 0) * 70ms);
+  }
+
+  .p-account .p-form > :nth-child(1) {
+    --field-i: 0;
+  }
+
+  .p-account .p-form > :nth-child(2) {
+    --field-i: 1;
+  }
+
+  .p-account .p-form > :nth-child(3) {
+    --field-i: 2;
+  }
+
+  .p-account .p-form > :nth-child(4) {
+    --field-i: 3;
+  }
+
+  .p-account .p-form > :nth-child(n + 5) {
+    --field-i: 4;
+  }
+
+  /* 已登录：会话事实卡逐格落定 */
+  .p-account__facts > div {
+    animation: acc-rise 480ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(260ms + var(--fact-i, 0) * 70ms);
+  }
+
+  .p-account__facts > :nth-child(2) {
+    --fact-i: 1;
+  }
+
+  .p-account__facts > :nth-child(3) {
+    --fact-i: 2;
+  }
+
+  .p-account__facts > :nth-child(4) {
+    --fact-i: 3;
+  }
+
+  /* 班级同学徽记：如落印 */
+  .p-account__badge {
+    animation: acc-seal-drop 660ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    animation-delay: 120ms;
+  }
+
+  @keyframes acc-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.5rem, 0);
+    }
+  }
+
+  @keyframes acc-seal-drop {
+    from {
+      opacity: 0;
+      transform: scale(1.6) rotate(-6deg);
+    }
+  }
+
+  /* ── 落印：按下时朱砂自钮心化开 ──
+     [data-seal] 的涟漪只认页面加载时就在 DOM 里的元素，
+     孤岛内的按钮是补水后才生出来的，故在样式层做一记等效的钤印。 */
+  .p-account .p-form button,
+  .p-account__logout,
+  .p-account__switch-btn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+
+      background: radial-gradient(
+        circle at center,
+        color-mix(in srgb, #{color(accent)} 65%, transparent) 0 42%,
+        color-mix(in srgb, #{color(accent)} 22%, transparent) 42% 66%,
+        transparent 68%
+      );
+
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+
+      transform: scale(0.35);
+      transition:
+        opacity 460ms ease(out-cubic),
+        transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &:active:not(:disabled)::after {
+      opacity: 0.9;
+
+      transform: scale(1.6);
+      transition: none;
+    }
+  }
+
+  .p-account .p-form button:active:not(:disabled),
+  .p-account__logout:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  /* 提交进行中：一道墨色自左洗过钮面 */
+  .p-account .p-form button:disabled,
+  .p-account__logout:disabled {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(accent)} 55%, transparent),
+        transparent
+      );
+
+      content: '';
+      pointer-events: none;
+
+      animation: acc-ink-run 1.2s linear infinite;
+    }
+  }
+
+  @keyframes acc-ink-run {
+    from {
+      transform: translateX(-100%);
+    }
+
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /* 状态播报：淡入而不跳出 */
+  .p-account .p-form__status:not([hidden]) {
+    animation: acc-rise 420ms ease backwards;
+  }
+
+  /* ── 会话检查：三条墨线一呼一吸 ──
+     这一版面存在于 SSR 输出里，循环次数取有限值：
+     无限动画会被离屏暂停器在 React 补水前写上 inline style，
+     触发 hydration 属性不匹配告警。 */
+  .p-account__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+
+    margin-top: 1.25rem;
+
+    span {
+      display: block;
+      height: 0.6rem;
+
+      border-radius: 2px;
+      background: color-mix(in srgb, #{color(secondary)} 18%, transparent);
+
+      animation: acc-ink-pulse 1.9s ease-in-out 120;
+      animation-delay: calc(var(--sk-i, 0) * 160ms);
+    }
+
+    span:nth-child(1) {
+      width: 42%;
+    }
+
+    span:nth-child(2) {
+      width: 76%;
+    }
+
+    span:nth-child(3) {
+      width: 58%;
+    }
+  }
+
+  @keyframes acc-ink-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .p-account__switch-btn {
       transition: none;
+    }
+
+    .p-account__panel,
+    .p-account__panel > .p-card__kicker,
+    .p-account__panel > .p-card__title,
+    .p-account__switch,
+    .p-account__panel > .p-account__hint,
+    .p-account .p-form > *,
+    .p-account__facts > div,
+    .p-account__badge,
+    .p-account .p-form__status:not([hidden]),
+    .p-account__skeleton span,
+    .p-account .p-form button:disabled::before,
+    .p-account__logout:disabled::before {
+      animation: none;
+    }
+
+    .p-account .p-form button::after,
+    .p-account__logout::after,
+    .p-account__switch-btn::after {
+      display: none;
+    }
+
+    .p-account .p-form button:active:not(:disabled),
+    .p-account__logout:active:not(:disabled) {
+      transform: none;
     }
   }
 </style>
