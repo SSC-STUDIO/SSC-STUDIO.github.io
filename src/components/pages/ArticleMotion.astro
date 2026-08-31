@@ -1,0 +1,110 @@
+---
+/**
+ * ArticleMotion — 文章页共用的装帧与动效
+ *
+ * 一处收齐：卷底墨圈环境层、左栏章次导轨、
+ * 章题朱丝入屏描出、条列逐条落墨、卷末「完」印钤下、去向牌的手感。
+ * 两篇文章都只需 import 这一个组件。
+ */
+import PageAura from './PageAura.astro'
+import ArticleRail from './ArticleRail.astro'
+---
+
+<PageAura />
+<ArticleRail />
+
+<style lang="scss" is:global>
+  /* ── 章题：朱丝压脚随入屏自左描出。
+     只是一道装饰，无 JS 时保持描完的样子。 ── */
+
+  .p-article .p-prose h2::after {
+    transform-origin: left center;
+  }
+
+  html.js .p-article .p-prose h2::after {
+    transform: scaleX(0);
+    transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  html.js .p-article .p-prose h2.is-read::after {
+    transform: scaleX(1);
+  }
+
+  /* 条列序号取朱砂，与章次同色 */
+  .p-article .p-prose li::marker {
+    color: color(accent);
+    font-family: font-family(fraktion);
+  }
+
+  /* ── 卷末「完」印：入屏时自高处钤下，落定后微微回弹 ── */
+
+  .p-article .p-article-end[data-intersect].is-in-view .p-article-end__seal {
+    animation: p-article-stamp 760ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+  }
+
+  .p-article .p-article-end[data-intersect].is-in-view::before,
+  .p-article .p-article-end[data-intersect].is-in-view::after {
+    animation: p-article-rule 700ms 120ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  .p-article .p-article-end::before {
+    transform-origin: left center;
+  }
+
+  .p-article .p-article-end::after {
+    transform-origin: right center;
+  }
+
+  @keyframes p-article-stamp {
+    0% {
+      opacity: 0;
+      transform: rotate(-14deg) scale(1.9);
+    }
+
+    62% {
+      opacity: 1;
+      transform: rotate(-2deg) scale(0.94);
+    }
+
+    100% {
+      opacity: 1;
+      transform: rotate(-4deg) scale(1);
+    }
+  }
+
+  @keyframes p-article-rule {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  /* ── 去向牌：箭头随悬停向前递一步 ── */
+
+  .p-article .p-article-nav__title {
+    display: inline-block;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-article .p-article-nav__link:hover .p-article-nav__title,
+  .p-article .p-article-nav__link:focus-visible .p-article-nav__title {
+    transform: translateX(4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js .p-article .p-prose h2::after {
+      transform: scaleX(1);
+      transition: none;
+    }
+
+    .p-article .p-article-nav__title {
+      transform: none;
+      transition: none;
+    }
+
+    .p-article .p-article-end.is-in-view .p-article-end__seal,
+    .p-article .p-article-end.is-in-view::before,
+    .p-article .p-article-end.is-in-view::after {
+      animation: none;
+    }
+  }
+</style>

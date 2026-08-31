@@ -3,6 +3,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
+import PageAura from '@/components/pages/PageAura.astro'
 
 /** 文章清单：新文在前；words 为正文约数，用来估算阅读时长（400 字/分钟） */
 const articles = [
@@ -41,9 +42,11 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     summary="把灵感写慢，把问题写透，让笔记成为下一次出发的地图。"
   />
 
-  <main class="p-page p-page--wide">
+  <main class="p-page p-page--wide p-articles">
+    <PageAura />
     <p class="p-articles-count" data-reveal>
-      卷内共 <strong>{total}</strong> 篇 · 依时间倒序陈列
+      卷内共 <ink-tally class="p-articles-count__n" data-to={total}>{total}</ink-tally
+      > 篇 · 依时间倒序陈列
     </p>
     <div class="p-stack p-stack--cards">
       {
@@ -58,6 +61,11 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
             <p class="p-card__meta">
               {article.date} · 约 {readingMinutes(article.words)} 分钟读完
             </p>
+            <span
+              class="p-articles__gauge"
+              aria-hidden="true"
+              style={`--gauge:${Math.min(readingMinutes(article.words) / 8, 1)}`}
+            />
             <div class="p-card__tags">
               {article.tags.map((tag) => (
                 <span class="p-card__tag">{tag}</span>
@@ -72,6 +80,63 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
   <PageFoot current="/articles" />
 </BaseLayout>
 
+<script>
+  import { prefersReducedMotion } from '@/motion/core'
+
+  /**
+   * ink-tally —— 数目自零点起，如算珠一颗颗拨过去。
+   * 服务端已经把最终数写在标签里：脚本缺席也读得到正确的数。
+   */
+  class InkTally extends HTMLElement {
+    observer: IntersectionObserver | null = null
+    raf = 0
+
+    connectedCallback() {
+      const to = Number(this.dataset.to || this.textContent || 0)
+      if (!to || prefersReducedMotion()) return
+
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return
+          this.observer?.disconnect()
+          this.observer = null
+          this.run(to)
+        },
+        { threshold: 0.4 }
+      )
+
+      this.observer.observe(this)
+    }
+
+    disconnectedCallback() {
+      this.observer?.disconnect()
+      this.observer = null
+      cancelAnimationFrame(this.raf)
+    }
+
+    run(to: number) {
+      const start = performance.now()
+      const span = 520 + to * 60
+
+      const step = (now: number) => {
+        const t = Math.min((now - start) / span, 1)
+        // 末尾放缓，最后一颗珠子落得慢些
+        const eased = 1 - Math.pow(1 - t, 3)
+        this.textContent = String(Math.round(eased * to))
+
+        if (t < 1) this.raf = requestAnimationFrame(step)
+        else this.classList.add('is-tallied')
+      }
+
+      this.raf = requestAnimationFrame(step)
+    }
+  }
+
+  if (!customElements.get('ink-tally')) {
+    customElements.define('ink-tally', InkTally)
+  }
+</script>
+
 <style lang="scss" is:global>
   /* 卷首计数：如册页题记，一行小字压在卡片群之上 */
   .p-articles-count {
@@ -81,10 +146,93 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     font: 400 0.85rem / 1.4 font-family(editorial);
     letter-spacing: 0.08em;
 
-    strong {
+    strong,
+    .p-articles-count__n {
       color: color(accent);
       font-family: font-family(fraktion);
       font-weight: 700;
+    }
+
+    /* 数目落定的一记轻跃 */
+    .p-articles-count__n {
+      display: inline-block;
+      min-width: 1ch;
+
+      text-align: center;
+    }
+
+    .p-articles-count__n.is-tallied {
+      animation: p-tally-land 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  }
+
+  @keyframes p-tally-land {
+    0% {
+      transform: translateY(0) scale(1);
+    }
+    45% {
+      transform: translateY(-0.18em) scale(1.22);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* 篇幅尺：卡内一线朱丝，长短即阅读时长，悬停时自左量出 */
+  .p-articles .p-articles__gauge {
+    position: relative;
+
+    display: block;
+
+    height: 2px;
+    margin: 0.55rem 0 0;
+
+    background: color-mix(in srgb, #{color(secondary)} 14%, transparent);
+
+    &::after {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        90deg,
+        color(accent),
+        color(accent-strong)
+      );
+
+      content: '';
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  }
+
+  .p-articles .p-card:hover .p-articles__gauge::after,
+  .p-articles .p-card:focus-visible .p-articles__gauge::after {
+    transform: scaleX(var(--gauge, 0.3));
+  }
+
+  /* 卷号签：悬停时像被指尖掀了一下 */
+  .p-articles .p-card__id {
+    display: inline-block;
+
+    transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .p-articles .p-card:hover .p-card__id {
+    transform: rotate(-2.5deg) translateY(-1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-articles .p-articles__gauge::after {
+      transform: scaleX(var(--gauge, 0.3));
+      transition: none;
+    }
+
+    .p-articles .p-card__id,
+    .p-articles-count__n.is-tallied {
+      transform: none;
+      transition: none;
+      animation: none;
     }
   }
 </style>

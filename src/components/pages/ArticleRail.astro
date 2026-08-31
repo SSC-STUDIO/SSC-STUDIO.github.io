@@ -1,0 +1,366 @@
+---
+/**
+ * ArticleRail — 文章页的章次导轨
+ *
+ * 左栏一线朱丝为轨，正文里每个 h2 在轨上占一枚墨点；
+ * 读到哪一章，那一枚就落朱砂并把章题推出来，
+ * 轨身随阅读进度自上而下洇满，轨尾一枚小印记着读了几成。
+ *
+ * 章次从正文 DOM 现取，不必在每篇文章里重复登记。
+ * 自定义元素生命周期天然对齐 SPA 换页；窄屏整根收起（右缘已有卷轴进度杆）。
+ */
+interface Props {
+  /** 正文容器选择器 */
+  target?: string
+}
+
+const { target = '.p-prose' } = Astro.props
+---
+
+<article-rail class="p-artrail" data-target={target}>
+  <nav class="p-artrail__nav" aria-label="本篇章次">
+    <span class="p-artrail__track" aria-hidden="true">
+      <span class="p-artrail__ink"></span>
+    </span>
+    <ol class="p-artrail__list"></ol>
+    <span class="p-artrail__seal" aria-hidden="true">
+      <b class="js-artrail-pct">0</b>%
+    </span>
+  </nav>
+</article-rail>
+
+<script>
+  import { onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+
+  class ArticleRail extends HTMLElement {
+    body: HTMLElement | null = null
+    list: HTMLOListElement | null = null
+    pct: HTMLElement | null = null
+
+    heads: HTMLElement[] = []
+    ticks: HTMLButtonElement[] = []
+
+    stops: Cleanup[] = []
+    observer: IntersectionObserver | null = null
+    lit: IntersectionObserver | null = null
+    lastPct = -1
+
+    connectedCallback() {
+      this.body = document.querySelector(this.dataset.target || '.p-prose')
+      this.list = this.querySelector('.p-artrail__list')
+      this.pct = this.querySelector('.js-artrail-pct')
+
+      if (!this.body || !this.list) return
+
+      this.heads = Array.from(this.body.querySelectorAll<HTMLElement>('h2'))
+      if (!this.heads.length) return
+
+      this.build()
+      this.classList.add('is-live')
+
+      this.stops.push(onScroll(() => this.paint()))
+      this.paint()
+
+      // 追章：以视口中带为准，读到哪一章哪一枚落朱砂
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return
+            const index = this.heads.indexOf(entry.target as HTMLElement)
+            if (index < 0) return
+            this.ticks.forEach((tick, i) =>
+              tick.classList.toggle('is-current', i === index)
+            )
+          })
+        },
+        { rootMargin: '-24% 0px -58% 0px', threshold: 0 }
+      )
+
+      // 描章题压脚：门槛放得比追章宽，短文的末章也一定描得到
+      this.lit = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return
+            entry.target.classList.add('is-read')
+            this.lit?.unobserve(entry.target)
+          })
+        },
+        { rootMargin: '0px 0px -8% 0px', threshold: 0 }
+      )
+
+      this.heads.forEach((head) => {
+        this.observer!.observe(head)
+        this.lit!.observe(head)
+      })
+      this.ticks[0]?.classList.add('is-current')
+    }
+
+    disconnectedCallback() {
+      this.observer?.disconnect()
+      this.observer = null
+      this.lit?.disconnect()
+      this.lit = null
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.heads = []
+      this.ticks = []
+    }
+
+    build() {
+      const reduced = prefersReducedMotion()
+      const numerals = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+
+      this.heads.forEach((head, index) => {
+        const item = document.createElement('li')
+        const tick = document.createElement('button')
+
+        tick.type = 'button'
+        tick.className = 'p-artrail__tick'
+        tick.style.setProperty('--tick-i', String(index))
+
+        const mark = document.createElement('span')
+        mark.className = 'p-artrail__dot'
+        mark.setAttribute('aria-hidden', 'true')
+        mark.textContent = numerals[index] || String(index + 1)
+
+        const label = document.createElement('span')
+        label.className = 'p-artrail__label'
+        // h2 前有 counter 生成的「一 ·」序号，取纯文本即可
+        label.textContent = head.textContent?.trim() || `第 ${index + 1} 节`
+
+        tick.append(mark, label)
+        tick.addEventListener('click', () => {
+          head.scrollIntoView({
+            behavior: reduced ? 'auto' : 'smooth',
+            block: 'start',
+          })
+        })
+
+        item.appendChild(tick)
+        this.list!.appendChild(item)
+        this.ticks.push(tick)
+      })
+    }
+
+    /** 阅读进度：正文顶端触到视口中线算起点，正文末端离开视口中线算读完 */
+    paint() {
+      const body = this.body
+      if (!body) return
+
+      const rect = body.getBoundingClientRect()
+      const mid = window.innerHeight * 0.5
+      const span = Math.max(1, rect.height)
+      const progress = Math.min(Math.max((mid - rect.top) / span, 0), 1)
+
+      this.style.setProperty('--rail-progress', progress.toFixed(4))
+
+      const pct = Math.round(progress * 100)
+      if (pct !== this.lastPct && this.pct) {
+        this.lastPct = pct
+        this.pct.textContent = String(pct)
+      }
+    }
+  }
+
+  if (!customElements.get('article-rail')) {
+    customElements.define('article-rail', ArticleRail)
+  }
+</script>
+
+<!-- 章次条目由脚本按正文现取的 h2 生成，拿不到 Astro 的作用域类，样式只能走 is:global -->
+<style lang="scss" is:global>
+  .p-artrail {
+    --rail-progress: 0;
+    /* 画心半宽：导轨贴着正文左缘外侧站，随断点改口径 */
+    --rail-gutter: 32rem;
+
+    position: fixed;
+    top: 50%;
+    left: max(1rem, calc(50vw - var(--rail-gutter) - 4.25rem));
+    z-index: 15;
+
+    display: none;
+
+    transform: translateY(-50%);
+
+    /* 只在左栏留得出地方的宽屏出现；窄屏靠右缘的卷轴进度杆 */
+    @media (min-width: 1280px) {
+      &.is-live {
+        display: block;
+      }
+    }
+
+    @media (min-width: 1400px) {
+      --rail-gutter: 38rem;
+    }
+  }
+
+  .p-artrail__nav {
+    position: relative;
+
+    padding-left: 1.15rem;
+  }
+
+  .p-artrail__track {
+    position: absolute;
+    top: 0.35rem;
+    bottom: 1.9rem;
+    left: 0.32rem;
+
+    width: 1.5px;
+
+    background: color-mix(in srgb, var(--color-secondary) 18%, transparent);
+  }
+
+  /* 洇满的那一截：只动 scaleY，走合成器 */
+  .p-artrail__ink {
+    position: absolute;
+    inset: 0;
+
+    display: block;
+
+    background: linear-gradient(
+      180deg,
+      color(accent),
+      color(accent-strong)
+    );
+
+    transform: scaleY(var(--rail-progress));
+    transform-origin: top center;
+  }
+
+  .p-artrail__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+  }
+
+  .p-artrail__tick {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+
+    padding: 0;
+
+    border: 0;
+    background: none;
+
+    color: color-mix(in srgb, var(--color-secondary) 55%, transparent);
+    font: 400 0.72rem / 1.2 font-family(editorial);
+    letter-spacing: 0.06em;
+    text-align: left;
+
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 3px;
+    }
+  }
+
+  /* 章次墨点：本章落朱砂并微微涨大 */
+  .p-artrail__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-left: -0.25rem;
+
+    border: 1.5px solid color-mix(in srgb, var(--color-secondary) 32%, transparent);
+    background: color(primary);
+    @include ink-pill;
+
+    font: 700 0.62rem / 1 font-family(editorial);
+
+    transition:
+      transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-color 240ms ease,
+      background-color 240ms ease,
+      color 240ms ease;
+  }
+
+  /* 章题：平时收着，悬停/聚焦时作纸签推出来。
+     只在悬停时展开，静止态才不会压到正文左缘。 */
+  .p-artrail__label {
+    max-width: 0;
+    padding: 0;
+    overflow: hidden;
+
+    border: 1px solid transparent;
+
+    opacity: 0;
+    white-space: nowrap;
+
+    transition:
+      max-width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      padding 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 260ms ease;
+  }
+
+  .p-artrail__tick:hover,
+  .p-artrail__tick:focus-visible {
+    color: color(secondary);
+
+    .p-artrail__dot {
+      border-color: color(accent);
+      transform: scale(1.1);
+    }
+
+    .p-artrail__label {
+      max-width: 11rem;
+      padding: 0.28rem 0.5rem;
+
+      border-color: color-mix(in srgb, var(--color-secondary) 28%, transparent);
+      background: color(paper-warm);
+
+      opacity: 1;
+    }
+  }
+
+  .p-artrail__tick.is-current {
+    color: color(secondary);
+
+    .p-artrail__dot {
+      border-color: color(accent);
+      background: color(accent);
+
+      color: color(primary);
+      transform: scale(1.12);
+    }
+  }
+
+  /* 轨尾小印：读了几成 */
+  .p-artrail__seal {
+    display: inline-block;
+
+    margin: 0.9rem 0 0 -0.28rem;
+    padding: 0.16rem 0.36rem;
+
+    border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+    @include ink-pill;
+
+    color: color-mix(in srgb, var(--color-secondary) 62%, transparent);
+    font: 700 0.6rem / 1 font-family(fraktion);
+    letter-spacing: 0.08em;
+
+    b {
+      color: color(accent-strong);
+      font-weight: 700;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-artrail__dot,
+    .p-artrail__label {
+      transition: none;
+    }
+  }
+</style>

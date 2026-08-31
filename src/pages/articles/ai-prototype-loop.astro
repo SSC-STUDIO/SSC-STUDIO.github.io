@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ArticleMotion from '@/components/pages/ArticleMotion.astro'
 ---
 
 <BaseLayout
@@ -15,13 +16,14 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page p-article">
+    <ArticleMotion />
     <div class="p-detail-meta" data-reveal>
       <span>发布于 2026年2月15日</span>
       <span>全文约 200 字 · 1 分钟读完</span>
     </div>
     <div class="p-prose" data-reveal>
       <h2>循环</h2>
-      <ol>
+      <ol data-flow data-intersect>
         <li>
           <strong>定义一个问题</strong> — 足够小，能在 2 小时内验证。
         </li>
@@ -38,21 +40,27 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <h2>原则</h2>
       <p>速度优先，但不牺牲可读的代码与文档。</p>
     </div>
-    <div class="p-article-end" data-reveal aria-hidden="true">
+    <div class="p-article-end" data-intersect aria-hidden="true">
       <span class="p-article-end__seal">完</span>
     </div>
-    <div class="p-chips" data-reveal>
+    <div class="p-chips" data-flow data-intersect>
       <span class="p-chip">ai</span>
       <span class="p-chip">engineering</span>
     </div>
     <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
-      <a class="p-article-nav__link" href="/articles/why-build-personal-site">
+      <a
+        class="p-article-nav__link"
+        href="/articles/why-build-personal-site"
+        data-seal
+      >
         <span class="p-article-nav__label">上一篇 · 更新</span>
         <span class="p-article-nav__title">← 为什么还在做个人网站</span>
       </a>
     </nav>
     <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/articles">← 全部文章</a>
+      <a class="p-card__link p-card__link--ghost" href="/articles" data-seal
+        >← 全部文章</a
+      >
     </p>
   </main>
 

@@ -2,6 +2,7 @@
 import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
+import ArticleMotion from '@/components/pages/ArticleMotion.astro'
 ---
 
 <BaseLayout
@@ -15,6 +16,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
   />
 
   <main class="p-page p-article">
+    <ArticleMotion />
     <div class="p-detail-meta" data-reveal>
       <span>发布于 2026年3月1日</span>
       <span>全文约 260 字 · 1 分钟读完</span>
@@ -27,7 +29,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
         页面已经能展示作品时，为什么还要维护一个独立的个人网站？
       </p>
       <h2>我的答案</h2>
-      <ol>
+      <ol data-flow data-intersect>
         <li>
           <strong>叙事控制权</strong> —
           你可以决定第一帧看到什么，而不是被平台模板限制。
@@ -44,21 +46,23 @@ import PageFoot from '@/components/pages/PageFoot.astro'
       <h2>下一步</h2>
       <p>继续把 AI 实验、班级记忆和工程复盘写进同一条时间线。</p>
     </div>
-    <div class="p-article-end" data-reveal aria-hidden="true">
+    <div class="p-article-end" data-intersect aria-hidden="true">
       <span class="p-article-end__seal">完</span>
     </div>
-    <div class="p-chips" data-reveal>
+    <div class="p-chips" data-flow data-intersect>
       <span class="p-chip">meta</span>
       <span class="p-chip">writing</span>
     </div>
     <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
-      <a class="p-article-nav__link" href="/articles/ai-prototype-loop">
+      <a class="p-article-nav__link" href="/articles/ai-prototype-loop" data-seal>
         <span class="p-article-nav__label">下一篇 · 更早</span>
         <span class="p-article-nav__title">AI 原型的快速迭代循环 →</span>
       </a>
     </nav>
     <p class="p-back" data-reveal>
-      <a class="p-card__link p-card__link--ghost" href="/articles">← 全部文章</a>
+      <a class="p-card__link p-card__link--ghost" href="/articles" data-seal
+        >← 全部文章</a
+      >
     </p>
   </main>
 
