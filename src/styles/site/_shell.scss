@@ -1,5 +1,5 @@
 /**
- * Site shell styles (body frame, wrapper, mount, contrast mask, reveals)
+ * 研墨壳层 —— 宣纸画心、松墨边框、翻色帘、洇墨显影
  */
 
 @use "../helpers/colors" as *;
@@ -18,7 +18,7 @@ body {
   }
 }
 
-/* Wrapper */
+/* 画心：宣纸底，四周让出装裱边 */
 
 .site-wrapper {
   position: relative;
@@ -56,7 +56,7 @@ html.is-subpage-ready {
   }
 }
 
-/* Mount (border frame behind the wrapper) */
+/* 装裱边：画心背后的松墨框 */
 
 .site-mount {
   position: absolute;
@@ -83,7 +83,7 @@ body.is-subpage {
   }
 }
 
-/* Contrast mask (theme toggle sweep) */
+/* 翻色帘：明暗切换时横 sweep 一层宣纸 */
 
 .site-contrast-mask {
   position: fixed;
@@ -116,7 +116,7 @@ body.is-subpage {
   }
 }
 
-/* Scroll reveal (subpage [data-reveal] elements) */
+/* 洇墨显影：子页 [data-reveal] */
 
 [data-reveal] {
   opacity: 0;

@@ -131,9 +131,11 @@ const consoleLines = [
 </header>
 
 <script>
-  import Emitter from '../utils/Emitter'
-  import Ticker from '../utils/Ticker'
-  import { signalThemeFlip } from '../motion/core'
+  import {
+    onFrame,
+    signalThemeFlip,
+    type Cleanup,
+  } from '../motion/core'
 
   import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -227,6 +229,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
     writeDelay: number
     canWrite: boolean
     isPaused: boolean
+    unframe: Cleanup | null = null
 
     /**
      * Constructor
@@ -245,6 +248,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
     }
 
     rebind() {
+      this.stopFrame()
       this.abort?.abort()
       this.abort = new AbortController()
 
@@ -298,14 +302,21 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
     /**
      * Intersect handler
      */
+    startFrame() {
+      if (this.unframe) return
+      this.unframe = onFrame((time) => this.updateConsole(time))
+    }
+
+    stopFrame() {
+      this.unframe?.()
+      this.unframe = null
+    }
+
     onIntersect(e) {
       this.isPaused = !e.detail.isIntersecting
 
-      if (this.isPaused) {
-        Emitter.off('tick', this.updateConsole, this)
-      } else {
-        Emitter.on('tick', this.updateConsole, this)
-      }
+      if (this.isPaused) this.stopFrame()
+      else this.startFrame()
     }
 
     /**
@@ -412,13 +423,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
             /* 翻色后布局度量可能变化，刷新 ScrollTrigger 防止 pin 错位 */
             ScrollTrigger.refresh()
-
-            Emitter.emit(
-              'contrastchange',
-              theme === 'dark' ? 'contrasted' : 'default'
-            )
-
-            // 新核心的翻色信号（迁移期与 Emitter 并行）
             signalThemeFlip(theme)
           },
         }

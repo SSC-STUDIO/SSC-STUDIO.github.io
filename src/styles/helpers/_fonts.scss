@@ -1,18 +1,16 @@
 /**
- * Fonts helpers
+ * 取字：font-family(songti) / font-family(biaoti) / font-family(dengkuan)
+ * 兼容 editorial / bigger / fraktion。
  */
 
-/* Get a font family value */
 @function font-family($key) {
   @return var(--font-family-#{$key});
 }
 
-/* Get a font size value */
 @function font-size($key) {
   @return var(--font-size-#{$key});
 }
 
-/* Return a text style */
 @mixin t($key: base) {
   margin: 0;
 

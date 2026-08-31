@@ -1,21 +1,25 @@
 /**
- * Fonts variables
+ * 字体令 —— 宋体为骨，等宽为注
+ * songti / biaoti 是中文语义名；editorial / bigger / fraktion 为兼容旧键
  */
 @use "sass:list";
 @use "sass:map";
 
-/* Families — 中文宋体身份，告别模板的 Bigger / Editorial / Fraktion */
 $theme-font-families: (
-  fraktion: "'IBM Plex Mono', 'Sarasa Mono SC', ui-monospace, monospace",
+  songti:
+    "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
+  biaoti:
+    "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
+  dengkuan: "'IBM Plex Mono', 'Sarasa Mono SC', ui-monospace, monospace",
   editorial:
     "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
   bigger:
     "'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif",
+  fraktion: "'IBM Plex Mono', 'Sarasa Mono SC', ui-monospace, monospace",
 );
 
-/* Sizes */
 $theme-font-styles: (
   default: (
-    base: (16px, 400, 1.55, editorial, 0.02em),
+    base: (16px, 400, 1.55, songti, 0.02em),
   ),
 );

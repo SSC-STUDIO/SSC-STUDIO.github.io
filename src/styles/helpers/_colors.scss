@@ -1,10 +1,10 @@
 /**
- * Colors helpers
+ * 取色：color(xuan) / color(songyan) / color(zhusha) …
+ * 兼容旧键 primary / secondary / accent。
  */
 @use 'sass:map';
 @use "../variables-scss/colors" as *;
 
-/* Get a color value */
 @function color($key, $alpha: 1) {
   @if $alpha != 1 {
     $value: map.get($theme-colors, $key);

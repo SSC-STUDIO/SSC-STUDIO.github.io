@@ -165,14 +165,12 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
   </body>
 
   <script>
-    import Emitter from '../utils/Emitter'
-    import Ticker from '../utils/Ticker'
     import { watchIdleAnimations } from '../utils/idle-anim'
     import { initInkReveal } from '../motion/ink-reveal'
     import { initSealPress } from '../motion/seal-press'
     import { initLeafFlip } from '../motion/leaf-flip'
     import { initHandscroll } from '../motion/handscroll'
-    import { markReady } from '../motion/core'
+    import { markReady, nextFrame } from '../motion/core'
     import {
       playInkIntro,
       revealSiteNow,
@@ -196,6 +194,10 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
     }
 
+    /**
+     * 研墨壳 —— 站点运行时：量尺、平滑滚动、入场、换页重绑。
+     * 帧循环与视口/滚动/指针信号已交给 motion/core，这里只做壳层职责。
+     */
     class Site {
       timeouts: any = {
         resizeThrottle: null,
@@ -264,11 +266,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         this.booted = true
 
         this.initLenis()
-
-        Ticker.init()
-
         this.onResize()
-
         this.pageSetup()
       }
 
@@ -306,9 +304,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         } catch (e) {}
 
         if (!playIntro) {
-          Ticker.nextTick(this.forceReveal, this)
+          nextFrame(() => this.forceReveal())
         } else {
-          Ticker.nextTick(this.intro, this)
+          nextFrame(() => this.intro())
           // Safety net: never leave the site hidden behind a stuck intro
           setTimeout(() => this.forceReveal(), 3000)
         }
@@ -325,11 +323,6 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         window.addEventListener('scroll', this.onScroll.bind(this), {
           passive: true,
         })
-        window.addEventListener('mousemove', this.onMouseMove.bind(this), {
-          passive: true,
-        })
-
-        Emitter.on('updateViewport', this.onResize, this, true)
 
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) gsap.ticker.sleep()
@@ -432,13 +425,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        */
       siteLoaded() {
         document.documentElement.classList.add('is-loaded')
-
-        Emitter.emit('siteLoaded')
-        Emitter.emit('updateViewport')
-
-        // 新核心的就绪闩（迁移期与 Emitter 并行，迁移完成后 Emitter 退役）
+        this.onResize()
         markReady()
-
         this.initReveal()
       }
 
@@ -475,7 +463,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         clearTimeout(this.timeouts.resizeThrottle)
 
         this.timeouts.resizeThrottle = setTimeout(() => {
-          Ticker.nextTick(this.onResize, this)
+          nextFrame(() => this.onResize())
         }, 200)
       }
 
@@ -514,8 +502,6 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         )
 
         this.setScrollProgress()
-
-        Emitter.emit('resize', widthChanged, heightChanged)
       }
 
       /**
@@ -523,10 +509,6 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        */
       onScroll() {
         this.setScrollProgress()
-
-        Ticker.nextTick(() => {
-          Emitter.emit('scroll', window.scrollY)
-        })
       }
 
       /**
@@ -537,18 +519,11 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
 
       /**
-       * Mouse move handler
-       */
-      onMouseMove(e) {
-        Emitter.emit('mousemove', e.clientX, e.clientY)
-      }
-
-      /**
        * Force reveal (skip intro)
        */
       forceReveal() {
         revealSiteNow()
-        Emitter.emit('updateViewport')
+        this.onResize()
       }
 
       /**
@@ -556,9 +531,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        */
       intro() {
         playInkIntro().then(() => {
-          Ticker.nextTick(() => {
-            Emitter.emit('updateViewport')
-          })
+          nextFrame(() => this.onResize())
         })
       }
     }

@@ -1,5 +1,5 @@
 /**
- * Global styles for text elements
+ * 正文排版 —— 宋体行气、题签竖排、笺纸段落
  */
 
 p {
@@ -10,4 +10,16 @@ p {
   &:last-child {
     margin-bottom: 0;
   }
+}
+
+/* 竖排题签：从右往左，字距拉开如轴上签条 */
+.t-titling {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.28em;
+}
+
+/* 行首缩进两字，信笺口吻 */
+.t-indent {
+  text-indent: 2em;
 }

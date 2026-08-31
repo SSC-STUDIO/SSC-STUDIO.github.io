@@ -1,11 +1,18 @@
 /**
- * Colors variables — 宣纸松墨 + 朱砂
- * (default = rice paper + pine ink, contrasted = pine night)
+ * 五色令 —— 松烟墨 / 朱砂 / 宣纸 / 黛蓝 / 竹青
+ * default = 白日宣纸；contrasted = 松夜（墨底纸字）
+ *
+ * 旧键 primary / secondary / accent 仍指向同色，避免一次改完所有调用。
  */
 @use 'sass:map';
 
 $theme-colors: (
   default: (
+    xuan: #f4ead8,
+    songyan: #1c2a22,
+    zhusha: #c23a2b,
+    dailan: #3d5a66,
+    zhuqing: #3a5a48,
     primary: #f4ead8,
     secondary: #1c2a22,
     shadow: #0f1c18,
@@ -22,6 +29,11 @@ $theme-colors: (
   ),
 
   contrasted: (
+    xuan: #0e1412,
+    songyan: #efe6d4,
+    zhusha: #c23a2b,
+    dailan: #7598a8,
+    zhuqing: #7a9a82,
     primary: #0e1412,
     secondary: #efe6d4,
     shadow: #070b09,
