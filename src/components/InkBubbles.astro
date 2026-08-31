@@ -2,10 +2,11 @@
 /**
  * InkBubbles — 纸面墨圈冒泡
  *
- * 把 ink-cloud-ground 底纹里的空心墨圈「放活」几枚：
- * 自区块底部缓缓上浮，带轻微横向摆动，大小 / 速度 / 相位随机，
- * 到顶前淡出并在底部重生。全部 canvas 圆环描边，透明度压得很低，
- * 不与主体内容抢注意力；reduced-motion 下完全不启动（静态底纹仍在）。
+ * 云气地纹的空心墨圈全部「放活」（宿主区块已撤静态圆环，
+ * 免得「死泡」和「活泡」混排）：自区块底部缓缓上浮，
+ * 带轻微横向摆动，大小 / 速度 / 相位随机，到顶前淡出并在底部重生。
+ * 全部 canvas 圆环描边，透明度压低，不与主体内容抢注意力；
+ * reduced-motion 下完全不启动。
  *
  * 自定义元素生命周期 + data-intersect 暂停：SPA 换页与离屏都安全。
  */
@@ -134,7 +135,7 @@ const { class: className } = Astro.props
       this.width = width
       this.height = height
 
-      const count = width < 720 ? 7 : 13
+      const count = width < 720 ? 12 : 22
       if (this.bubbles.length !== count) this.seed(count)
     }
 
@@ -153,14 +154,14 @@ const { class: className } = Astro.props
       return {
         bx: 0.03 + Math.random() * 0.94,
         y: this.height * (1 - yRatio) + (yRatio === 0 ? 14 : 0),
-        r: 2.6 + Math.random() * 5.4,
-        speed: 7 + Math.random() * 12,
-        swayAmp: 4 + Math.random() * 9,
-        swayFreq: 0.0004 + Math.random() * 0.0005,
+        r: 3 + Math.random() * 7.5,
+        speed: 24 + Math.random() * 36,
+        swayAmp: 5 + Math.random() * 10,
+        swayFreq: 0.0007 + Math.random() * 0.0008,
         phase: Math.random() * Math.PI * 2,
-        alpha: 0.05 + Math.random() * 0.06,
+        alpha: 0.09 + Math.random() * 0.09,
         accent,
-        lineWidth: 0.9 + Math.random() * 0.7,
+        lineWidth: 0.9 + Math.random() * 0.8,
       }
     }
 

@@ -497,7 +497,8 @@ import DateSeal from './DateSeal.astro'
 <style lang="scss">
   .s-hero {
     @include flex(column, stretch, stretch);
-    @include ink-cloud-ground;
+    /* 云气地纹的静态圆环已并入 InkBubbles 动画层——
+       避免「死泡」与「活泡」混排的违和感 */
 
     position: relative;
     z-index: 4;
