@@ -27,6 +27,11 @@ export function ReactionGame({
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
+  /** When the pad entered "waiting" — used to swallow double-click tails. */
+  const armedAtRef = useRef<number>(0);
+  /** When the result appeared — brief lockout so the reaction click's
+   *  accidental second click doesn't instantly restart the test. */
+  const resultAtRef = useRef<number>(0);
 
   const average = attempts.length
     ? Math.round(attempts.reduce((sum, a) => sum + a.time, 0) / attempts.length)
@@ -39,10 +44,18 @@ export function ReactionGame({
     setState("waiting");
     setTooEarly(false);
     setSubmitState("idle");
+    armedAtRef.current = performance.now();
     const delay = 2000 + Math.random() * 3000;
     timerRef.current = setTimeout(() => {
       setState("ready");
+      // 先立即起表兜底，再在两帧 rAF 后校准到绿色真正绘制出来的时刻，
+      // 避免把 React 渲染 + 浏览器绘制的耗时算进玩家的反应时间。
       startTimeRef.current = performance.now();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          startTimeRef.current = performance.now();
+        });
+      });
     }, delay);
   }, []);
 
@@ -53,6 +66,8 @@ export function ReactionGame({
     }
 
     if (state === "waiting") {
+      // 开始后 250ms 内的点击视为开始那一下的双击尾巴，不判失败。
+      if (performance.now() - armedAtRef.current < 250) return;
       if (timerRef.current) clearTimeout(timerRef.current);
       setTooEarly(true);
       setState("idle");
@@ -61,6 +76,7 @@ export function ReactionGame({
 
     if (state === "ready") {
       const time = Math.round(performance.now() - startTimeRef.current);
+      resultAtRef.current = performance.now();
       setResult(time);
       setAttempts((prev) => [...prev, { time, date: Date.now() }]);
       setState("result");
@@ -68,6 +84,8 @@ export function ReactionGame({
     }
 
     if (state === "result") {
+      // 结果刚出现时短暂锁定，防止反应那一下的连点直接把结果顶掉。
+      if (performance.now() - resultAtRef.current < 350) return;
       startTest();
     }
   }, [state, startTest]);
@@ -119,7 +137,11 @@ export function ReactionGame({
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleClick();
+          if (e.repeat) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
         }}
       >
         <div className="benchmark-target__inner">
