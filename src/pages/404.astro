@@ -51,15 +51,6 @@ const verseChars = Array.from(verse)
         </span>
       </p>
     </div>
-    <script is:inline>
-      ;(function () {
-        var code = document.querySelector('[data-lost-path]')
-        if (!code) return
-        code.textContent = location.pathname
-        var row = code.closest('.p-404__path')
-        if (row) row.hidden = false
-      })()
-    </script>
   </main>
 
   <PageFoot />
@@ -254,6 +245,17 @@ const verseChars = Array.from(verse)
   if (!customElements.get('lost-ink')) {
     customElements.define('lost-ink', LostInk)
   }
+
+  /** 迷路路径：模块脚本只执行一次，每次 astro:page-load 重写当前地址 */
+  function stampLostPath() {
+    const code = document.querySelector('[data-lost-path]')
+    if (!(code instanceof HTMLElement)) return
+    code.textContent = location.pathname
+    const row = code.closest('.p-404__path')
+    if (row instanceof HTMLElement) row.hidden = false
+  }
+
+  document.addEventListener('astro:page-load', stampLostPath)
 </script>
 
 <style lang="scss" is:global>
