@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
+import { prefersReducedMotion } from "../motion/core";
 import {
   AttachmentPicker,
   MediaEmbed,
@@ -43,6 +44,21 @@ type ConversationDto = PeerDto & {
 const LOGIN_PATH = "/account?returnTo=/messages";
 const MAX_LENGTH = 2000;
 
+/** Submit the surrounding form on Ctrl/Cmd + Enter. */
+function submitOnCtrlEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+}
+
+/** Rail preview line for a conversation's last message. */
+function previewText(message: MessageDto | null): string {
+  if (!message) return "";
+  if (message.content) return message.content;
+  return message.attachment ? "[附件]" : "";
+}
+
 function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -78,6 +94,17 @@ export default function MessagesConsole() {
   const [uploadBusy, setUploadBusy] = useState(false);
   const [attachment, setAttachment] = useState<AttachmentMeta | null>(null);
   const [notice, setNotice] = useState("");
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  // 新消息或切换会话后把时间线滚到底部（尊重减动效偏好）。
+  useEffect(() => {
+    const el = threadRef.current;
+    if (!el || threadState !== "ready" || thread.length === 0) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  }, [thread, threadState]);
 
   const loadRecipients = useCallback(async () => {
     try {
@@ -347,13 +374,22 @@ export default function MessagesConsole() {
                       className={`p-msg__conv${activeUserId === c.userId ? " is-active" : ""}${c.unreadCount > 0 ? " is-unread" : ""}`}
                       onClick={() => void openThread(c.userId)}
                     >
-                      <span className="p-msg__conv-name">{c.displayName}</span>
+                      <span className="p-msg__conv-name">
+                        {c.displayName}
+                        {c.unreadCount > 0 ? (
+                          <span
+                            className="p-msg__conv-unread"
+                            aria-label={`${c.unreadCount} 条未读`}
+                          >
+                            {c.unreadCount > 99 ? "99+" : c.unreadCount}
+                          </span>
+                        ) : null}
+                      </span>
                       <time className="p-msg__conv-time" dateTime={c.lastMessage?.createdAt}>
                         {c.lastMessage ? formatShortTime(c.lastMessage.createdAt) : ""}
                       </time>
                       <span className="p-msg__conv-preview">
-                        {c.unreadCount > 0 ? `[${c.unreadCount} 条未读] ` : ""}
-                        {c.lastMessage ? c.lastMessage.content : ""}
+                        {previewText(c.lastMessage)}
                       </span>
                     </button>
                   </li>
@@ -380,7 +416,7 @@ export default function MessagesConsole() {
                   )}
                 </header>
 
-                <div className="p-msg__thread">
+                <div className="p-msg__thread" ref={threadRef}>
                   {threadState === "loading" ? (
                     <p className="p-msg__state">正在加载对话…</p>
                   ) : threadState === "error" ? (
@@ -421,10 +457,18 @@ export default function MessagesConsole() {
                       name="content"
                       required={!attachment}
                       maxLength={MAX_LENGTH}
-                      placeholder="写一句想说的话…"
+                      placeholder="写一句想说的话…（Ctrl+Enter 发送）"
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
+                      onKeyDown={submitOnCtrlEnter}
                     />
+                    <span
+                      className="p-msg__count"
+                      hidden={draft.length < MAX_LENGTH - 400}
+                      aria-live="polite"
+                    >
+                      {draft.length} / {MAX_LENGTH}
+                    </span>
                   </label>
                   <AttachmentPicker
                     attachment={attachment}
