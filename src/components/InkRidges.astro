@@ -1,11 +1,10 @@
 ---
 /**
- * InkRidges — 水墨远山（首屏交互画布）
+ * InkRidges — 水墨远山 + 满幅丝缕
  *
- * 四叠山脊由自研值噪声（motion/field）铺出，远淡近浓、平铺积墨；
- * 指针如风拂过，脊线被轻轻托起又弹回（分层触感：只扰动指下那一叠），
- * 点按则激起一圈更大的山风。整山随时间极缓地漂移，如雾中换景。
- * 显影由 SHero 的 introend 信号触发：山自雾底缓缓升起。
+ * 上半幅是竖直的丝缕场（值噪声扭出的雨丝/等高线），下半幅是四叠远山。
+ * 指针如风拂过：丝缕横向让开、脊线被轻轻托起。点按激起一圈山风。
+ * 显影由 SHero 的 introend 触发：丝缕先落、山自雾底升起。
  */
 const { class: className } = Astro.props
 ---
@@ -26,25 +25,22 @@ const { class: className } = Astro.props
   import { createField, type Field2D } from '../motion/field'
 
   /**
-   * 山层配置（远 → 近）：
-   * base = 山脚基线（占高度比例）；amp = 峰高（占高度比例）
-   * scale = 横向大约铺几个山团；drift = 噪声漂移速度（越大漂越快）
-   * alpha = 墨色浓度；line = 脊线粗细
+   * 山层（远 → 近）
+   * base = 山脚基线；amp = 峰高；scale = 横向山团密度
    */
   const LAYERS = [
-    { base: 0.54, amp: 0.11, scale: 1.7, drift: 0.35, alpha: 0.13, line: 1 },
-    { base: 0.66, amp: 0.14, scale: 2.2, drift: 0.55, alpha: 0.2, line: 1.1 },
-    { base: 0.78, amp: 0.18, scale: 2.8, drift: 0.8, alpha: 0.3, line: 1.25 },
-    { base: 0.92, amp: 0.21, scale: 3.5, drift: 1.1, alpha: 0.44, line: 1.4 },
+    { base: 0.4, amp: 0.16, scale: 1.8, drift: 0.32, alpha: 0.14, line: 1 },
+    { base: 0.54, amp: 0.18, scale: 2.3, drift: 0.5, alpha: 0.22, line: 1.15 },
+    { base: 0.7, amp: 0.2, scale: 2.9, drift: 0.75, alpha: 0.32, line: 1.3 },
+    { base: 0.88, amp: 0.22, scale: 3.6, drift: 1.05, alpha: 0.46, line: 1.45 },
   ]
 
-  /** 采样列宽（px）：列越密越顺滑，也越费 */
   const STEP = 7
-  /** 弹簧回正刚度 / 阻尼 / 位移钳制 */
+  const THREAD_GAP = 16
+  const THREAD_STEP_Y = 12
   const SPRING = 0.045
   const DAMPING = 0.9
   const MAX_DISP = 46
-  /** 显影时长（ms） */
   const REVEAL_MS = 1500
 
   type RGB = { r: number; g: number; b: number }
@@ -69,14 +65,17 @@ const { class: className } = Astro.props
     width = 0
     height = 0
     cols = 0
+    threadCount = 0
+    threadRows = 0
 
-    /** 每层每列的脊线位移与速度（风拂弹簧） */
     disp: Float32Array[] = []
     vel: Float32Array[] = []
+    threadDisp = new Float32Array(0)
+    threadVel = new Float32Array(0)
 
     ink: RGB = { r: 28, g: 42, b: 34 }
     paper: RGB = { r: 244, g: 234, b: 216 }
-    /** 暗色主题下淡墨提一档浓度，否则夜里看不清山 */
+    accent: RGB = { r: 194, g: 58, b: 43 }
     boost = 1
 
     reduced = false
@@ -86,7 +85,6 @@ const { class: className } = Astro.props
     revealStart = 0
     lastTime = 0
 
-    /** 指针（元素局部坐标），px/py 为缓动后的游点位置 */
     pointer = { x: -9999, y: -9999, lx: -9999, ly: -9999, px: -9999, py: 0 }
 
     stops: Cleanup[] = []
@@ -106,6 +104,10 @@ const { class: className } = Astro.props
       this.sampleColors()
       this.resize()
 
+      const ro = new ResizeObserver(() => this.resize())
+      ro.observe(this)
+      this.stops.push(() => ro.disconnect())
+
       this.stops.push(onResize(() => this.resize()))
       this.stops.push(
         onThemeFlip(() => {
@@ -124,8 +126,15 @@ const { class: className } = Astro.props
       })
       this.addEventListener('introend', this.onIntroEnd, { once: true })
 
-      /* introend 迟迟不来（开场被跳过/中断）也要显影 */
       this.revealFallback = window.setTimeout(() => this.beginReveal(), 4000)
+
+      try {
+        if (sessionStorage.getItem('site-intro-seen') === '1') {
+          this.beginReveal()
+        }
+      } catch {
+        /* ignore */
+      }
 
       this.paint(performance.now())
     }
@@ -144,11 +153,8 @@ const { class: className } = Astro.props
     onIntersect = (e: CustomEvent) => {
       this.paused = !e.detail?.isIntersecting
 
-      if (this.paused) {
-        this.suspend()
-      } else {
-        this.resume()
-      }
+      if (this.paused) this.suspend()
+      else this.resume()
     }
 
     onTap = (e: PointerEvent) => {
@@ -156,7 +162,6 @@ const { class: className } = Astro.props
       this.poke(e.clientX - rect.left, e.clientY - rect.top, 8.5, 170)
     }
 
-    /** 山从雾底升起 */
     beginReveal() {
       if (this.revealing || this.reveal >= 1) return
 
@@ -199,9 +204,13 @@ const { class: className } = Astro.props
       this.width = width
       this.height = height
       this.cols = Math.ceil(width / STEP) + 2
+      this.threadCount = Math.ceil(width / THREAD_GAP) + 2
+      this.threadRows = Math.ceil(height / THREAD_STEP_Y) + 2
 
       this.disp = LAYERS.map(() => new Float32Array(this.cols))
       this.vel = LAYERS.map(() => new Float32Array(this.cols))
+      this.threadDisp = new Float32Array(this.threadCount)
+      this.threadVel = new Float32Array(this.threadCount)
 
       if (!this.stopFrame) this.paint(performance.now())
     }
@@ -212,6 +221,8 @@ const { class: className } = Astro.props
         hexToRgb(css.getPropertyValue('--color-secondary')) ?? this.ink
       this.paper =
         hexToRgb(css.getPropertyValue('--color-primary')) ?? this.paper
+      this.accent =
+        hexToRgb(css.getPropertyValue('--color-accent')) ?? this.accent
       this.boost = document.documentElement.classList.contains(
         'theme-contrasted'
       )
@@ -219,14 +230,11 @@ const { class: className } = Astro.props
         : 1
     }
 
-    /** 某层脊线的静态高度（未加风拂位移） */
     ridgeY(layerIndex: number, x: number, time: number): number {
       const layer = LAYERS[layerIndex]
       const nx =
         (x / Math.max(this.width, 1)) * layer.scale +
         time * layer.drift * 0.00002
-
-      /* 第二维取每层各自的常数：同一片场里切出四条互不相同的山线 */
       const v = this.field.fbm(nx, layerIndex * 7.3 + 2.17, 3)
 
       return (
@@ -235,7 +243,14 @@ const { class: className } = Astro.props
       )
     }
 
-    /** 全局指针驱动的风拂（进入元素范围附近才生效） */
+    threadX(i: number, y: number, time: number): number {
+      const nx = i * 0.31 + time * 0.000038
+      const ny = y * 0.0031 + i * 0.08
+      const n = this.field.fbm(nx, ny, 3)
+
+      return i * THREAD_GAP - THREAD_GAP + n * 28 + this.threadDisp[i]
+    }
+
     stir(clientX: number, clientY: number) {
       const rect = this.getBoundingClientRect()
       const x = clientX - rect.left
@@ -258,13 +273,9 @@ const { class: className } = Astro.props
       const speed = Math.min(Math.hypot(dx, dy), 42)
       if (speed < 0.6) return
 
-      this.poke(x, y, speed * 0.14, 100)
+      this.poke(x, y, speed * 0.14, 110)
     }
 
-    /**
-     * 向脊线施力：横向高斯衰减；纵向只扰动脊线贴近指针的那几叠，
-     * 方向永远推离指针 —— 风从指下过，山向两旁让。
-     */
     poke(x: number, y: number, force: number, radius: number) {
       if (this.reduced || !this.cols) return
 
@@ -289,6 +300,19 @@ const { class: className } = Astro.props
           vel[col] += dir * force * gx * gy
         }
       }
+
+      const tFrom = Math.max(0, Math.floor((x - radius) / THREAD_GAP))
+      const tTo = Math.min(
+        this.threadCount - 1,
+        Math.ceil((x + radius) / THREAD_GAP)
+      )
+
+      for (let i = tFrom; i <= tTo; i++) {
+        const cx = i * THREAD_GAP
+        const gx = Math.exp(-((cx - x) ** 2) / (2 * sigmaX * sigmaX))
+        const dir = cx < x ? -1 : 1
+        this.threadVel[i] += dir * force * 0.7 * gx
+      }
     }
 
     paint(time: number) {
@@ -297,7 +321,6 @@ const { class: className } = Astro.props
 
       this.lastTime = time
 
-      /* 显影推进 */
       if (this.revealing && this.reveal < 1) {
         this.reveal = Math.min((time - this.revealStart) / REVEAL_MS, 1)
       }
@@ -307,13 +330,59 @@ const { class: className } = Astro.props
       ctx.clearRect(0, 0, width, height)
 
       const { r, g, b } = this.ink
+      const accent = this.accent
+
+      if (!this.reduced) {
+        for (let i = 0; i < this.threadCount; i++) {
+          this.threadVel[i] += -SPRING * this.threadDisp[i]
+          this.threadVel[i] *= DAMPING
+          this.threadDisp[i] += this.threadVel[i]
+          if (this.threadDisp[i] > MAX_DISP) this.threadDisp[i] = MAX_DISP
+          else if (this.threadDisp[i] < -MAX_DISP) this.threadDisp[i] = -MAX_DISP
+        }
+      }
+
+      const px = this.pointer.px > -9000 ? this.pointer.px : -9999
+      const py = this.pointer.py
+      const highlightR = 130
+
+      for (let i = 0; i < this.threadCount; i++) {
+        ctx.beginPath()
+
+        let near = 0
+        for (let row = 0; row < this.threadRows; row++) {
+          const y = Math.min(row * THREAD_STEP_Y, height)
+          const x = this.threadX(i, y, time)
+
+          if (row === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+
+          if (px > -9000) {
+            const d = Math.hypot(x - px, y - py)
+            if (d < highlightR) near = Math.max(near, 1 - d / highlightR)
+          }
+        }
+
+        const moss = i % 3 === 0
+        const alpha = (moss ? 0.2 : 0.32) * this.boost * eased
+        const lit = near > 0.12
+
+        if (lit) {
+          ctx.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.45 + near * 0.4})`
+          ctx.lineWidth = moss ? 2.2 : 1.6
+        } else {
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+          ctx.lineWidth = moss ? 2.4 : 1.15
+        }
+
+        ctx.stroke()
+      }
 
       for (let li = 0; li < LAYERS.length; li++) {
         const layer = LAYERS[li]
         const disp = this.disp[li]
         const vel = this.vel[li]
 
-        /* 弹簧回正 */
         if (!this.reduced) {
           for (let col = 0; col < this.cols; col++) {
             vel[col] += -SPRING * disp[col]
@@ -325,7 +394,6 @@ const { class: className } = Astro.props
           }
         }
 
-        /* 铺山：脊线折线 + 直落画底的积墨填充 */
         ctx.beginPath()
 
         for (let col = 0; col < this.cols; col++) {
@@ -344,7 +412,6 @@ const { class: className } = Astro.props
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fill * 0.5})`
         ctx.fill()
 
-        /* 描脊：比填充浓一档 */
         ctx.beginPath()
 
         for (let col = 0; col < this.cols; col++) {
@@ -360,15 +427,16 @@ const { class: className } = Astro.props
         ctx.stroke()
       }
 
-      /* 雾脚：画底一带渐入纸色，山脚融进雾里 */
       const mist = ctx.createLinearGradient(0, height * 0.72, 0, height)
       const paper = this.paper
       mist.addColorStop(0, `rgba(${paper.r}, ${paper.g}, ${paper.b}, 0)`)
-      mist.addColorStop(1, `rgba(${paper.r}, ${paper.g}, ${paper.b}, ${0.55 * eased})`)
+      mist.addColorStop(
+        1,
+        `rgba(${paper.r}, ${paper.g}, ${paper.b}, ${0.42 * eased})`
+      )
       ctx.fillStyle = mist
       ctx.fillRect(0, height * 0.72, width, height * 0.28)
 
-      /* 朱砂游点缓动跟随 */
       const p = this.pointer
       if (p.x > -9000) {
         if (p.px < -9000) {
@@ -398,17 +466,22 @@ const { class: className } = Astro.props
     position: relative;
 
     display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
 
     overflow: hidden;
 
     canvas {
+      position: absolute;
+      inset: 0;
+
       display: block;
 
       width: 100%;
       height: 100%;
     }
 
-    /* 朱砂游点：一粒印泥随指而行 */
     &::before {
       position: absolute;
       top: 0;

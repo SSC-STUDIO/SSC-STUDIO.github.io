@@ -64,12 +64,13 @@ import SealMark from './SealMark.astro'
 
       background: radial-gradient(
         closest-side,
-        color-mix(in srgb, #{color(secondary)} 92%, transparent) 0%,
-        color-mix(in srgb, #{color(secondary)} 86%, transparent) 56%,
-        color-mix(in srgb, #{color(secondary)} 38%, transparent) 74%,
-        transparent 92%
+        color-mix(in srgb, #{color(secondary)} 48%, transparent) 0%,
+        color-mix(in srgb, #{color(secondary)} 28%, transparent) 42%,
+        color-mix(in srgb, #{color(indigo)} 18%, transparent) 68%,
+        transparent 100%
       );
       border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%;
+      mix-blend-mode: multiply;
 
       /* 居中用 translate 属性，transform 留给 WAAPI 的缩放 */
       translate: -50% -50%;

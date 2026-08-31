@@ -452,6 +452,8 @@ import DateSeal from './DateSeal.astro'
     position: relative;
     z-index: 4;
 
+    /* 锁死首屏高度：画布不得把大标题挤出视口 */
+    height: calc(100svh - 7rem - 1px);
     min-height: calc(100svh - 7rem - 1px);
 
     padding-top: env(safe-area-inset-top, 0);
@@ -460,10 +462,12 @@ import DateSeal from './DateSeal.astro'
     overflow: hidden;
 
     @include mq(phone) {
+      height: calc(100svh - 4.5rem - 1px);
       min-height: calc(100svh - 4.5rem - 1px);
     }
 
     @include mq(sm-height) {
+      height: calc(100svh - 4.5rem - 1px);
       min-height: calc(100svh - 4.5rem - 1px);
       align-items: center;
     }
@@ -516,10 +520,9 @@ import DateSeal from './DateSeal.astro'
       z-index: 2;
 
       width: 100%;
-      height: 100%;
+      min-height: 0;
 
-      flex-grow: 1;
-      flex-shrink: 1;
+      flex: 1 1 0%;
     }
 
     .s__mist {
@@ -604,6 +607,8 @@ import DateSeal from './DateSeal.astro'
     .s__content {
       position: relative;
       z-index: 3;
+
+      flex-shrink: 0;
 
       overflow: hidden;
       transform-origin: 50% 100%;

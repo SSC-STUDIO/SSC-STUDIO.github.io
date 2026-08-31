@@ -101,7 +101,7 @@ export async function playInkIntro(): Promise<void> {
           { opacity: 0, transform: 'scale(0.18) rotate(-10deg)' },
           { opacity: 0.92, transform: 'scale(1) rotate(0deg)' },
         ],
-        { duration: 560, easing: EASE_BLOT, fill: 'forwards' }
+        { duration: 420, easing: EASE_BLOT, fill: 'forwards' }
       )
     )
 
@@ -113,7 +113,7 @@ export async function playInkIntro(): Promise<void> {
           { opacity: 0, transform: 'scale(1.32) rotate(4deg)' },
           { opacity: 1, transform: 'scale(1) rotate(-1.2deg)' },
         ],
-        { duration: 420, delay: 260, easing: EASE_STAMP, fill: 'forwards' }
+        { duration: 360, delay: 160, easing: EASE_STAMP, fill: 'forwards' }
       )
     )
 
@@ -124,14 +124,14 @@ export async function playInkIntro(): Promise<void> {
           { opacity: 0, transform: 'translateY(0.4rem)' },
           { opacity: 1, transform: 'translateY(0)' },
         ],
-        { duration: 380, delay: 480, easing: EASE_BLOT, fill: 'forwards' }
+        { duration: 320, delay: 300, easing: EASE_BLOT, fill: 'forwards' }
       )
     )
 
     await Promise.all(acts)
 
     /* 幕间气口 */
-    await new Promise((resolve) => setTimeout(resolve, 320))
+    await new Promise((resolve) => setTimeout(resolve, 180))
 
     /* 第三幕：卷帘上收。纸面自下而上卷走，轴杆随卷边上行；
        正文在纸后同步显影 */
@@ -160,7 +160,7 @@ export async function playInkIntro(): Promise<void> {
       })
     })
 
-    const ROLL_MS = 680
+    const ROLL_MS = 520
 
     await Promise.all([
       play(
