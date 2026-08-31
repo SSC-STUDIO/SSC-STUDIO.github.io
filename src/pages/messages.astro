@@ -12,14 +12,19 @@ import MessagesConsole from '@/islands/MessagesConsole'
   description="私信：只对登录账号开放，和班里有账号的同学互相写留言。"
   robots="noindex, nofollow"
 >
-  <PageHero
-    kicker="MESSAGES · 私信"
-    title="消息"
-    summary="给班里有账号的同学写私信——对话只对你们双方可见。"
-  />
+  <div class="p-msg-open">
+    <span class="p-msg-open__rod p-msg-open__rod--left" aria-hidden="true"></span>
+    <span class="p-msg-open__rod p-msg-open__rod--right" aria-hidden="true"></span>
+    <PageHero
+      kicker="MESSAGES · 私信"
+      title="消息"
+      summary="给班里有账号的同学写私信——对话只对你们双方可见。"
+    />
+  </div>
 
-  <main class="p-page p-page--wide">
+  <main class="p-page p-page--wide p-msg-page">
     <PageAura />
+    <span class="p-msg-page__glyph" aria-hidden="true">信</span>
     <PageCard kicker="private" title="Inbox">
       <MessagesConsole client:load />
     </PageCard>
@@ -29,6 +34,78 @@ import MessagesConsole from '@/islands/MessagesConsole'
 </BaseLayout>
 
 <style lang="scss" is:global>
+  /* ── 私信卷首 ──
+     轴杆只作装饰，绝不给卷首加 overflow / clip，
+     远山已贴右边，再裁就会露出直缝。 */
+
+  .p-msg-open {
+    position: relative;
+  }
+
+  .p-msg-open__rod {
+    position: absolute;
+    top: 8.2rem;
+    z-index: 3;
+
+    width: 0.42rem;
+    height: 3.4rem;
+
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #{color(accent-strong)} 72%, transparent),
+      color-mix(in srgb, #{color(secondary)} 38%, transparent)
+    );
+    box-shadow: 0 0 0 1px color-mix(in srgb, #{color(secondary)} 18%, transparent);
+
+    pointer-events: none;
+
+    animation: p-msg-rod-in 640ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+
+    &--left {
+      left: clamp(0.4rem, 2vw, 1.1rem);
+      animation-delay: 80ms;
+    }
+
+    &--right {
+      right: clamp(0.4rem, 2vw, 1.1rem);
+      animation-delay: 160ms;
+    }
+  }
+
+  @keyframes p-msg-rod-in {
+    from {
+      opacity: 0;
+      transform: scaleY(0.4);
+    }
+  }
+
+  .p-msg-page__glyph {
+    position: absolute;
+    top: 0.35rem;
+    right: clamp(1rem, 4vw, 2.5rem);
+    z-index: -1;
+
+    color: color(secondary);
+    font: 700 clamp(5rem, 16vw, 9rem) / 1 font-family(bigger);
+
+    opacity: 0.05;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* 信匣如手卷自中缝展开——只动卡片，不动卷首远山 */
+  .p-msg-page > .p-card {
+    animation: p-msg-unfurl 720ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes p-msg-unfurl {
+    from {
+      opacity: 0;
+      transform: scaleX(0.96);
+    }
+  }
+
   .p-msg {
     --msg-rail: 15rem;
 
@@ -549,6 +626,11 @@ import MessagesConsole from '@/islands/MessagesConsole'
     animation: p-msg-fade-in 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
+  /* 右栏如信纸揭开，从天头落下 */
+  .p-msg__pane {
+    animation: p-msg-fade-in 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms backwards;
+  }
+
   /* 发送键：进行中一道墨色自左洗过 */
   .p-msg__composer button[type='submit'] {
     position: relative;
@@ -612,6 +694,8 @@ import MessagesConsole from '@/islands/MessagesConsole'
       transition: none;
     }
 
+    .p-msg-open__rod,
+    .p-msg-page > .p-card,
     .p-msg .p-lock__badge,
     .p-msg .p-lock__message,
     .p-msg .p-lock .p-card__actions,
@@ -621,6 +705,7 @@ import MessagesConsole from '@/islands/MessagesConsole'
     .p-msg__recipient,
     .p-msg__conv-unread,
     .p-msg__pane-head,
+    .p-msg__pane,
     .p-msg__skeleton-row,
     .p-msg__skeleton-bar,
     .p-msg__composer button[type='submit']:disabled::after {
