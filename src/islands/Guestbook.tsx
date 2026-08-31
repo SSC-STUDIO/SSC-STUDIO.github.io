@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
+import {
+  AttachmentPicker,
+  MediaEmbed,
+  uploadAttachment,
+  type AttachmentMeta,
+} from "./media";
 
 /**
  * Guestbook island — public comment feed with login-gated posting,
@@ -54,6 +60,14 @@ const TARGET_ID = "guestbook";
 const LIST_URL = `/api/comments?targetKind=${TARGET_KIND}&targetId=${TARGET_ID}`;
 const MAX_LENGTH = 2000;
 const LOGIN_PATH = "/account";
+
+/** Submit the surrounding form on Ctrl/Cmd + Enter. */
+function submitOnCtrlEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  }
+}
 
 function formatTime(value: string): string {
   const date = new Date(value);
@@ -144,6 +158,7 @@ function CommentItem({
         </time>
       </div>
       <p className="p-guestbook__content">{comment.content}</p>
+      <MediaEmbed attachment={comment.attachment} />
       <div className="p-guestbook__actions">
         <LikeButton comment={comment} busy={likeBusy} onLike={onLike} />
         <button
@@ -203,6 +218,7 @@ function CommentItem({
                   onChange={(event) =>
                     onReplyDraftChange(comment.id, event.target.value)
                   }
+                  onKeyDown={submitOnCtrlEnter}
                 />
               </label>
               <button type="submit" disabled={replyBusy}>
@@ -545,10 +561,18 @@ export default function Guestbook() {
               name="content"
               required={!attachment}
               maxLength={MAX_LENGTH}
-              placeholder="问题、想法、路过的心情，都欢迎。"
+              placeholder="问题、想法、路过的心情，都欢迎。（Ctrl+Enter 快速发布）"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={submitOnCtrlEnter}
             />
+            <span
+              className="p-guestbook__count"
+              hidden={draft.length < MAX_LENGTH - 400}
+              aria-live="polite"
+            >
+              {draft.length} / {MAX_LENGTH}
+            </span>
           </label>
 
           <AttachmentPicker

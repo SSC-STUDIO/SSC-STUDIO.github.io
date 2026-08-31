@@ -24,3 +24,23 @@ import Guestbook from '@/islands/Guestbook'
 
   <PageFoot current="/guestbook" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  .p-guestbook {
+    /* 接近字数上限时出现的计数器（岛内 hidden 控制显隐） */
+    &__count {
+      align-self: flex-end;
+      margin-top: 0.35rem;
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 700 10px / 1 font-family(fraktion);
+      letter-spacing: 0.12em;
+    }
+
+    &__action:focus-visible,
+    &__like:focus-visible,
+    &__retry:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 2px;
+    }
+  }
+</style>
