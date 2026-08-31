@@ -21,3 +21,107 @@ import ClassGallery from '@/islands/ClassGallery'
 
   <PageFoot current="/class" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 画廊打磨:缩略图骨架占位与灯箱加载态(仅本页) ── */
+
+  /* 未加载完成的格子:宣纸底上浮一层墨色轻纱,缓慢呼吸 */
+  .p-class-gallery__item::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+
+    background: color-mix(in srgb, #{color(secondary)} 10%, transparent);
+    content: '';
+    opacity: 1;
+    pointer-events: none;
+
+    animation: class-gallery-skeleton 1.8s ease-in-out infinite;
+    transition: opacity 0.5s ease(out-quint);
+  }
+
+  .p-class-gallery__item.is-loaded::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  /* 缩略图本体:解码完成后淡入(保留共享层的 hover 缩放) */
+  .p-class-gallery__thumb {
+    opacity: 0;
+    transition:
+      opacity 0.45s ease(out-quint),
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-class-gallery__item.is-loaded .p-class-gallery__thumb {
+    opacity: 1;
+  }
+
+  @keyframes class-gallery-skeleton {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  /* 灯箱:大图加载期间墨圈旋转,媒体就绪后淡入 */
+  .p-class-lightbox__figure {
+    position: relative;
+  }
+
+  .p-class-lightbox__figure.is-loading {
+    min-height: min(48vh, 24rem);
+  }
+
+  .p-class-lightbox__figure.is-loading::before {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: -1.125rem 0 0 -1.125rem;
+
+    border: 2px solid color-mix(in srgb, #{color(secondary)} 25%, transparent);
+    border-top-color: color(accent);
+    border-radius: 50%;
+    content: '';
+
+    animation: class-lightbox-spin 0.8s linear infinite;
+  }
+
+  .p-class-lightbox__media {
+    opacity: 1;
+    transition: opacity 0.35s ease(out-quint);
+  }
+
+  .p-class-lightbox__figure.is-loading .p-class-lightbox__media {
+    opacity: 0;
+  }
+
+  @keyframes class-lightbox-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .p-class-gallery__item::after {
+      animation: none;
+    }
+
+    .p-class-gallery__thumb,
+    .p-class-lightbox__media {
+      transition: none;
+      opacity: 1;
+    }
+
+    .p-class-lightbox__figure.is-loading::before {
+      animation: none;
+    }
+  }
+</style>

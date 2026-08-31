@@ -14,8 +14,11 @@ import { ClassLoginLock } from "./ClassSpace";
  *    notice banner — logged-out visitors also get the p-lock login card.
  *
  * Grid: native lazy loading, uniform aspect ratio, cover crop, video
- * badge. Lightbox: fullscreen overlay, prev/next, ESC / backdrop click to
- * close, arrow-key navigation, focus restore on close.
+ * badge, ink-wash skeleton that fades out once each thumb decodes.
+ * Lightbox: fullscreen overlay, prev/next, ESC / backdrop click to close,
+ * arrow keys + Home/End navigation, Tab focus trap, body scroll lock,
+ * spinner while the large media loads, adjacent images preloaded, focus
+ * restore on close.
  */
 
 type MediaKind = "image" | "video";
@@ -73,13 +76,76 @@ const STATIC_ITEMS: GalleryItem[] = STATIC_MEDIA_FILES.map((fileName) => {
   };
 });
 
+/**
+ * Grid thumbnail with its own loaded flag so the ink-wash skeleton on the
+ * tile can fade away per item. The callback ref covers cached images that
+ * complete before React attaches the load listener.
+ */
+function GalleryThumb({
+  item,
+  index,
+  onOpen,
+}: {
+  item: GalleryItem;
+  index: number;
+  onOpen: (index: number) => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className={`p-class-gallery__item${loaded ? " is-loaded" : ""}`}
+      aria-label={`查看 ${item.title}`}
+      onClick={() => onOpen(index)}
+    >
+      {item.kind === "video" ? (
+        <video
+          className="p-class-gallery__thumb"
+          muted
+          playsInline
+          preload="metadata"
+          src={item.url}
+          onLoadedData={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+        />
+      ) : (
+        <img
+          className="p-class-gallery__thumb"
+          src={item.url}
+          alt={item.title}
+          loading="lazy"
+          decoding="async"
+          ref={(element) => {
+            if (element?.complete && element.naturalWidth > 0) {
+              setLoaded(true);
+            }
+          }}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+        />
+      )}
+      <span className="p-class-gallery__no" aria-hidden="true">
+        {String(index + 1).padStart(3, "0")}
+      </span>
+      {item.kind === "video" ? (
+        <span className="p-class-gallery__badge">▶ 视频</span>
+      ) : null}
+    </button>
+  );
+}
+
 export default function ClassGallery() {
   const [load, setLoad] = useState<LoadState>("loading");
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [source, setSource] = useState<Source>("api");
   const [unauthorized, setUnauthorized] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
+  // URL of the lightbox media that finished loading — comparing against
+  // the current item avoids reset races with cached images.
+  const [readyUrl, setReadyUrl] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
 
   const loadMedia = useCallback(async () => {
@@ -153,8 +219,12 @@ export default function ClassGallery() {
     [items.length],
   );
 
+  const lightboxOpen = selected !== null;
+
+  // Keyboard: ESC close, ←/→ step, Home/End jump, Tab cycles inside the
+  // dialog so focus never escapes to the page behind the overlay.
   useEffect(() => {
-    if (selected === null) return;
+    if (!lightboxOpen) return;
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -166,13 +236,66 @@ export default function ClassGallery() {
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         step(1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        setSelected((current) => (current === null ? current : 0));
+      } else if (event.key === "End") {
+        event.preventDefault();
+        setSelected((current) =>
+          current === null ? current : Math.max(0, items.length - 1),
+        );
+      } else if (event.key === "Tab") {
+        const root = dialogRef.current;
+        if (!root) return;
+        const focusables = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], video[controls]',
+          ),
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey) {
+          if (active === first || !root.contains(active)) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (active === last || !root.contains(active)) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selected, close, step]);
+  }, [lightboxOpen, close, step, items.length]);
+
+  // Lock page scroll while the overlay is up.
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [lightboxOpen]);
+
+  // Warm the browser cache for the two neighbours so stepping feels instant.
+  useEffect(() => {
+    if (selected === null || items.length < 2) return;
+    for (const direction of [-1, 1]) {
+      const neighbour =
+        items[(selected + direction + items.length) % items.length];
+      if (neighbour?.kind === "image") {
+        const image = new Image();
+        image.src = neighbour.url;
+      }
+    }
+  }, [selected, items]);
 
   const current = selected !== null ? items[selected] : null;
+  const mediaReady = current !== null && readyUrl === current.url;
 
   return (
     <div className="p-class-gallery">
@@ -207,36 +330,7 @@ export default function ClassGallery() {
           <ul className="p-class-gallery__grid">
             {items.map((item, index) => (
               <li key={item.fileName}>
-                <button
-                  type="button"
-                  className="p-class-gallery__item"
-                  aria-label={`查看 ${item.title}`}
-                  onClick={() => openAt(index)}
-                >
-                  {item.kind === "video" ? (
-                    <video
-                      className="p-class-gallery__thumb"
-                      muted
-                      playsInline
-                      preload="metadata"
-                      src={item.url}
-                    />
-                  ) : (
-                    <img
-                      className="p-class-gallery__thumb"
-                      src={item.url}
-                      alt={item.title}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  )}
-                  <span className="p-class-gallery__no" aria-hidden="true">
-                    {String(index + 1).padStart(3, "0")}
-                  </span>
-                  {item.kind === "video" ? (
-                    <span className="p-class-gallery__badge">▶ 视频</span>
-                  ) : null}
-                </button>
+                <GalleryThumb item={item} index={index} onOpen={openAt} />
               </li>
             ))}
           </ul>
@@ -249,6 +343,7 @@ export default function ClassGallery() {
           role="dialog"
           aria-modal="true"
           aria-label={current.title}
+          ref={dialogRef}
         >
           <button
             type="button"
@@ -258,7 +353,10 @@ export default function ClassGallery() {
           />
           <div className="p-class-lightbox__panel">
             <div className="p-class-lightbox__bar">
-              <span className="p-class-lightbox__counter">
+              <span
+                className="p-class-lightbox__counter"
+                aria-live="polite"
+              >
                 {(selected ?? 0) + 1} / {items.length}
               </span>
               <button
@@ -270,19 +368,37 @@ export default function ClassGallery() {
                 关闭 ✕
               </button>
             </div>
-            <figure className="p-class-lightbox__figure">
+            <figure
+              className={`p-class-lightbox__figure${
+                mediaReady ? "" : " is-loading"
+              }`}
+            >
               {current.kind === "video" ? (
+                // key forces a remount per file so the previous clip stops
+                // playing the moment the visitor steps to the next item.
                 <video
+                  key={current.fileName}
                   className="p-class-lightbox__media"
                   controls
                   playsInline
+                  preload="metadata"
                   src={current.url}
+                  onLoadedData={() => setReadyUrl(current.url)}
+                  onError={() => setReadyUrl(current.url)}
                 />
               ) : (
                 <img
+                  key={current.fileName}
                   className="p-class-lightbox__media"
                   src={current.url}
                   alt={current.title}
+                  ref={(element) => {
+                    if (element?.complete && element.naturalWidth > 0) {
+                      setReadyUrl(current.url);
+                    }
+                  }}
+                  onLoad={() => setReadyUrl(current.url)}
+                  onError={() => setReadyUrl(current.url)}
                 />
               )}
               <figcaption className="p-class-lightbox__caption">
