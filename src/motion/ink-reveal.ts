@@ -24,6 +24,10 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
     rootMargin = '0px 0px -6% 0px',
   } = options
 
+  // 宣告显影管线已接管：撤掉 CSS 侧的 inkFallback 兜底动画。
+  // 若模块脚本在此之前崩溃，该类不会被加上，内容 3 秒后自动淡入。
+  document.documentElement.classList.add('is-ink-ready')
+
   const elements = Array.from(
     document.querySelectorAll<HTMLElement>(selector)
   )

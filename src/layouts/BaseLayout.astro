@@ -79,6 +79,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         function apply(root) {
           if (!root) return
+          // 尽早标记 JS 可用：显影类隐藏规则只挂在 html.js 下，
+          // 无 JS 环境（爬虫/禁 JS/脚本被拦）内容保持直接可见
+          root.classList.add('js')
           var stored = null
           try {
             stored = localStorage.getItem(storageKey)

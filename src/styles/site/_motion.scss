@@ -10,20 +10,42 @@
 /* ── 洇墨显影 ──
    内容自中心以圆形墨迹向外化开，边缘带极轻位移。
    动画结束后由 JS 打上 .is-inked-done 撤去裁切，
-   否则卡片悬停的投影会被 clip-path 切掉。 */
-[data-reveal] {
+   否则卡片悬停的投影会被 clip-path 切掉。
+
+   两条铁律：
+   1. 初始隐藏只用 opacity，绝不能用 clip-path——Chromium 计算
+      IntersectionObserver 交叉时会把目标自身的 clip-path 计入，
+      circle(0%) 令元素永远测不到入屏，显影永不触发（整页白屏）。
+      圆形洇开完全交给 inkSpread 动画。
+   2. 隐藏规则只在 html.js（head 内联脚本尽早打上）下生效：
+      无 JS 环境内容直接可见；JS 在但显影管线没接管
+      （模块脚本崩溃，is-ink-ready 缺席）时由 inkFallback 兜底显影。 */
+html.js [data-reveal] {
   opacity: 0;
-  clip-path: circle(0% at 50% 50%);
+}
 
-  &.is-inked {
-    animation: inkSpread 880ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: var(--reveal-delay, 0ms);
+/* 脚本崩溃安全网：管线未宣告接管则 3 秒后自动淡入 */
+html.js:not(.is-ink-ready) [data-reveal] {
+  animation: inkFallback 650ms ease 3s both;
+}
+
+html.js [data-reveal].is-inked {
+  animation: inkSpread 880ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+html.js [data-reveal].is-inked-done {
+  opacity: 1;
+  clip-path: none;
+  animation: none;
+}
+
+@keyframes inkFallback {
+  from {
+    opacity: 0;
   }
-
-  &.is-inked-done {
+  to {
     opacity: 1;
-    clip-path: none;
-    animation: none;
   }
 }
 
@@ -115,10 +137,10 @@
 
 /* ── 减弱动效：全部降级为直接可见 ── */
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] {
+  html.js [data-reveal] {
     opacity: 1;
     clip-path: none;
-    animation: none;
+    animation: none !important;
   }
 
   .seal-ripple {

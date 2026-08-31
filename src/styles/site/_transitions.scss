@@ -178,17 +178,8 @@ html.theme-animating :where(
   }
 }
 
-/* data-reveal 升级：上移淡入（覆盖 _shell.scss 原规则）
-   注：不再对全部显现元素做 blur 过渡（长页重绘开销高），
-   模糊显影只保留给每页一次性的 .p-hero__title */
-[data-reveal] {
-  transform: translateY(0.9rem);
-
-  transition:
-    opacity 0.65s ease,
-    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-  transition-delay: var(--reveal-delay, 0ms);
-}
+/* [data-reveal] 的洇墨显影规则统一收在 site/_motion.scss，
+   这里残留的 translateY + transition 会在动画结束后留下 0.9rem 位移，故删除 */
 
 /* p-hero 标题：单元素一次性模糊显影（洇墨感） */
 @keyframes ph-ink-blur {
