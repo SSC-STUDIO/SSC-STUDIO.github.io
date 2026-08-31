@@ -1,9 +1,10 @@
 ---
 /**
- * InkBamboo — 竹影（竖竿分节 + 侧枝点叶）
- * 「宁可食无肉，不可居无竹」意象：竹影微摇，风过之声可闻。
- * 点叶笔法：短弧线三两成组。currentColor 取色，低透明度装饰。
+ * InkBamboo — 竹影
+ * 竿有节、有圆柱浓淡；叶分正反；侧枝由粗入细。不用均匀细线描边。
  */
+import { uid } from '../utils/uid'
+
 type Props = {
   size?: number
   flip?: boolean
@@ -11,43 +12,129 @@ type Props = {
 }
 
 const { size = 200, flip = false, class: className } = Astro.props
+const stalkId = uid('ink-bamboo-stalk')
 ---
 
 <div
   class:list={['ink-bamboo', flip && 'ink-bamboo--flip', className]}
-  style={`width:${size * 0.5}px;height:${size}px`}
+  style={`width:${size * 0.52}px;height:${size}px`}
   aria-hidden="true"
 >
-  <svg viewBox="0 0 100 200">
-    {/* 主竿：三节 */}
+  <svg viewBox="0 0 112 200">
+    <defs>
+      <linearGradient id={stalkId} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="currentColor" stop-opacity="0.78"></stop>
+        <stop offset="30%" stop-color="currentColor" stop-opacity="0.4"></stop>
+        <stop offset="64%" stop-color="currentColor" stop-opacity="0.16"></stop>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0.52"></stop>
+      </linearGradient>
+    </defs>
+
+    {/* 远竿：更细、更淡，垫一层纵深 */}
+    <path
+      class="ink-bamboo__far"
+      d="M28 176 C27.2 150 27.4 128 28.2 108 C28.6 96 27.8 84 29 72 L32.2 72 C31.2 84 31.8 96 31.4 108 C30.6 128 30.6 150 31.4 176 C30.8 178 28.6 178 28 176 Z"
+    ></path>
+    <path class="ink-bamboo__far-node" d="M26 130 Q30 127.5 34 130.4"></path>
+    <path class="ink-bamboo__far-node" d="M26.4 94 Q30 91.6 33.6 94.2"></path>
+
+    {/* 主竿三节：下粗上细 */}
     <path
       class="ink-bamboo__stalk"
-      d="M50 200 L50 138 M50 130 L50 72 M50 64 L50 8"
-      fill="none"
+      fill={`url(#${stalkId})`}
+      d="M43.6 199 C42 176 42.4 154 43.8 140 C44.2 137 45.6 135.4 50.2 134.8 C54.8 135.4 56.2 137 56.6 140 C58 154 58.4 176 56.8 199 C55.6 201.2 44.8 201.2 43.6 199 Z"
     ></path>
-    {/* 节环 */}
-    <path class="ink-bamboo__node" d="M42 134 Q50 130 58 134 M42 66 Q50 62 58 66"></path>
-    {/* 侧枝 */}
-    <path class="ink-bamboo__branch" d="M50 120 Q66 108 78 96 M50 56 Q36 46 26 34"></path>
-    {/* 点叶簇（下侧枝） */}
-    <g class="ink-bamboo__leaves">
-      <path d="M78 96 q10 -6 18 -4 q-8 6 -18 4"></path>
-      <path d="M78 96 q8 4 14 10 q-10 -2 -14 -10"></path>
-      <path d="M78 96 q-2 10 2 16 q-6 -8 -2 -16"></path>
+    <path
+      class="ink-bamboo__stalk"
+      fill={`url(#${stalkId})`}
+      d="M44.4 129.6 C43.2 110 43.6 90 45 75.2 C45.4 73 46.8 71.4 50.2 70.8 C53.6 71.4 55 73 55.4 75.2 C56.6 90 57 110 55.8 129.6 C55 131.6 45.2 131.6 44.4 129.6 Z"
+    ></path>
+    <path
+      class="ink-bamboo__stalk"
+      fill={`url(#${stalkId})`}
+      d="M45.4 63.6 C44.4 46 45 28 46.4 13 C46.8 10.6 47.8 9.2 50.2 8.8 C52.6 9.2 53.6 10.6 54 13 C55.2 28 55.6 46 54.6 63.6 C54 65.6 46 65.6 45.4 63.6 Z"
+    ></path>
+
+    {/* 节：横枕 + 折痕 + 一点宿墨 */}
+    <ellipse class="ink-bamboo__node-pad" cx="50.2" cy="133.6" rx="10.4" ry="3.2"></ellipse>
+    <path class="ink-bamboo__node" d="M40.2 133 Q50.2 129.4 60.4 133.8"></path>
+    <circle class="ink-bamboo__blot" cx="55.4" cy="135" r="1.15"></circle>
+
+    <ellipse class="ink-bamboo__node-pad" cx="50.2" cy="67.4" rx="9.2" ry="2.8"></ellipse>
+    <path class="ink-bamboo__node" d="M41.4 66.8 Q50.2 63.8 59 67.4"></path>
+    <circle class="ink-bamboo__blot" cx="45.6" cy="68.6" r="0.95"></circle>
+
+    {/* 侧枝：由粗入细 */}
+    <path
+      class="ink-bamboo__branch"
+      d="M52 118 C62 110 72 102 84 94 L85.6 96 C74 103 64 111 52.4 120 Z"
+    ></path>
+    <path
+      class="ink-bamboo__branch"
+      d="M48.6 54 C38 46 28 36 18 26 L19.8 24.2 C30 34 40 44 49.4 52.6 Z"
+    ></path>
+
+    <g class="ink-bamboo__leaves ink-bamboo__leaves--low">
+      <g class="ink-bamboo__leaf" style="transform:translate(84px,94px) rotate(-22deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C9 -4 20 -3 28 3 C18 4 8 2 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C8 -1.4 18 0.2 26 4 C16 2.6 8 1 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1.2 0.2 L24 3.2"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(82px,96px) rotate(12deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C8 4 18 8 26 12 C16 8 8 3 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C7 2.6 16 6 24 10 C15 6 7 2 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1 0.3 L22 8.6"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(80px,98px) rotate(48deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C6 6 12 14 16 22 C10 14 5 6 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C5 5 10 12 14 20 C9 12 4 5 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M0.8 0.4 L13 17"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(86px,90px) rotate(-52deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C7 -6 16 -8 24 -6 C15 -5 7 -2 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C6 -3.4 14 -5 22 -4 C14 -3.4 6 -1.2 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1 0 L20 -3.6"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(78px,100px) rotate(78deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C4 6 6 14 6 21 C3 13 2 6 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C3 5 4.6 12 5 19 C2.4 12 1.6 5 0 0 Z"></path>
+      </g>
     </g>
-    {/* 点叶簇（上侧枝） */}
-    <g class="ink-bamboo__leaves">
-      <path d="M26 34 q-10 -6 -18 -4 q8 6 18 4"></path>
-      <path d="M26 34 q-8 4 -14 10 q10 -2 14 -10"></path>
-      <path d="M26 34 q2 10 -2 16 q6 -8 2 -16"></path>
+
+    <g class="ink-bamboo__leaves ink-bamboo__leaves--high">
+      <g class="ink-bamboo__leaf" style="transform:translate(18px,26px) rotate(-158deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C9 -4 20 -3 28 3 C18 4 8 2 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C8 -1.4 18 0.2 26 4 C16 2.6 8 1 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1.2 0.2 L24 3.2"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(20px,28px) rotate(-198deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C8 4 18 8 26 12 C16 8 8 3 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C7 2.6 16 6 24 10 C15 6 7 2 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1 0.3 L22 8.6"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(16px,24px) rotate(-118deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C7 -6 16 -8 24 -6 C15 -5 7 -2 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C6 -3.4 14 -5 22 -4 C14 -3.4 6 -1.2 0 0 Z"></path>
+        <path class="ink-bamboo__rib" d="M1 0 L20 -3.6"></path>
+      </g>
+      <g class="ink-bamboo__leaf" style="transform:translate(22px,30px) rotate(-230deg)">
+        <path class="ink-bamboo__leaf-back" d="M0 0 C6 6 12 14 16 22 C10 14 5 6 0 0 Z"></path>
+        <path class="ink-bamboo__leaf-front" d="M0 0 C5 5 10 12 14 20 C9 12 4 5 0 0 Z"></path>
+      </g>
     </g>
   </svg>
 </div>
 
 <style lang="scss">
   .ink-bamboo {
+    --bamboo-flip: 1;
+
     position: absolute;
     pointer-events: none;
+
+    color: color(secondary);
+    transform-origin: bottom center;
+    animation: bambooSway 14s ease-in-out infinite;
 
     svg {
       display: block;
@@ -55,35 +142,104 @@ const { size = 200, flip = false, class: className } = Astro.props
       height: 100%;
       overflow: visible;
     }
-
-    transform-origin: bottom center;
-    animation: bambooSway 12s ease-in-out infinite;
   }
 
   .ink-bamboo--flip {
-    transform: scaleX(-1);
-    transform-origin: center;
+    --bamboo-flip: -1;
+  }
+
+  .ink-bamboo__far {
+    fill: currentColor;
+    opacity: 0.12;
+  }
+
+  .ink-bamboo__far-node {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linecap: round;
+    opacity: 0.14;
   }
 
   .ink-bamboo__stalk {
-    stroke: color(secondary);
-    stroke-width: 3;
+    opacity: 0.88;
+  }
+
+  .ink-bamboo__node-pad {
+    fill: currentColor;
+    opacity: 0.22;
+  }
+
+  .ink-bamboo__node {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
     stroke-linecap: round;
     opacity: 0.38;
   }
 
-  .ink-bamboo__node,
+  .ink-bamboo__blot {
+    fill: currentColor;
+    opacity: 0.28;
+  }
+
   .ink-bamboo__branch {
+    fill: currentColor;
+    opacity: 0.28;
+  }
+
+  .ink-bamboo__leaves--low {
+    transform-box: fill-box;
+    transform-origin: 50px 118px;
+    animation: bambooLeaf 6.2s ease-in-out infinite;
+  }
+
+  .ink-bamboo__leaves--high {
+    transform-box: fill-box;
+    transform-origin: 50px 54px;
+    animation: bambooLeaf 7.6s ease-in-out infinite;
+    animation-delay: -2.4s;
+  }
+
+  .ink-bamboo__leaf {
+    transform-box: view-box;
+    transform-origin: 0 0;
+  }
+
+  .ink-bamboo__leaf-back {
+    fill: currentColor;
+    opacity: 0.18;
+  }
+
+  .ink-bamboo__leaf-front {
+    fill: currentColor;
+    opacity: 0.4;
+  }
+
+  .ink-bamboo__rib {
     fill: none;
-    stroke: color(secondary);
-    stroke-width: 1.6;
+    stroke: currentColor;
+    stroke-width: 0.7;
     stroke-linecap: round;
     opacity: 0.22;
   }
 
-  .ink-bamboo__leaves path {
-    fill: color(secondary);
-    opacity: 0.16;
+  :global(.theme-contrasted) {
+    .ink-bamboo {
+      color: color-mix(in srgb, #{color(zhuqing)} 42%, #{color(indigo)});
+    }
+
+    .ink-bamboo__stalk {
+      opacity: 0.78;
+    }
+
+    .ink-bamboo__leaf-front {
+      opacity: 0.42;
+    }
+
+    .ink-bamboo__node {
+      opacity: 0.42;
+    }
   }
 
   @keyframes bambooSway {
@@ -92,32 +248,29 @@ const { size = 200, flip = false, class: className } = Astro.props
       transform: rotate(0deg) scaleX(var(--bamboo-flip, 1));
     }
     50% {
-      transform: rotate(1.2deg) scaleX(var(--bamboo-flip, 1));
+      transform: rotate(1.35deg) scaleX(var(--bamboo-flip, 1));
     }
   }
 
-  .ink-bamboo--flip {
-    --bamboo-flip: -1;
-  }
-
-  :global(.theme-contrasted) {
-    .ink-bamboo__stalk {
-      opacity: 0.42;
+  @keyframes bambooLeaf {
+    0%,
+    100% {
+      transform: rotate(0deg);
     }
-
-    .ink-bamboo__node,
-    .ink-bamboo__branch {
-      opacity: 0.34;
-    }
-
-    .ink-bamboo__leaves path {
-      opacity: 0.26;
+    50% {
+      transform: rotate(2.6deg);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .ink-bamboo {
+    .ink-bamboo,
+    .ink-bamboo__leaves--low,
+    .ink-bamboo__leaves--high {
       animation: none;
+    }
+
+    .ink-bamboo {
+      transform: scaleX(var(--bamboo-flip, 1));
     }
   }
 </style>

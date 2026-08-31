@@ -1,8 +1,7 @@
 ---
 /**
- * InkFish — 水墨游鱼（两条，一浓一淡）
- * 「鱼戏莲叶间」意象：浓墨点身、飞白尾鳍，缓游时尾鳍轻摆。
- * 纯 transform/opacity 动画，不用 filter；currentColor 取色。
+ * InkFish — 水墨游鱼
+ * 腹背分浓淡、尾鳍错层、游动带水阻；身下墨晕是洇开，不是几何椭圆。
  */
 type Props = {
   size?: number
@@ -14,35 +13,116 @@ const { size = 180, class: className } = Astro.props
 
 <div
   class:list={['ink-fish', className]}
-  style={`width:${size}px;height:${size * 0.62}px`}
+  style={`width:${size}px;height:${size * 0.64}px`}
   aria-hidden="true"
 >
-  <svg viewBox="0 0 200 124">
-    {/* 远鱼：淡墨，小 */}
-    <g class="ink-fish__one ink-fish__one--far">
+  <svg viewBox="0 0 220 140">
+    {/* 身下墨晕：不规则洇开，随游势极缓呼吸 */}
+    <g class="ink-fish__water">
       <path
-        class="ink-fish__body"
-        d="M28 62 C44 42 78 34 104 40 C126 45 140 56 146 62 C140 68 126 79 104 84 C78 90 44 82 28 62 Z"
+        class="ink-fish__wash ink-fish__wash--far"
+        d="M28 78 C70 68 118 72 168 70 C198 69 218 76 214 86 C198 98 150 104 104 100 C62 96 22 92 28 78 Z"
       ></path>
       <path
-        class="ink-fish__tail"
-        d="M28 62 C18 54 10 48 2 44 C8 56 8 68 2 80 C10 76 18 70 28 62 Z"></path>
-      <path class="ink-fish__fin" d="M96 40 Q104 30 118 28 Q110 38 108 42"></path>
-      <circle class="ink-fish__eye" cx="140" cy="58" r="1.9"></circle>
+        class="ink-fish__wash ink-fish__wash--near"
+        d="M48 104 C96 96 148 102 192 98 C214 96 226 106 216 116 C194 128 140 132 92 126 C56 122 30 118 48 104 Z"
+      ></path>
+      <path
+        class="ink-fish__ring"
+        d="M92 92 C124 86 154 94 158 106 C152 118 118 124 88 118 C64 114 58 100 92 92 Z"
+      ></path>
     </g>
 
-    {/* 近鱼：浓墨，大 */}
+    {/* 远鱼：淡墨，略小 */}
+    <g class="ink-fish__one ink-fish__one--far">
+      <g class="ink-fish__bend">
+        <path
+          class="ink-fish__wake"
+          d="M36 58 C22 56 12 52 4 48 M34 62 C20 64 10 68 3 74"
+        ></path>
+        <path
+          class="ink-fish__belly"
+          d="M40 60 C72 74 112 78 148 66 C128 72 88 74 56 66 C46 64 40 62 40 60 Z"
+        ></path>
+        <path
+          class="ink-fish__body"
+          d="M34 56 C50 38 90 32 124 42 C144 48 158 56 164 60 C158 66 142 76 118 80 C86 86 50 76 34 56 Z"
+        ></path>
+        <path
+          class="ink-fish__back"
+          d="M42 50 C74 36 114 36 154 58 C136 56 100 48 68 52 C52 54 44 52 42 50 Z"
+        ></path>
+        <path class="ink-fish__gill" d="M138 52 Q132 60 136 70"></path>
+        <g class="ink-fish__tail">
+          <path
+            d="M34 56 C24 44 14 38 5 36 C12 50 16 54 34 56 Z"
+          ></path>
+          <path
+            class="ink-fish__tail-mid"
+            d="M34 58 C20 58 9 60 3 62 C10 64 20 64 34 60 Z"
+          ></path>
+          <path
+            d="M34 60 C24 70 14 76 5 80 C12 68 16 64 34 60 Z"
+          ></path>
+        </g>
+        <path
+          class="ink-fish__fin ink-fish__fin--dorsal"
+          d="M104 40 C112 24 130 22 140 30 C128 34 116 38 104 42 Z"
+        ></path>
+        <path
+          class="ink-fish__fin ink-fish__fin--pectoral"
+          d="M122 68 C130 80 142 84 150 80 C138 74 130 70 122 68 Z"
+        ></path>
+        <circle class="ink-fish__eye" cx="152" cy="56" r="2.1"></circle>
+        <circle class="ink-fish__glint" cx="151.2" cy="55.1" r="0.65"></circle>
+      </g>
+    </g>
+
+    {/* 近鱼：浓墨，略大 */}
     <g class="ink-fish__one ink-fish__one--near">
-      <path
-        class="ink-fish__body"
-        d="M46 92 C64 70 102 60 132 68 C156 74 172 86 180 92 C172 99 156 111 132 117 C102 124 64 114 46 92 Z"
-      ></path>
-      <path
-        class="ink-fish__tail"
-        d="M46 92 C34 83 24 76 14 71 C21 85 21 99 14 113 C24 108 34 101 46 92 Z"></path>
-      <path class="ink-fish__fin" d="M122 68 Q132 56 148 54 Q138 66 136 71"></path>
-      <circle class="ink-fish__eye" cx="172" cy="87" r="2.2"></circle>
-      <path class="ink-fish__whisker" d="M178 96 Q188 100 194 108"></path>
+      <g class="ink-fish__bend">
+        <path
+          class="ink-fish__wake"
+          d="M52 90 C34 86 18 80 8 74 M50 96 C32 100 16 108 6 116"
+        ></path>
+        <path
+          class="ink-fish__belly"
+          d="M58 96 C96 114 144 118 184 102 C160 110 114 112 78 104 C66 102 58 98 58 96 Z"
+        ></path>
+        <path
+          class="ink-fish__body"
+          d="M50 90 C70 68 118 60 156 72 C176 78 192 88 200 94 C192 102 174 114 148 118 C108 124 68 112 50 90 Z"
+        ></path>
+        <path
+          class="ink-fish__back"
+          d="M60 82 C96 64 144 64 190 90 C168 86 126 76 88 82 C72 84 62 84 60 82 Z"
+        ></path>
+        <path class="ink-fish__gill" d="M168 84 Q160 94 166 106"></path>
+        <g class="ink-fish__tail">
+          <path
+            d="M50 90 C38 76 26 68 14 64 C24 80 30 86 50 90 Z"
+          ></path>
+          <path
+            class="ink-fish__tail-mid"
+            d="M50 94 C34 94 20 96 12 100 C20 102 34 102 50 96 Z"
+          ></path>
+          <path
+            d="M50 96 C38 110 26 118 14 124 C24 110 30 104 50 96 Z"
+          ></path>
+        </g>
+        <path
+          class="ink-fish__fin ink-fish__fin--dorsal"
+          d="M128 70 C138 52 160 50 172 60 C158 64 144 68 128 72 Z"
+        ></path>
+        <path
+          class="ink-fish__fin ink-fish__fin--pectoral"
+          d="M150 104 C160 118 176 124 186 118 C172 112 160 106 150 104 Z"
+        ></path>
+        <path class="ink-fish__whisker" d="M196 100 Q208 106 214 116"></path>
+        <circle class="ink-fish__eye" cx="186" cy="88" r="2.4"></circle>
+        <circle class="ink-fish__glint" cx="185.1" cy="87" r="0.7"></circle>
+        <circle class="ink-fish__pupil" cx="186.6" cy="88.4" r="0.7"></circle>
+      </g>
     </g>
   </svg>
 </div>
@@ -52,6 +132,8 @@ const { size = 180, class: className } = Astro.props
     position: absolute;
     pointer-events: none;
 
+    color: color(secondary);
+
     svg {
       display: block;
       width: 100%;
@@ -60,64 +142,198 @@ const { size = 180, class: className } = Astro.props
     }
   }
 
+  .ink-fish__wash {
+    fill: currentColor;
+
+    &--far {
+      opacity: 0.045;
+      animation: fishWash 16s ease-in-out infinite;
+    }
+
+    &--near {
+      opacity: 0.06;
+      animation: fishWash 21s ease-in-out infinite;
+      animation-delay: -7s;
+    }
+  }
+
+  .ink-fish__ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.1;
+    stroke-dasharray: 16 3 11 2.4 9 1.8;
+    stroke-linecap: round;
+    opacity: 0.1;
+
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: fishRing 11s ease-in-out infinite;
+  }
+
   .ink-fish__one {
     transform-box: fill-box;
     transform-origin: center;
-
-    animation: fishDrift 18s ease-in-out infinite;
+    animation: fishDrift 20s ease-in-out infinite;
   }
 
   .ink-fish__one--near {
-    animation-duration: 23s;
-    animation-delay: -6s;
+    animation-duration: 26s;
+    animation-delay: -8s;
+  }
+
+  .ink-fish__bend {
+    transform-box: fill-box;
+    transform-origin: 70% 50%;
+    animation: fishBend 3.4s ease-in-out infinite;
+  }
+
+  .ink-fish__one--near .ink-fish__bend {
+    animation-duration: 4.1s;
+    animation-delay: -1.2s;
   }
 
   .ink-fish__body {
-    fill: color(secondary);
-    opacity: 0.38;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 0.85;
+    stroke-dasharray: 9 1.7 5 2.1 12 1.3;
+    stroke-linecap: round;
+    opacity: 0.42;
+  }
+
+  .ink-fish__back {
+    fill: currentColor;
+    opacity: 0.28;
+  }
+
+  .ink-fish__belly {
+    fill: currentColor;
+    opacity: 0.14;
+  }
+
+  .ink-fish__wake {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 0.9;
+    stroke-linecap: round;
+    stroke-dasharray: 7 3.5 4 2.8;
+    opacity: 0.12;
+  }
+
+  .ink-fish__gill {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.05;
+    stroke-linecap: round;
+    opacity: 0.18;
   }
 
   .ink-fish__tail {
-    fill: color(secondary);
-    opacity: 0.14;
+    fill: currentColor;
+    opacity: 0.16;
 
     transform-box: fill-box;
     transform-origin: right center;
+    animation: fishTail 2.5s ease-in-out infinite;
+  }
 
-    animation: fishTail 2.6s ease-in-out infinite;
+  .ink-fish__tail-mid {
+    opacity: 0.7;
+  }
+
+  .ink-fish__fin {
+    fill: currentColor;
+    opacity: 0.14;
+
+    transform-box: fill-box;
+    transform-origin: left bottom;
+    animation: fishFin 2.9s ease-in-out infinite;
+  }
+
+  .ink-fish__fin--pectoral {
+    transform-origin: left top;
+    animation-duration: 2.2s;
+    animation-delay: -0.6s;
   }
 
   .ink-fish__one--near {
     .ink-fish__body {
-      opacity: 0.48;
+      opacity: 0.56;
+    }
+
+    .ink-fish__back {
+      opacity: 0.36;
+    }
+
+    .ink-fish__belly {
+      opacity: 0.18;
     }
 
     .ink-fish__tail {
-      opacity: 0.2;
-      animation-duration: 3.2s;
+      opacity: 0.3;
+      animation-duration: 3.1s;
     }
 
     .ink-fish__fin {
-      opacity: 0.24;
+      opacity: 0.26;
+    }
+
+    .ink-fish__wake {
+      opacity: 0.16;
     }
   }
 
-  .ink-fish__fin {
-    fill: color(secondary);
-    opacity: 0.16;
+  .ink-fish__eye {
+    fill: currentColor;
+    opacity: 0.62;
   }
 
-  .ink-fish__eye {
+  .ink-fish__glint {
+    fill: color(primary);
+    opacity: 0.55;
+  }
+
+  .ink-fish__pupil {
     fill: color(accent);
-    opacity: 0.7;
+    opacity: 0.42;
   }
 
   .ink-fish__whisker {
     fill: none;
-    stroke: color(secondary);
-    stroke-width: 1.2;
+    stroke: currentColor;
+    stroke-width: 1.05;
     stroke-linecap: round;
     opacity: 0.2;
+  }
+
+  :global(.theme-contrasted) {
+    .ink-fish {
+      color: color-mix(in srgb, #{color(indigo)} 58%, #{color(secondary)});
+    }
+
+    .ink-fish__wash--far {
+      opacity: 0.07;
+    }
+
+    .ink-fish__wash--near {
+      opacity: 0.09;
+    }
+
+    .ink-fish__ring {
+      opacity: 0.14;
+    }
+
+    .ink-fish__body {
+      opacity: 0.4;
+    }
+
+    .ink-fish__one--near .ink-fish__body {
+      opacity: 0.54;
+    }
+
+    .ink-fish__pupil {
+      opacity: 0.28;
+    }
   }
 
   @keyframes fishDrift {
@@ -125,45 +341,76 @@ const { size = 180, class: className } = Astro.props
     100% {
       transform: translate3d(0, 0, 0);
     }
+    28% {
+      transform: translate3d(-14px, -7px, 0);
+    }
+    58% {
+      transform: translate3d(-28px, -3px, 0);
+    }
+    80% {
+      transform: translate3d(-10px, 4px, 0);
+    }
+  }
+
+  @keyframes fishBend {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
     50% {
-      transform: translate3d(-26px, -8px, 0);
+      transform: rotate(-2.2deg);
     }
   }
 
   @keyframes fishTail {
     0%,
     100% {
-      transform: rotate(-7deg);
+      transform: rotate(-11deg);
+    }
+    50% {
+      transform: rotate(9deg);
+    }
+  }
+
+  @keyframes fishFin {
+    0%,
+    100% {
+      transform: rotate(-5deg);
     }
     50% {
       transform: rotate(7deg);
     }
   }
 
-  :global(.theme-contrasted) {
-    .ink-fish__body {
-      opacity: 0.34;
+  @keyframes fishWash {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
     }
-
-    .ink-fish__tail,
-    .ink-fish__fin {
-      opacity: 0.24;
+    50% {
+      transform: translate3d(-8px, -2px, 0);
     }
+  }
 
-    .ink-fish__one--near {
-      .ink-fish__body {
-        opacity: 0.42;
-      }
-
-      .ink-fish__tail {
-        opacity: 0.3;
-      }
+  @keyframes fishRing {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.1;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 0.04;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .ink-fish__one,
-    .ink-fish__tail {
+    .ink-fish__bend,
+    .ink-fish__tail,
+    .ink-fish__fin,
+    .ink-fish__wash,
+    .ink-fish__ring {
       animation: none;
     }
   }

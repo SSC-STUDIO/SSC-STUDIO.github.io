@@ -1,8 +1,7 @@
 ---
 /**
- * InkRipple — 水波涟漪（三圈同心椭圆 + 点苔圆心）
- * 「风乍起，吹皱一池春水」意象：涟漪自中心缓缓散开、渐淡。
- * currentColor 取色。
+ * InkRipple — 墨晕涟漪
+ * 风吹皱水：中心苔点 + 三圈不规则洇开，飞白断续，不要同心几何椭圆。
  */
 type Props = {
   size?: number
@@ -18,10 +17,45 @@ const { size = 120, class: className } = Astro.props
   aria-hidden="true"
 >
   <svg viewBox="0 0 120 120">
-    <circle class="ink-ripple__moss" cx="60" cy="60" r="2.4"></circle>
-    <ellipse class="ink-ripple__ring ink-ripple__ring--1" cx="60" cy="60" rx="22" ry="8"></ellipse>
-    <ellipse class="ink-ripple__ring ink-ripple__ring--2" cx="60" cy="60" rx="34" ry="12"></ellipse>
-    <ellipse class="ink-ripple__ring ink-ripple__ring--3" cx="60" cy="60" rx="46" ry="16"></ellipse>
+    <path
+      class="ink-ripple__moss"
+      d="M60 56 C64 55 68 58 67 62 C66 66 61 68 57 65 C54 62 56 57 60 56 Z"
+    ></path>
+    <path
+      class="ink-ripple__blot"
+      d="M58 58 C62 56 66 60 64 64 C61 66 56 64 56 60 C56 58 57 58 58 58 Z"
+    ></path>
+
+    <g class="ink-ripple__ring ink-ripple__ring--1">
+      <path
+        class="ink-ripple__wash"
+        d="M60 48 C76 49 88 56 90 64 C88 74 74 80 60 78 C46 80 32 72 31 62 C33 52 46 47 60 48 Z"
+      ></path>
+      <path
+        class="ink-ripple__edge"
+        d="M60 48 C76 49 88 56 90 64 C88 74 74 80 60 78 C46 80 32 72 31 62 C33 52 46 47 60 48 Z"
+      ></path>
+    </g>
+    <g class="ink-ripple__ring ink-ripple__ring--2">
+      <path
+        class="ink-ripple__wash"
+        d="M60 40 C82 41 100 52 102 64 C99 80 80 90 60 88 C40 91 20 78 19 62 C22 48 40 39 60 40 Z"
+      ></path>
+      <path
+        class="ink-ripple__edge"
+        d="M60 40 C82 41 100 52 102 64 C99 80 80 90 60 88 C40 91 20 78 19 62 C22 48 40 39 60 40 Z"
+      ></path>
+    </g>
+    <g class="ink-ripple__ring ink-ripple__ring--3">
+      <path
+        class="ink-ripple__wash"
+        d="M60 32 C88 33 110 48 112 64 C108 86 84 100 60 98 C36 102 12 84 10 62 C14 42 36 31 60 32 Z"
+      ></path>
+      <path
+        class="ink-ripple__edge"
+        d="M60 32 C88 33 110 48 112 64 C108 86 84 100 60 98 C36 102 12 84 10 62 C14 42 36 31 60 32 Z"
+      ></path>
+    </g>
   </svg>
 </div>
 
@@ -29,6 +63,8 @@ const { size = 120, class: className } = Astro.props
   .ink-ripple {
     position: absolute;
     pointer-events: none;
+
+    color: color(secondary);
 
     svg {
       display: block;
@@ -39,56 +75,80 @@ const { size = 120, class: className } = Astro.props
   }
 
   .ink-ripple__moss {
-    fill: color(secondary);
-    opacity: 0.4;
+    fill: currentColor;
+    opacity: 0.36;
+  }
+
+  .ink-ripple__blot {
+    fill: currentColor;
+    opacity: 0.18;
   }
 
   .ink-ripple__ring {
-    fill: none;
-    stroke: color(secondary);
-    stroke-width: 1;
     opacity: 0;
-
     transform-origin: 60px 60px;
     transform-box: view-box;
-
-    animation: rippleSpread 6s ease-out infinite;
+    animation: rippleSpread 7s ease-out infinite;
   }
 
   .ink-ripple__ring--2 {
-    animation-delay: 2s;
+    animation-delay: 2.3s;
   }
 
   .ink-ripple__ring--3 {
-    animation-delay: 4s;
+    animation-delay: 4.6s;
+  }
+
+  .ink-ripple__wash {
+    fill: currentColor;
+    opacity: 0.07;
+  }
+
+  .ink-ripple__edge {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.05;
+    stroke-linecap: round;
+    stroke-dasharray: 14 2.6 9 1.8 18 3.2 7 2;
+    opacity: 0.55;
+  }
+
+  :global(.theme-contrasted) {
+    .ink-ripple {
+      color: color-mix(in srgb, #{color(indigo)} 70%, #{color(secondary)});
+    }
+
+    .ink-ripple__moss {
+      opacity: 0.28;
+    }
+
+    .ink-ripple__wash {
+      opacity: 0.1;
+    }
   }
 
   @keyframes rippleSpread {
     0% {
       opacity: 0;
-      transform: scale(0.55);
+      transform: scale(0.58);
     }
-    12% {
-      opacity: 0.28;
+    14% {
+      opacity: 0.85;
     }
     100% {
       opacity: 0;
-      transform: scale(1.15);
+      transform: scale(1.18);
     }
-  }
-
-  :global(.theme-contrasted) .ink-ripple__ring {
-    stroke: color(primary);
-  }
-
-  :global(.theme-contrasted) .ink-ripple__moss {
-    fill: color(primary);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .ink-ripple__ring {
       animation: none;
-      opacity: 0.12;
+      opacity: 0;
+    }
+
+    .ink-ripple__ring--2 {
+      opacity: 0.55;
       transform: scale(1);
     }
   }

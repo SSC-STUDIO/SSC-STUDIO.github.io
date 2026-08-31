@@ -1,8 +1,8 @@
 ---
 /**
- * InkMoon — 望月窗（月洞门）
- * 「明月松间照」意象：圆窗之内一轮满月，棂条横斜，云气缓缓过窗。
- * 窗内月盘用 clipPath 裁切，云片只在窗内可见；currentColor 取色。
+ * InkMoon — 望月窗
+ * 铜/纸边有厚度，月面分阴阳，晕光是纸上淡墨反光，不是滤镜糊光。
+ * 棂条双笔（阔淡 + 中锋飞白），边缘略抖，避免圆规细线。
  */
 import { uid } from '../utils/uid'
 
@@ -13,9 +13,8 @@ type Props = {
 
 const { size = 200, class: className } = Astro.props
 
-// 同页多实例需唯一 id，否则 clipPath / 渐变会互相覆盖
 const windowId = uid('ink-moon-window')
-const discId = uid('ink-moon-disc')
+const rimId = uid('ink-moon-rim')
 ---
 
 <div
@@ -26,57 +25,100 @@ const discId = uid('ink-moon-disc')
   <svg viewBox="0 0 200 200">
     <defs>
       <clipPath id={windowId}>
-        <circle cx="100" cy="100" r="76"></circle>
+        <path
+          d="M100 26 C138 24 176 60 174 100 C172 140 136 176 100 174 C64 172 26 136 28 100 C30 64 64 28 100 26 Z"
+        ></path>
       </clipPath>
-      <radialGradient id={discId} cx="38%" cy="34%" r="72%">
-        <stop offset="0%" stop-color="var(--color-primary)"></stop>
-        <stop offset="72%" stop-color="var(--color-accent-muted)"></stop>
-        <stop offset="100%" stop-color="var(--color-secondary)"></stop>
-      </radialGradient>
+      <linearGradient id={rimId} x1="18%" y1="12%" x2="86%" y2="90%">
+        <stop offset="0%" stop-color="currentColor" stop-opacity="0.22"></stop>
+        <stop offset="42%" stop-color="currentColor" stop-opacity="0.08"></stop>
+        <stop offset="100%" stop-color="currentColor" stop-opacity="0.3"></stop>
+      </linearGradient>
     </defs>
 
-    {/* 窗内：月盘 + 月面淡影 */}
-    <g clip-path={`url(#${windowId})`}>
-      <circle cx="100" cy="100" r="76" fill="var(--color-primary)"></circle>
-      <circle
-        class="ink-moon__disc"
-        cx="94"
-        cy="88"
-        r="42"
-        fill={`url(#${discId})`}></circle>
-      <circle
-        class="ink-moon__crater"
-        cx="82"
-        cy="76"
-        r="7"></circle>
-      <circle
-        class="ink-moon__crater"
-        cx="104"
-        cy="98"
-        r="5"></circle>
-      <circle
-        class="ink-moon__crater"
-        cx="88"
-        cy="104"
-        r="3.4"></circle>
+    {/* 纸上反光：两层不规则淡墨，不用 blur */}
+    <path
+      class="ink-moon__halo ink-moon__halo--far"
+      d="M100 6 C140 3 196 44 197 100 C195 158 142 199 100 197 C56 195 5 152 7 100 C9 44 62 8 100 6 Z"
+    ></path>
+    <path
+      class="ink-moon__halo ink-moon__halo--near"
+      d="M100 13 C136 11 188 50 186 100 C184 152 138 191 100 189 C62 187 15 146 17 100 C19 52 66 15 100 13 Z"
+    ></path>
 
-      {/* 过窗云气 */}
+    {/* 窗框实体：外圈厚、内圈挖空，边沿不圆滑 */}
+    <path
+      class="ink-moon__frame"
+      fill-rule="evenodd"
+      d="M100 17 C138 15 186 52 184 100 C182 150 136 187 100 185 C64 183 16 146 18 100 C20 52 64 19 100 17 Z M100 27 C132 25 174 58 172 100 C170 142 130 175 100 173 C70 171 28 138 30 100 C32 62 70 29 100 27 Z"
+    ></path>
+    <path
+      class="ink-moon__lip"
+      fill={`url(#${rimId})`}
+      fill-rule="evenodd"
+      d="M100 27 C132 25 174 58 172 100 C170 142 130 175 100 173 C70 171 28 138 30 100 C32 62 70 29 100 27 Z M100 33 C128 31 168 62 166 100 C164 138 126 169 100 167 C74 165 34 134 36 100 C38 66 74 35 100 33 Z"
+    ></path>
+
+    <g clip-path={`url(#${windowId})`}>
+      <path
+        class="ink-moon__night"
+        d="M100 26 C138 24 176 60 174 100 C172 140 136 176 100 174 C64 172 26 136 28 100 C30 64 64 28 100 26 Z"
+      ></path>
+
+      <g class="ink-moon__orb">
+        {/* 月晕洇开，贴在月盘外一圈 */}
+        <path
+          class="ink-moon__bleed"
+          d="M89 42 C118 38 140 62 138 88 C136 116 114 134 86 132 C58 130 40 104 42 78 C44 54 64 44 89 42 Z"
+        ></path>
+        <path
+          class="ink-moon__disc"
+          d="M90 46 C114 44 130 64 128 86 C126 108 108 124 88 122 C66 120 50 100 52 80 C54 60 70 48 90 46 Z"
+        ></path>
+        {/* 阴面：右侧一弯浓墨，做出球体转折 */}
+        <path
+          class="ink-moon__shade"
+          d="M108 56 C122 64 128 80 126 98 C124 114 110 122 96 120 C108 108 112 88 108 56 Z"
+        ></path>
+        {/* 月面淡斑：不规则墨渍，不是圆坑 */}
+        <path
+          class="ink-moon__mare"
+          d="M76 70 C83 67 89 72 87 78 C83 81 75 79 74 74 C74 71 75 70 76 70 Z"
+        ></path>
+        <path
+          class="ink-moon__mare"
+          d="M98 88 C105 85 108 92 104 96 C99 98 93 93 95 88 C96 86 97 87 98 88 Z"
+        ></path>
+        <path
+          class="ink-moon__mare ink-moon__mare--soft"
+          d="M82 96 C86 94 88 99 85 101 C81 102 79 98 82 96 Z"
+        ></path>
+        <ellipse class="ink-moon__lit" cx="76" cy="70" rx="13" ry="10"></ellipse>
+      </g>
+
       <g class="ink-moon__cloud">
-        <ellipse cx="70" cy="118" rx="58" ry="11"></ellipse>
-        <ellipse cx="140" cy="132" rx="46" ry="9"></ellipse>
+        <path
+          d="M8 116 C36 104 72 110 108 118 C140 124 168 112 196 116 C172 130 136 136 100 130 C66 124 34 132 8 116 Z"
+        ></path>
+        <path
+          d="M24 134 C54 126 90 132 126 138 C154 142 178 132 202 136 C180 148 146 154 110 148 C74 142 44 150 24 134 Z"
+        ></path>
       </g>
     </g>
 
-    {/* 窗棂：方格 + 冰裂斜撑 */}
-    <g class="ink-moon__lattice">
-      <circle cx="100" cy="100" r="76" fill="none"></circle>
-      <path d="M100 24 V176 M24 100 H176"></path>
-      <path d="M46 46 L154 154 M154 46 L46 154" opacity="0.55"></path>
+    {/* 棂条：阔淡底笔 + 中锋飞白，略抖 */}
+    <g class="ink-moon__lattice ink-moon__lattice--wash">
+      <path d="M100 29 C99.2 70 100.8 112 100 173"></path>
+      <path d="M29 100 C70 99.2 112 100.8 173 100"></path>
+      <path d="M48 48 Q98 98 154 154"></path>
+      <path d="M154 46 Q100 98 48 152"></path>
     </g>
-
-    {/* 窗框双圈：外浓内淡，如木框包边 */}
-    <circle class="ink-moon__frame" cx="100" cy="100" r="80" fill="none"></circle>
-    <circle class="ink-moon__frame-outer" cx="100" cy="100" r="88" fill="none"></circle>
+    <g class="ink-moon__lattice ink-moon__lattice--bone">
+      <path d="M100 29 C99.2 70 100.8 112 100 173"></path>
+      <path d="M29 100 C70 99.2 112 100.8 173 100"></path>
+      <path d="M48 48 Q98 98 154 154"></path>
+      <path d="M154 46 Q100 98 48 152"></path>
+    </g>
   </svg>
 </div>
 
@@ -84,6 +126,8 @@ const discId = uid('ink-moon-disc')
   .ink-moon {
     position: absolute;
     pointer-events: none;
+
+    color: color(secondary);
 
     svg {
       display: block;
@@ -93,86 +137,172 @@ const discId = uid('ink-moon-disc')
     }
   }
 
-  .ink-moon__disc {
-    animation: moonBreathe 12s ease-in-out infinite;
+  .ink-moon__halo--far {
+    fill: currentColor;
+    opacity: 0.035;
   }
 
-  .ink-moon__crater {
-    fill: var(--color-secondary);
-    opacity: 0.1;
+  .ink-moon__halo--near {
+    fill: currentColor;
+    opacity: 0.055;
   }
 
-  .ink-moon__cloud ellipse {
-    fill: var(--color-primary);
+  .ink-moon__frame {
+    fill: currentColor;
     opacity: 0.55;
-
-    animation: moonCloud 26s ease-in-out infinite;
   }
 
-  .ink-moon__cloud ellipse:last-child {
+  .ink-moon__lip {
+    opacity: 0.85;
+  }
+
+  .ink-moon__night {
+    fill: color-mix(in srgb, #{color(secondary)} 9%, #{color(primary)});
+  }
+
+  .ink-moon__bleed {
+    fill: color-mix(in srgb, #{color(secondary)} 16%, #{color(paper-warm)});
+    opacity: 0.45;
+  }
+
+  .ink-moon__orb {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: moonBreathe 14s ease-in-out infinite;
+  }
+
+  .ink-moon__disc {
+    fill: color-mix(in srgb, #{color(white)} 58%, #{color(paper-warm)});
+  }
+
+  .ink-moon__shade {
+    fill: color-mix(in srgb, #{color(indigo)} 38%, #{color(secondary)});
+    opacity: 0.2;
+  }
+
+  .ink-moon__mare {
+    fill: color-mix(in srgb, #{color(indigo)} 30%, #{color(secondary)});
+    opacity: 0.12;
+
+    &--soft {
+      opacity: 0.08;
+    }
+  }
+
+  .ink-moon__lit {
+    fill: color(white);
+    opacity: 0.28;
+  }
+
+  .ink-moon__cloud path {
+    fill: color-mix(in srgb, #{color(primary)} 70%, #{color(secondary)});
     opacity: 0.42;
-    animation-duration: 32s;
-    animation-delay: -9s;
+
+    animation: moonCloud 28s ease-in-out infinite;
+  }
+
+  .ink-moon__cloud path:last-child {
+    opacity: 0.3;
+    animation-duration: 34s;
+    animation-delay: -11s;
   }
 
   .ink-moon__lattice {
     fill: none;
-    stroke: color(secondary);
-    stroke-width: 1.6;
-    opacity: 0.4;
+    stroke: currentColor;
+    stroke-linecap: round;
   }
 
-  .ink-moon__frame {
-    stroke: color(secondary);
-    stroke-width: 3;
-    opacity: 0.55;
+  .ink-moon__lattice--wash {
+    stroke-width: 3.4;
+    opacity: 0.1;
   }
 
-  .ink-moon__frame-outer {
-    stroke: color(secondary);
-    stroke-width: 1;
-    opacity: 0.25;
+  .ink-moon__lattice--bone {
+    stroke-width: 1.15;
+    stroke-dasharray: 26 1.6 17 2.2 21 1.1 12 1.8;
+    opacity: 0.38;
+  }
+
+  :global(.theme-contrasted) {
+    .ink-moon {
+      color: color-mix(in srgb, #{color(indigo)} 68%, #{color(secondary)});
+    }
+
+    .ink-moon__halo--far {
+      opacity: 0.06;
+    }
+
+    .ink-moon__halo--near {
+      opacity: 0.09;
+    }
+
+    .ink-moon__frame {
+      opacity: 0.62;
+    }
+
+    .ink-moon__night {
+      fill: color-mix(in srgb, #{color(indigo)} 10%, #{color(primary)});
+    }
+
+    .ink-moon__bleed {
+      fill: color-mix(in srgb, #{color(indigo)} 28%, #{color(secondary)});
+      opacity: 0.22;
+    }
+
+    .ink-moon__disc {
+      fill: color-mix(in srgb, #{color(secondary)} 58%, #{color(indigo)});
+      opacity: 0.78;
+    }
+
+    .ink-moon__shade {
+      fill: color(primary);
+      opacity: 0.38;
+    }
+
+    .ink-moon__mare {
+      fill: color(primary);
+      opacity: 0.16;
+    }
+
+    .ink-moon__lit {
+      fill: color(secondary);
+      opacity: 0.14;
+    }
+
+    .ink-moon__cloud path {
+      fill: color-mix(in srgb, #{color(primary)} 55%, #{color(indigo)});
+      opacity: 0.34;
+    }
+
+    .ink-moon__lattice--bone {
+      opacity: 0.4;
+    }
   }
 
   @keyframes moonBreathe {
     0%,
     100% {
       transform: scale(1);
-      opacity: 0.9;
     }
     50% {
-      transform: scale(1.03);
-      opacity: 1;
+      transform: scale(1.025);
     }
   }
 
   @keyframes moonCloud {
     0%,
     100% {
-      transform: translate3d(-14px, 0, 0);
+      transform: translate3d(-12px, 0, 0);
     }
     50% {
-      transform: translate3d(22px, -3px, 0);
-    }
-  }
-
-  :global(.theme-contrasted) {
-    .ink-moon__lattice {
-      opacity: 0.52;
-    }
-
-    .ink-moon__frame {
-      opacity: 0.68;
-    }
-
-    .ink-moon__cloud ellipse {
-      opacity: 0.3;
+      transform: translate3d(18px, -2px, 0);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .ink-moon__disc,
-    .ink-moon__cloud ellipse {
+    .ink-moon__orb,
+    .ink-moon__cloud path {
       animation: none;
     }
   }

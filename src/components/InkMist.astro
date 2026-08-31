@@ -1,8 +1,8 @@
 ---
 /**
- * InkMist — 水墨雾霭（横卷薄雾，多层淡墨叠加）
- * 山脚云气意象：缓慢漂移 + 呼吸，不用 filter，纯 transform/opacity。
- * currentColor 取色，随主题自动适配。
+ * InkMist — 水墨雾霭
+ * 横卷薄雾用不规则墨晕，不要几何椭圆叠层。
+ * 纯 transform/opacity，离屏由使用方停；currentColor 随主题走。
  */
 type Props = {
   class?: string
@@ -13,9 +13,18 @@ const { class: className } = Astro.props
 
 <div class:list={['ink-mist', className]} aria-hidden="true">
   <svg viewBox="0 0 1440 260" preserveAspectRatio="xMidYMid slice">
-    <ellipse class="ink-mist__layer ink-mist__layer--far" cx="380" cy="150" rx="420" ry="54"></ellipse>
-    <ellipse class="ink-mist__layer ink-mist__layer--mid" cx="900" cy="120" rx="480" ry="46"></ellipse>
-    <ellipse class="ink-mist__layer ink-mist__layer--near" cx="640" cy="190" rx="560" ry="40"></ellipse>
+    <path
+      class="ink-mist__layer ink-mist__layer--far"
+      d="M-80 128 C140 86 360 124 560 104 C780 82 1000 128 1200 110 C1360 98 1520 132 1600 148 C1600 228 1180 248 780 236 C380 250 40 220 -80 210 Z"
+    ></path>
+    <path
+      class="ink-mist__layer ink-mist__layer--mid"
+      d="M-40 96 C180 58 420 108 680 78 C920 52 1140 102 1380 84 C1500 74 1580 100 1620 118 C1600 198 1240 220 860 206 C480 222 80 176 -40 168 Z"
+    ></path>
+    <path
+      class="ink-mist__layer ink-mist__layer--near"
+      d="M-60 176 C200 148 460 186 740 160 C1000 138 1220 180 1480 166 C1560 160 1620 176 1660 188 C1640 250 1180 268 740 258 C300 270 20 230 -60 224 Z"
+    ></path>
   </svg>
 </div>
 
@@ -32,6 +41,8 @@ const { class: className } = Astro.props
     overflow: hidden;
     pointer-events: none;
 
+    color: color(secondary);
+
     svg {
       display: block;
       width: 100%;
@@ -40,27 +51,26 @@ const { class: className } = Astro.props
   }
 
   .ink-mist__layer {
-    fill: color(secondary);
+    fill: currentColor;
     transform-origin: center;
-
-    animation: mistDrift 22s ease-in-out infinite;
+    animation: mistDrift 24s ease-in-out infinite;
 
     &--far {
-      opacity: 0.05;
+      opacity: 0.045;
     }
 
     &--mid {
-      opacity: 0.07;
+      opacity: 0.065;
 
-      animation-duration: 28s;
-      animation-delay: -8s;
+      animation-duration: 30s;
+      animation-delay: -9s;
     }
 
     &--near {
-      opacity: 0.1;
+      opacity: 0.085;
 
-      animation-duration: 34s;
-      animation-delay: -16s;
+      animation-duration: 36s;
+      animation-delay: -17s;
     }
   }
 
@@ -70,21 +80,27 @@ const { class: className } = Astro.props
       transform: translate3d(0, 0, 0) scale(1);
     }
     50% {
-      transform: translate3d(-36px, -6px, 0) scale(1.06);
+      transform: translate3d(-28px, -5px, 0) scale(1.04);
     }
   }
 
-  :global(.theme-contrasted) .ink-mist__layer {
-    &--far {
-      opacity: 0.1;
+  :global(.theme-contrasted) {
+    .ink-mist {
+      color: color-mix(in srgb, #{color(indigo)} 62%, #{color(secondary)});
     }
 
-    &--mid {
-      opacity: 0.14;
-    }
+    .ink-mist__layer {
+      &--far {
+        opacity: 0.08;
+      }
 
-    &--near {
-      opacity: 0.18;
+      &--mid {
+        opacity: 0.11;
+      }
+
+      &--near {
+        opacity: 0.14;
+      }
     }
   }
 

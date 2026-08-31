@@ -86,6 +86,7 @@ const { class: className } = Astro.props
     paper: RGB = { r: 244, g: 234, b: 216 }
     accent: RGB = { r: 194, g: 58, b: 43 }
     boost = 1
+    contrasted = false
 
     reduced = false
     paused = true
@@ -326,17 +327,21 @@ const { class: className } = Astro.props
 
     sampleColors() {
       const css = getComputedStyle(this)
+      this.contrasted = document.documentElement.classList.contains(
+        'theme-contrasted'
+      )
+      /* 夜灯用墨青，不用宣纸白当线——否则满幅发塑料光 */
       this.ink =
-        hexToRgb(css.getPropertyValue('--color-secondary')) ?? this.ink
+        hexToRgb(
+          css.getPropertyValue(
+            this.contrasted ? '--color-indigo' : '--color-secondary'
+          )
+        ) ?? this.ink
       this.paper =
         hexToRgb(css.getPropertyValue('--color-primary')) ?? this.paper
       this.accent =
         hexToRgb(css.getPropertyValue('--color-accent')) ?? this.accent
-      this.boost = document.documentElement.classList.contains(
-        'theme-contrasted'
-      )
-        ? 1.35
-        : 1
+      this.boost = this.contrasted ? 0.78 : 1
     }
 
     moved(point: Point, withCursor = true) {
@@ -552,8 +557,8 @@ const { class: className } = Astro.props
 
       const { r, g, b } = this.ink
       const accent = this.accent
-      const highlightR = this.hovering ? 150 : 110
-      const baseAlpha = 0.72 * this.boost * eased
+      const highlightR = this.hovering ? 140 : 100
+      const baseAlpha = (this.contrasted ? 0.42 : 0.72) * this.boost * eased
 
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
@@ -578,28 +583,34 @@ const { class: className } = Astro.props
         const moss = index % 3 === 0
         const near = this.interactive && minD < highlightR
         const proximity = near ? 1 - minD / highlightR : 0
+        const inkAlpha = near
+          ? Math.min(baseAlpha + proximity * (this.contrasted ? 0.18 : 0.22), 0.7)
+          : baseAlpha
 
-        if (near && proximity > 0.12) {
-          ctx.strokeStyle =
-            proximity > 0.55
-              ? `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.55 + proximity * 0.45})`
-              : `rgba(${r}, ${g}, ${b}, ${0.55 + proximity * 0.45})`
-          ctx.lineWidth = moss ? 2.4 : 1.85
-          ctx.setLineDash([])
-          ctx.stroke()
-        } else {
-          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${baseAlpha})`
-          ctx.lineWidth = 1.75
-          ctx.setLineDash([])
-          ctx.stroke()
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${inkAlpha})`
+        ctx.lineWidth = moss
+          ? near
+            ? 2.05
+            : 1.55
+          : near
+            ? 1.45
+            : 1.2
+        ctx.setLineDash([])
+        ctx.stroke()
 
-          if (moss) {
-            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.38 * this.boost * eased})`
-            ctx.lineWidth = 3.2
-            ctx.setLineDash([0.9, 6.5])
-            ctx.stroke()
-            ctx.setLineDash([])
-          }
+        if (moss && !this.contrasted) {
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.28 * this.boost * eased})`
+          ctx.lineWidth = 2.8
+          ctx.setLineDash([0.9, 7.2])
+          ctx.stroke()
+          ctx.setLineDash([])
+        }
+
+        /* 白日近处才点一记朱砂；夜灯只用墨青加浓，避免霓虹 */
+        if (!this.contrasted && near && proximity > 0.72) {
+          ctx.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.18 + proximity * 0.16})`
+          ctx.lineWidth = moss ? 1.35 : 1.05
+          ctx.stroke()
         }
       })
     }
@@ -669,6 +680,15 @@ const { class: className } = Astro.props
       width: 0.72rem;
       height: 0.48rem;
       opacity: 1;
+    }
+
+    :global(.theme-contrasted) &::before {
+      box-shadow: 0 0 0 0.12rem
+        color-mix(
+          in srgb,
+          var(--daypart-lamp, var(--color-accent)) 16%,
+          transparent
+        );
     }
 
     @media (prefers-reduced-motion: reduce) {
