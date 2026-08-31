@@ -22,8 +22,8 @@ import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
  * reuse the exact same thread logic with targetKind `profile`.
  */
 
-type SessionState = "loading" | "out" | "student" | "in";
-type LoadState = "loading" | "error" | "ready";
+type SessionState = "loading" | "out" | "student" | "in" | "unavailable";
+type LoadState = "loading" | "error" | "unavailable" | "ready";
 
 type ClassSummary = {
   media: { total: number; images: number; videos: number; bytes: number };
@@ -203,6 +203,10 @@ export function ClassComments({
         setNotice("发布太频繁了，歇一会儿再写。");
         return;
       }
+      if (response.status === 503) {
+        setNotice("留言服务暂时不可用，稍后再试——草稿会留在这里。");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const created = (await response.json()) as ClassComment;
       setComments((current) => [created, ...current]);
@@ -238,6 +242,10 @@ export function ClassComments({
       );
       if (response.status === 401) {
         setNotice("会话已失效，请重新登录后再回复。");
+        return;
+      }
+      if (response.status === 503) {
+        setNotice("留言服务暂时不可用，稍后再试。");
         return;
       }
       if (!response.ok) throw new Error("failed");
@@ -340,6 +348,11 @@ export function ClassComments({
               onChange={(event) => setDraft(event.target.value)}
             />
           </label>
+          {draft.length > MAX_LENGTH - 200 ? (
+            <p className="p-class-comments__count" role="status">
+              还可输入 {MAX_LENGTH - draft.length} 字
+            </p>
+          ) : null}
           <button type="submit" disabled={posting}>
             {posting ? "发布中…" : "发布留言"}
           </button>
@@ -518,6 +531,34 @@ export function ClassLoginLock({ message }: { message: string }) {
 }
 
 /**
+ * Honest offline card for when the backend itself is unreachable (503 /
+ * network failure) — shown instead of a login lock that logging in could
+ * never satisfy. Shared with the retry flows below.
+ */
+export function ClassOfflineNotice({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="p-lock">
+      <p className="p-lock__badge">temporarily offline</p>
+      <p className="p-lock__message">{message}</p>
+      <div className="p-card__actions">
+        <button type="button" className="p-class__retry" onClick={onRetry}>
+          再试一次
+        </button>
+        <a className="p-card__link p-card__link--ghost" href="/class/gallery">
+          公开画廊预览
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Notice for logged-in `student` accounts: the session is valid but the
  * registered real name has not matched the class roster, so the space
  * stays locked until it does (or the owner is asked to check the roster).
@@ -554,6 +595,8 @@ export default function ClassSpace() {
   const [load, setLoad] = useState<LoadState>("loading");
   const [summary, setSummary] = useState<ClassSummary | null>(null);
   const [profiles, setProfiles] = useState<ClassProfileDto[]>([]);
+  // Bumping this re-runs the session check (retry from the offline card).
+  const [sessionAttempt, setSessionAttempt] = useState(0);
 
   const loadSpace = useCallback(async () => {
     setLoad("loading");
@@ -572,6 +615,10 @@ export default function ClassSpace() {
         setSession("out");
         return;
       }
+      if (summaryResponse.status === 503 || profilesResponse.status === 503) {
+        setLoad("unavailable");
+        return;
+      }
       if (!summaryResponse.ok || !profilesResponse.ok) throw new Error("failed");
       const summaryData = (await summaryResponse.json()) as ClassSummary;
       const profilesData = (await profilesResponse.json()) as ProfilesResponse;
@@ -588,11 +635,18 @@ export default function ClassSpace() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setSession("loading");
       try {
         const response = await fetch("/api/auth/session", {
           ...AUTH_FETCH_OPTIONS,
           cache: "no-store",
         });
+        if (!response.ok) {
+          // Backend down (dev proxy answers 503) — an honest offline card
+          // beats a login lock that a login could never satisfy.
+          if (!cancelled) setSession("unavailable");
+          return;
+        }
         const data = (await response.json()) as AuthSession;
         if (cancelled) return;
         if (data.authenticated && data.user) {
@@ -608,18 +662,29 @@ export default function ClassSpace() {
           setSession("out");
         }
       } catch {
-        if (!cancelled) setSession("out");
+        if (!cancelled) setSession("unavailable");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadSpace]);
+  }, [loadSpace, sessionAttempt]);
 
   if (session === "loading") {
     return (
       <div className="p-class">
         <p className="p-class__state">正在检查会话…</p>
+      </div>
+    );
+  }
+
+  if (session === "unavailable") {
+    return (
+      <div className="p-class">
+        <ClassOfflineNotice
+          message="班级空间的后端服务暂时不可用——不是你的问题。可以先看看公开画廊预览，稍后再回来。"
+          onRetry={() => setSessionAttempt((attempt) => attempt + 1)}
+        />
       </div>
     );
   }
@@ -644,9 +709,14 @@ export default function ClassSpace() {
     <div className="p-class">
       {load === "loading" ? (
         <p className="p-class__state">正在打开班级空间…</p>
+      ) : load === "unavailable" ? (
+        <ClassOfflineNotice
+          message="已确认你的身份，但空间数据服务暂时不可用，稍后再试。"
+          onRetry={() => void loadSpace()}
+        />
       ) : load === "error" ? (
         <div className="p-class__state">
-          <p>空间数据没有载入成功。</p>
+          <p>空间数据没有载入成功，可能是网络波动。</p>
           <button
             type="button"
             className="p-class__retry"

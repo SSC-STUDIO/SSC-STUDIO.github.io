@@ -21,3 +21,23 @@ import ClassSpace from '@/islands/ClassSpace'
 
   <PageFoot current="/class" />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 班级空间打磨(仅本页) ── */
+
+  /* 留言接近上限时的剩余字数提示 */
+  .p-class-comments__count {
+    margin: -0.5rem 0 0;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 700 10px / 1.4 font-family(fraktion);
+    letter-spacing: 0.1em;
+    text-align: right;
+    text-transform: none;
+  }
+
+  /* 离线卡中的重试按钮与相邻链接基线对齐 */
+  .p-lock .p-class__retry {
+    margin-top: 0;
+  }
+</style>

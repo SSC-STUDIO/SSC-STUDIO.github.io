@@ -6,7 +6,7 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 
 <BaseLayout
   title="404 · 陈润森"
-  description="个人空间：收藏 AI 实验、Web 与游戏作品、文章、奖项，也保存一处属于班级的记忆现场。"
+  description="页面不存在或已迁移——从首页、文章或联系页继续逛。"
 >
   <PageHero
     kicker="迷路"
@@ -14,18 +14,107 @@ import PageFoot from '@/components/pages/PageFoot.astro'
     summary="页面不存在或已迁移 — 从下面的入口继续逛。"
   />
 
-  <main class="p-page">
+  <main class="p-page p-404">
     <div class="p-empty">
       <p class="p-empty__title">此处空白</p>
       <p class="p-empty__message">
         你访问的地址没有对应内容。如果是从旧链接跳转过来，站点重建后部分路径已调整。
       </p>
+      <p class="p-404__path" hidden>
+        迷失于 <code data-lost-path></code>
+      </p>
       <div class="p-card__actions">
         <a class="p-card__link" href="/"> 返回首页 </a>
+        <a class="p-card__link p-card__link--ghost" href="/articles"> 去看文章 </a>
         <a class="p-card__link p-card__link--ghost" href="/contact"> 联系我 </a>
       </div>
+      <p class="p-404__verse">行到水穷处，坐看云起时</p>
     </div>
+    <script is:inline>
+      ;(function () {
+        var code = document.querySelector('[data-lost-path]')
+        if (!code) return
+        code.textContent = location.pathname
+        var row = code.closest('.p-404__path')
+        if (row) row.hidden = false
+      })()
+    </script>
   </main>
 
   <PageFoot />
 </BaseLayout>
+
+<style lang="scss" is:global>
+  /* ── 404 专属：迷失路径、卷末诗与「空」字呼吸 ── */
+
+  .p-404 {
+    /* 迷失路径回显：等宽小字，如批注一笔 */
+    .p-404__path {
+      position: relative;
+      z-index: 2;
+
+      margin: -0.5rem 0 1.5rem;
+
+      color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+      font: 400 0.8rem / 1.5 font-family(editorial);
+      letter-spacing: 0.06em;
+
+      code {
+        padding: 0.2em 0.5em;
+
+        background: color-mix(in srgb, #{color(accent)} 12%, #{color(primary)});
+
+        color: color(secondary);
+        font: 700 0.95em / 1.4 font-family(fraktion);
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* 卷末一句诗：既然无路，不妨看云 */
+    .p-404__verse {
+      position: relative;
+      z-index: 2;
+
+      margin: 1.75rem 0 0;
+
+      color: color-mix(in srgb, #{color(secondary)} 55%, transparent);
+      font: 400 0.85rem / 1.6 font-family(editorial);
+      letter-spacing: 0.3em;
+
+      &::before,
+      &::after {
+        color: color(accent);
+      }
+
+      &::before {
+        content: '「';
+      }
+
+      &::after {
+        content: '」';
+      }
+    }
+
+    /* 「空」字水印缓缓呼吸，只动 opacity 与 transform */
+    .p-empty::before {
+      animation: p-404-breathe 8s ease(in-out-sine) infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
+    }
+  }
+
+  @keyframes p-404-breathe {
+    0%,
+    100% {
+      opacity: 0.04;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+      opacity: 0.08;
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+  }
+</style>
