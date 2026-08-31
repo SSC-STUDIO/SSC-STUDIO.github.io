@@ -2,9 +2,11 @@
 /**
  * ArticleMotion — 文章页共用的装帧与动效
  *
- * 一处收齐：卷底墨圈环境层、左栏章次导轨、
- * 章题朱丝入屏描出、条列逐条落墨、卷末「完」印钤下、去向牌的手感。
+ * 一处收齐：卷底墨圈、顶栏阅读进度、左栏章次导轨、
+ * 章题朱丝入屏描出、条列逐条落墨、卷末「完」印钤下、去向牌的受光。
  * 两篇文章都只需 import 这一个组件。
+ *
+ * 只加类、不藏内容：脚本缺席或 reduced-motion 时，正文与印章都保持落定可读。
  */
 import PageAura from './PageAura.astro'
 import ArticleRail from './ArticleRail.astro'
@@ -12,10 +14,139 @@ import ArticleRail from './ArticleRail.astro'
 
 <PageAura />
 <ArticleRail />
+<article-progress class="p-aread" data-target=".p-prose" aria-hidden="true">
+  <span class="p-aread__ink"></span>
+</article-progress>
+
+<script>
+  import { onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+
+  /**
+   * 顶栏朱丝：正文顶端触到视口中线算起点，正文末端离开视口中线算读完。
+   * 与左栏章次导轨同一套量法，窄屏没有导轨时仍能看见读到哪。
+   */
+  class ArticleProgress extends HTMLElement {
+    body: HTMLElement | null = null
+    stops: Cleanup[] = []
+
+    connectedCallback() {
+      const attach = () => {
+        this.body = document.querySelector(this.dataset.target || '.p-prose')
+        if (!this.body) return false
+        this.stops.push(onScroll(() => this.paint()))
+        this.paint()
+        return true
+      }
+
+      if (attach()) return
+      requestAnimationFrame(() => attach())
+    }
+
+    disconnectedCallback() {
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.body = null
+    }
+
+    paint() {
+      const body = this.body
+      if (!body) return
+
+      const rect = body.getBoundingClientRect()
+      const mid = window.innerHeight * 0.5
+      const span = Math.max(1, rect.height)
+      const progress = Math.min(Math.max((mid - rect.top) / span, 0), 1)
+
+      this.style.setProperty('--read-progress', progress.toFixed(4))
+      this.classList.toggle('is-done', progress >= 0.98)
+    }
+  }
+
+  if (!customElements.get('article-progress')) {
+    customElements.define('article-progress', ArticleProgress)
+  }
+
+  /** 结章印：再点一记，重新钤下。装饰性，不改阅读位置。 */
+  function bindEndSeal(root: ParentNode = document) {
+    root.querySelectorAll<HTMLElement>('.p-article-end__seal').forEach((seal) => {
+      if (seal.dataset.bound === '1') return
+      seal.dataset.bound = '1'
+
+      seal.addEventListener('click', () => {
+        if (prefersReducedMotion()) return
+        seal.classList.remove('is-restamp')
+        void seal.offsetWidth
+        seal.classList.add('is-restamp')
+      })
+    })
+  }
+
+  document.addEventListener('astro:page-load', () => bindEndSeal())
+  bindEndSeal()
+</script>
 
 <style lang="scss" is:global>
-  /* ── 章题：朱丝压脚随入屏自左描出。
-     只是一道装饰，无 JS 时保持描完的样子。 ── */
+  /* ── 顶栏阅读进度：一线朱丝自左洇满。无 JS 时宽度为 0，不挡正文。 ── */
+
+  .p-aread {
+    --read-progress: 0;
+
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 16;
+
+    display: block;
+
+    height: 2px;
+
+    pointer-events: none;
+  }
+
+  .p-aread__ink {
+    display: block;
+
+    height: 100%;
+
+    background: linear-gradient(90deg, color(accent), color(accent-strong));
+    box-shadow: 0 0 10px color-mix(in srgb, #{color(accent)} 42%, transparent);
+
+    transform: scaleX(var(--read-progress));
+    transform-origin: left center;
+  }
+
+  .p-aread.is-done .p-aread__ink {
+    box-shadow: 0 0 14px color-mix(in srgb, #{color(accent)} 62%, transparent);
+  }
+
+  /* ── 章次导轨：对照首页竹节轨，当前章微光、按下回弹 ── */
+
+  .p-article .p-artrail__tick.is-current .p-artrail__dot {
+    box-shadow: 0 0 10px color-mix(in srgb, #{color(accent)} 55%, transparent);
+  }
+
+  .p-article .p-artrail__tick:active .p-artrail__dot {
+    transform: scale(0.92);
+  }
+
+  .p-article .p-artrail__seal {
+    transform: rotate(-4deg);
+
+    transition:
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 240ms ease,
+      color 240ms ease;
+  }
+
+  .p-article .p-artrail:hover .p-artrail__seal,
+  .p-article .p-artrail__seal:hover {
+    border-color: color(accent);
+    color: color(accent-strong);
+    transform: rotate(-2deg) scale(1.08);
+  }
+
+  /* ── 章题：朱丝压脚随入屏自左描出。只是一道装饰，无 JS 时保持描完。 ── */
 
   .p-article .p-prose h2::after {
     transform-origin: left center;
@@ -30,16 +161,118 @@ import ArticleRail from './ArticleRail.astro'
     transform: scaleX(1);
   }
 
-  /* 条列序号取朱砂，与章次同色 */
   .p-article .p-prose li::marker {
     color: color(accent);
     font-family: font-family(fraktion);
   }
 
-  /* ── 卷末「完」印：入屏时自高处钤下，落定后微微回弹 ── */
+  .p-article .p-prose li {
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-article .p-prose li:hover {
+    transform: translateX(3px);
+  }
+
+  .p-article .p-prose a {
+    transition:
+      color 220ms ease,
+      text-decoration-color 220ms ease,
+      text-underline-offset 220ms ease;
+
+    &:hover,
+    &:focus-visible {
+      color: color(accent-strong);
+      text-decoration-color: color(accent-strong);
+      text-underline-offset: 0.32em;
+    }
+  }
+
+  /* Featured 徽记：如落印钤下 */
+
+  .p-article .p-detail-meta.is-inked .p-detail-meta__badge {
+    animation: p-article-stamp 640ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+  }
+
+  /* ── 卷末「完」印与朱丝夹线（两篇共用，页面只留结构） ── */
+
+  .p-article .p-article-end {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    margin-top: 2.25rem;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1.5px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, #{color(accent)} 55%, transparent)
+      );
+    }
+
+    &::after {
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, #{color(accent)} 55%, transparent),
+        transparent
+      );
+    }
+  }
+
+  .p-article .p-article-end__seal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+
+    border: 1.5px solid color(accent-strong);
+    background: color(primary);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, #{color(accent)} 42%, transparent),
+      0 6px 16px color-mix(in srgb, #{color(accent)} 28%, transparent);
+
+    color: color(accent-strong);
+    font: 700 1rem / 1 font-family(bigger);
+
+    cursor: pointer;
+    transform: rotate(-6deg);
+
+    transition:
+      transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 280ms ease;
+
+    &:hover,
+    &:focus-visible {
+      box-shadow:
+        inset 0 0 0 2px color-mix(in srgb, #{color(accent)} 55%, transparent),
+        0 8px 18px color-mix(in srgb, #{color(accent)} 38%, transparent);
+      transform: rotate(-3deg) scale(1.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 3px;
+    }
+
+    &:active {
+      transform: rotate(-6deg) scale(0.94);
+    }
+  }
 
   .p-article .p-article-end[data-intersect].is-in-view .p-article-end__seal {
-    animation: p-article-stamp 760ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+    animation: p-article-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+  }
+
+  .p-article .p-article-end__seal.is-restamp {
+    animation: p-article-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1);
   }
 
   .p-article .p-article-end[data-intersect].is-in-view::before,
@@ -55,20 +288,25 @@ import ArticleRail from './ArticleRail.astro'
     transform-origin: right center;
   }
 
+  /* 对照首页 sealStamp：自高处落下，压实后再回弹 */
   @keyframes p-article-stamp {
     0% {
       opacity: 0;
-      transform: rotate(-14deg) scale(1.9);
+      transform: translateY(-10px) scale(2.3) rotate(-18deg);
     }
 
-    62% {
+    55% {
       opacity: 1;
-      transform: rotate(-2deg) scale(0.94);
+      transform: translateY(0) scale(0.92) rotate(-4deg);
+    }
+
+    78% {
+      transform: scale(1.06) rotate(-7deg);
     }
 
     100% {
       opacity: 1;
-      transform: rotate(-4deg) scale(1);
+      transform: scale(1) rotate(-6deg);
     }
   }
 
@@ -78,10 +316,109 @@ import ArticleRail from './ArticleRail.astro'
     }
   }
 
-  /* ── 去向牌：箭头随悬停向前递一步 ── */
+  /* ── 去向牌：册页轻翻 + 指针受光 + 按下如落印 ── */
+
+  .p-article .p-article-nav {
+    margin-top: 1.75rem;
+  }
+
+  .p-article .p-article-nav__link {
+    --lift: 0px;
+
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    overflow: hidden;
+
+    padding: 0.9rem 1.1rem;
+
+    border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
+    background: color(primary);
+
+    text-decoration: none;
+
+    transform: perspective(60rem) rotateX(var(--leaf-rx, 0deg))
+      rotateY(var(--leaf-ry, 0deg)) translate3d(0, var(--lift), 0);
+
+    transition:
+      transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.2s ease,
+      background 0.2s ease,
+      box-shadow 280ms ease;
+
+    &.is-leaf-live {
+      transition:
+        transform 120ms linear,
+        border-color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 280ms ease;
+    }
+
+    &:hover,
+    &:focus-visible {
+      --lift: -3px;
+
+      border-color: color(accent);
+      background: color-mix(in srgb, #{color(accent)} 8%, transparent);
+      box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 60%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 2px;
+    }
+
+    &:active {
+      --lift: 1px;
+    }
+
+    /* 受光：一道随指针横移的浅光，写法同荣誉奖状 */
+    &::after {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+
+      background: linear-gradient(
+        100deg,
+        transparent calc(var(--leaf-sheen, 0.5) * 100% - 22%),
+        color-mix(in srgb, #{color(primary)} 30%, transparent)
+          calc(var(--leaf-sheen, 0.5) * 100%),
+        transparent calc(var(--leaf-sheen, 0.5) * 100% + 22%)
+      );
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+
+      transition: opacity 0.4s ease(out-quint);
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      opacity: 1;
+    }
+  }
+
+  .p-article .p-article-nav__label {
+    position: relative;
+    z-index: 2;
+
+    color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
+    font: 700 9px / 1 font-family(fraktion);
+    letter-spacing: 0.16em;
+  }
 
   .p-article .p-article-nav__title {
+    position: relative;
+    z-index: 2;
+
     display: inline-block;
+
+    color: color(secondary);
+    font: 700 1.05rem / 1.35 font-family(bigger);
+
     transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -90,20 +427,62 @@ import ArticleRail from './ArticleRail.astro'
     transform: translateX(4px);
   }
 
+  .p-article .p-chips .p-chip {
+    transition:
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease;
+
+    &:hover {
+      transform: translate3d(0, -2px, 0);
+      box-shadow: 0 2px 0 color-mix(in srgb, #{color(secondary)} 42%, transparent);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html.js .p-article .p-prose h2::after {
       transform: scaleX(1);
       transition: none;
     }
 
-    .p-article .p-article-nav__title {
+    .p-aread__ink,
+    .p-article .p-article-nav__title,
+    .p-article .p-article-nav__link,
+    .p-article .p-article-nav__link.is-leaf-live,
+    .p-article .p-article-nav__link::after,
+    .p-article .p-prose li,
+    .p-article .p-prose a,
+    .p-article .p-chips .p-chip,
+    .p-article .p-artrail__seal,
+    .p-article .p-article-end__seal {
       transform: none;
       transition: none;
+      animation: none;
     }
 
+    .p-article .p-article-nav__link:hover,
+    .p-article .p-article-nav__link:focus-visible,
+    .p-article .p-article-nav__link:active {
+      --lift: 0px;
+      transform: none;
+    }
+
+    .p-article .p-article-nav__link::after,
+    .p-article .p-article-nav__link:hover::after {
+      opacity: 0;
+    }
+
+    .p-article .p-prose li:hover,
+    .p-article .p-chips .p-chip:hover,
+    .p-article .p-article-nav__link:hover .p-article-nav__title,
+    .p-article .p-article-nav__link:focus-visible .p-article-nav__title {
+      transform: none;
+    }
+
+    .p-article .p-detail-meta.is-inked .p-detail-meta__badge,
     .p-article .p-article-end.is-in-view .p-article-end__seal,
     .p-article .p-article-end.is-in-view::before,
-    .p-article .p-article-end.is-in-view::after {
+    .p-article .p-article-end.is-in-view::after,
+    .p-article .p-article-end__seal.is-restamp {
       animation: none;
     }
   }

@@ -28,7 +28,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
       卷内共 <ink-tally class="p-articles-count__n" data-to={total}>{total}</ink-tally
       > 篇 · 依时间倒序陈列
     </p>
-    <div class="p-stack p-stack--cards">
+    <article-index-feel class="p-stack p-stack--cards">
       {
         articles.map((article, index) => (
           <PageCard
@@ -60,7 +60,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
           </PageCard>
         ))
       }
-    </div>
+    </article-index-feel>
   </main>
 
   <PageFoot current="/articles" />
@@ -106,7 +106,6 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 
       const step = (now: number) => {
         const t = Math.min((now - start) / span, 1)
-        // 末尾放缓，最后一颗珠子落得慢些
         const eased = 1 - Math.pow(1 - t, 3)
         this.textContent = String(Math.round(eased * to))
 
@@ -120,6 +119,55 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 
   if (!customElements.get('ink-tally')) {
     customElements.define('ink-tally', InkTally)
+  }
+
+  /**
+   * 目录卡受光：指针在卡面上走，高光跟着横移（写法同荣誉奖状）。
+   * 触屏 / reduced-motion 不跟指针，悬停扫光仍由 CSS 兜底。
+   */
+  class ArticleIndexFeel extends HTMLElement {
+    onMove: ((event: PointerEvent) => void) | null = null
+    onLeave: (() => void) | null = null
+
+    connectedCallback() {
+      if (prefersReducedMotion()) return
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        return
+      }
+
+      this.onMove = (event) => {
+        const card = (event.target as Element | null)?.closest<HTMLElement>('.p-card')
+        this.querySelectorAll<HTMLElement>('.p-card.is-sheen-live').forEach((el) => {
+          if (el !== card) el.classList.remove('is-sheen-live')
+        })
+        if (!card || !this.contains(card)) return
+
+        const rect = card.getBoundingClientRect()
+        const x = (event.clientX - rect.left) / Math.max(1, rect.width) - 0.5
+        card.style.setProperty('--leaf-sheen', (0.5 - x).toFixed(3))
+        card.classList.add('is-sheen-live')
+      }
+
+      this.onLeave = () => {
+        this.querySelectorAll<HTMLElement>('.p-card.is-sheen-live').forEach((el) => {
+          el.classList.remove('is-sheen-live')
+        })
+      }
+
+      this.addEventListener('pointermove', this.onMove, { passive: true })
+      this.addEventListener('pointerleave', this.onLeave)
+    }
+
+    disconnectedCallback() {
+      if (this.onMove) this.removeEventListener('pointermove', this.onMove)
+      if (this.onLeave) this.removeEventListener('pointerleave', this.onLeave)
+      this.onMove = null
+      this.onLeave = null
+    }
+  }
+
+  if (!customElements.get('article-index-feel')) {
+    customElements.define('article-index-feel', ArticleIndexFeel)
   }
 </script>
 
@@ -154,7 +202,6 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
       font-weight: 700;
     }
 
-    /* 数目落定的一记轻跃 */
     .p-articles-count__n {
       display: inline-block;
       min-width: 1ch;
@@ -179,7 +226,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     }
   }
 
-  /* 篇幅尺：卡内一线朱丝，长短即阅读时长，悬停时自左量出 */
+  /* 篇幅尺：默认可读，长短即阅读时长；入墨后再自左量出 */
   .p-articles .p-articles__gauge {
     position: relative;
 
@@ -194,25 +241,28 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
       position: absolute;
       inset: 0;
 
-      background: linear-gradient(
-        90deg,
-        color(accent),
-        color(accent-strong)
-      );
+      background: linear-gradient(90deg, color(accent), color(accent-strong));
+      box-shadow: 0 0 8px color-mix(in srgb, #{color(accent)} 28%, transparent);
 
       content: '';
-      transform: scaleX(0);
+      transform: scaleX(var(--gauge, 0.3));
       transform-origin: left center;
-      transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition:
+        transform 620ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 280ms ease;
     }
+  }
+
+  html.js .p-articles .p-card:not(.is-inked) .p-articles__gauge::after {
+    transform: scaleX(0);
   }
 
   .p-articles .p-card:hover .p-articles__gauge::after,
   .p-articles .p-card:focus-visible .p-articles__gauge::after {
-    transform: scaleX(var(--gauge, 0.3));
+    box-shadow: 0 0 12px color-mix(in srgb, #{color(accent)} 55%, transparent);
   }
 
-  /* 头篇：右上钤一枚小「首」印 */
+  /* 头篇：右上钤一枚「首」印，对照首页落章 */
   .p-articles .p-articles__lead {
     position: relative;
   }
@@ -227,44 +277,108 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     align-items: center;
     justify-content: center;
 
-    width: 1.55rem;
-    height: 1.55rem;
+    width: 1.7rem;
+    height: 1.7rem;
 
-    border: 1.5px solid color-mix(in srgb, #{color(accent)} 70%, transparent);
+    border: 1.5px solid color(accent-strong);
+    background: color(primary);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, #{color(accent)} 40%, transparent),
+      0 6px 14px color-mix(in srgb, #{color(accent)} 26%, transparent);
 
-    color: color(accent);
+    color: color(accent-strong);
     font: 700 0.72rem / 1 font-family(bigger);
 
-    opacity: 0.72;
     pointer-events: none;
     transform: rotate(-8deg);
+
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* 卡面受光：一道浅光随悬停扫过 */
+  html.js .p-articles .p-articles__lead.is-inked .p-articles__first {
+    animation: p-articles-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
+  }
+
+  .p-articles .p-articles__lead:hover .p-articles__first,
+  .p-articles .p-articles__lead:focus-visible .p-articles__first {
+    transform: rotate(-3deg) scale(1.08);
+  }
+
+  @keyframes p-articles-stamp {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px) scale(2.3) rotate(-18deg);
+    }
+
+    55% {
+      opacity: 1;
+      transform: translateY(0) scale(0.92) rotate(-4deg);
+    }
+
+    78% {
+      transform: scale(1.06) rotate(-7deg);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(-8deg);
+    }
+  }
+
+  /* 卡面受光：默认一道浅扫，指针精细时改跟 --leaf-sheen */
+  .p-articles .p-card {
+    --leaf-sheen: 0.5;
+
+    overflow: hidden;
+  }
+
   .p-articles .p-card::after {
     position: absolute;
     inset: 0;
     z-index: 2;
 
     background: linear-gradient(
-      105deg,
-      transparent 36%,
-      color-mix(in srgb, #{color(primary)} 28%, transparent) 50%,
-      transparent 64%
+      100deg,
+      transparent calc(var(--leaf-sheen, 0.5) * 100% - 22%),
+      color-mix(in srgb, #{color(primary)} 30%, transparent)
+        calc(var(--leaf-sheen, 0.5) * 100%),
+      transparent calc(var(--leaf-sheen, 0.5) * 100% + 22%)
     );
     content: '';
     opacity: 0;
     pointer-events: none;
     transform: translateX(-18%);
     transition:
-      opacity 420ms ease,
+      opacity 0.4s ease(out-quint),
       transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-articles .p-card.is-sheen-live::after {
+    transform: none;
+    transition: opacity 0.4s ease(out-quint);
   }
 
   .p-articles .p-card:hover::after,
   .p-articles .p-card:focus-visible::after {
     opacity: 1;
     transform: translateX(18%);
+  }
+
+  .p-articles .p-card.is-sheen-live:hover::after,
+  .p-articles .p-card.is-sheen-live:focus-visible::after {
+    transform: none;
+  }
+
+  /* 悬停托底、按下回弹，对照荣誉奖状 */
+  .p-articles .p-card:hover,
+  .p-articles .p-card:focus-visible {
+    border-color: color(accent);
+    box-shadow: 0 0.45rem 0 color-mix(in srgb, #{color(accent)} 65%, transparent);
+  }
+
+  .p-articles .p-card:active {
+    box-shadow: 0 0.2rem 0 color-mix(in srgb, #{color(accent)} 50%, transparent);
+    transform: translateY(1px);
   }
 
   /* 卷号签：悬停时像被指尖掀了一下 */
@@ -278,22 +392,51 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
     transform: rotate(-2.5deg) translateY(-1px);
   }
 
+  .p-articles .p-card__tag {
+    transition:
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms ease;
+  }
+
+  .p-articles .p-card:hover .p-card__tag {
+    transform: translate3d(0, -1px, 0);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .p-articles .p-articles__gauge::after {
       transform: scaleX(var(--gauge, 0.3));
       transition: none;
     }
 
+    html.js .p-articles .p-card:not(.is-inked) .p-articles__gauge::after {
+      transform: scaleX(var(--gauge, 0.3));
+    }
+
     .p-articles .p-card__id,
     .p-articles-count__n.is-tallied,
-    .p-articles .p-card::after {
+    .p-articles .p-card::after,
+    .p-articles .p-card__tag,
+    .p-articles__first {
       transform: none;
       transition: none;
       animation: none;
     }
 
-    .p-articles .p-card::after {
+    .p-articles .p-card:hover,
+    .p-articles .p-card:focus-visible,
+    .p-articles .p-card:active {
+      transform: none;
+    }
+
+    .p-articles .p-card::after,
+    .p-articles .p-card:hover::after {
       opacity: 0;
+    }
+
+    html.js .p-articles .p-articles__lead.is-inked .p-articles__first,
+    .p-articles .p-articles__lead:hover .p-articles__first {
+      animation: none;
+      transform: rotate(-8deg);
     }
   }
 </style>

@@ -46,15 +46,22 @@ import ArticleMotion from '@/components/pages/ArticleMotion.astro'
       <h2>下一步</h2>
       <p>继续把 AI 实验、班级记忆和工程复盘写进同一条时间线。</p>
     </div>
-    <div class="p-article-end" data-intersect aria-hidden="true">
-      <span class="p-article-end__seal">完</span>
+    <div class="p-article-end" data-intersect>
+      <button type="button" class="p-article-end__seal" aria-label="结章印，完">
+        完
+      </button>
     </div>
     <div class="p-chips" data-flow data-intersect>
       <span class="p-chip">meta</span>
       <span class="p-chip">writing</span>
     </div>
     <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
-      <a class="p-article-nav__link" href="/articles/ai-prototype-loop" data-seal>
+      <a
+        class="p-article-nav__link"
+        href="/articles/ai-prototype-loop"
+        data-seal
+        data-leaf
+      >
         <span class="p-article-nav__label">下一篇 · 更早</span>
         <span class="p-article-nav__title">AI 原型的快速迭代循环 →</span>
       </a>
@@ -68,105 +75,3 @@ import ArticleMotion from '@/components/pages/ArticleMotion.astro'
 
   <PageFoot current="/articles" />
 </BaseLayout>
-
-<style lang="scss" is:global>
-  /* ── 文章页结章与前后篇（仅作用于 .p-article）── */
-
-  /* 文末结章：一枚「完」字小印，朱丝双线相夹，如卷终钤记 */
-  .p-article .p-article-end {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-
-    margin-top: 2.25rem;
-
-    &::before,
-    &::after {
-      content: '';
-      flex: 1;
-      height: 1.5px;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        color-mix(in srgb, #{color(accent)} 55%, transparent)
-      );
-    }
-
-    &::after {
-      background: linear-gradient(
-        90deg,
-        color-mix(in srgb, #{color(accent)} 55%, transparent),
-        transparent
-      );
-    }
-
-    &__seal {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-
-      width: 2.1rem;
-      height: 2.1rem;
-
-      border: 1.5px solid color(accent);
-
-      color: color(accent);
-      font: 700 1rem / 1 font-family(bigger);
-
-      transform: rotate(-4deg);
-    }
-  }
-
-  /* 前后篇导航：一枚横陈的去向牌 */
-  .p-article .p-article-nav {
-    margin-top: 1.75rem;
-
-    &__link {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-
-      padding: 0.9rem 1.1rem;
-
-      border: 1px solid color-mix(in srgb, #{color(secondary)} 35%, transparent);
-      background: color(primary);
-
-      text-decoration: none;
-
-      transition:
-        transform 0.3s ease(out-quint),
-        border-color 0.2s ease,
-        background 0.2s ease;
-
-      &:hover,
-      &:focus-visible {
-        border-color: color(accent);
-        background: color-mix(in srgb, #{color(accent)} 8%, transparent);
-        transform: translateY(-2px);
-      }
-
-      &:focus-visible {
-        outline: 2px solid color(accent);
-        outline-offset: 2px;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        &:hover,
-        &:focus-visible {
-          transform: none;
-        }
-      }
-    }
-
-    &__label {
-      color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
-      font: 700 9px / 1 font-family(fraktion);
-      letter-spacing: 0.16em;
-    }
-
-    &__title {
-      color: color(secondary);
-      font: 700 1.05rem / 1.35 font-family(bigger);
-    }
-  }
-</style>
