@@ -1,0 +1,31 @@
+---
+/**
+ * PageAura — 内页正文的环境层
+ *
+ * 与首页同族的墨圈自纸底缓缓上浮。定位取 fixed 只画一屏：
+ * 长页也不会撑出一张几万像素高的画布，滚动时氛围还连贯。
+ * 需挂在自带层叠上下文的容器里（如 .p-page），负层稳压正文之下。
+ */
+import InkBubbles from '../InkBubbles.astro'
+
+interface Props {
+  class?: string
+}
+
+const { class: className } = Astro.props
+---
+
+<div class:list={['p-aura', className]} aria-hidden="true">
+  <InkBubbles />
+</div>
+
+<style lang="scss">
+  .p-aura {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+
+    opacity: 0.8;
+    pointer-events: none;
+  }
+</style>

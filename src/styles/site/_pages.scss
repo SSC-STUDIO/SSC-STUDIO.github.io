@@ -323,6 +323,32 @@ hero-drift {
   padding: 2.5rem 1.5rem 4rem;
   max-width: 52rem;
 
+  /* 卷底云气：一层随时辰着色的雾，极缓地在纸背后聚散。
+     position: fixed 只画一屏，长页也不会付出整页重绘的代价；
+     .p-page 自带 z-index 成栈，负层稳稳压在正文之下。 */
+  &::before {
+    position: fixed;
+    inset: -6%;
+    z-index: -1;
+
+    background:
+      radial-gradient(
+        ellipse 42% 34% at 14% 20%,
+        color-mix(in srgb, var(--color-mist) 13%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 38% 30% at 86% 76%,
+        color-mix(in srgb, var(--daypart-lamp) 9%, transparent),
+        transparent 70%
+      );
+
+    content: '';
+    pointer-events: none;
+
+    animation: p-page-mist 21s ease-in-out infinite alternate;
+  }
+
   &--wide {
     max-width: 68rem;
   }
@@ -347,6 +373,82 @@ hero-drift {
 
   @include mq(phone) {
     padding: 1.5rem 1rem 3rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
+  }
+}
+
+@keyframes p-page-mist {
+  from {
+    opacity: 0.72;
+    transform: translate3d(-1.2%, 0.9%, 0) scale(1.02);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(1.4%, -1.1%, 0) scale(1.07);
+  }
+}
+
+/* ── 错峰入场 ──
+ * 给任意列表容器加上 data-flow data-intersect，子项便逐一落墨。
+ * 默认态就是落定态：观察者不触发也照常可读，
+ * fill-mode 用 backwards，落定后把 transform 交还给悬停。
+ */
+[data-flow] {
+  --flow-step: 58ms;
+}
+
+[data-flow].is-in-view > * {
+  animation: p-flow-rise 560ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@for $i from 1 through 14 {
+  [data-flow].is-in-view > :nth-child(#{$i}) {
+    animation-delay: calc(var(--flow-step) * #{$i - 1});
+  }
+}
+
+@keyframes p-flow-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.85rem, 0);
+  }
+}
+
+/* ── 纸页提起 ──
+ * 非卡片的条目（榜行、奖状、图集格）共用的一记轻提，
+ * 与 .p-card 同一条缓动，全站手感统一。
+ */
+[data-lift] {
+  --lift: 0px;
+
+  transform: translate3d(0, var(--lift), 0);
+
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+
+  &:hover,
+  &:focus-visible,
+  &:focus-within {
+    --lift: -3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-flow].is-in-view > * {
+    animation: none;
+  }
+
+  [data-lift] {
+    transform: none;
+    transition: none;
   }
 }
 
