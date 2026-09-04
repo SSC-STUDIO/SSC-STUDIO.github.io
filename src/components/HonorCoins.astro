@@ -4,6 +4,9 @@
  *
  * 入场时自题额炸开一簇，奖状与计数卡入视/指针扫过再弹一回。
  * 笑脸为主角，混入铜钱 / 梅花 / 朱砂印 / 墨星，带重力与回弹。
+ *
+ * 生命周期对齐 SPA：before-swap / disconnect 先清 timeout 再停帧，
+ * 成长河流晚挂载的卡片用 MutationObserver 补绑。
  */
 ---
 
@@ -28,57 +31,153 @@
     type CharmImages,
   } from '../motion/charms'
 
+  const MAX_COINS = 56
+  const HERO_DELAY = 420
+  const STAGGER_MS = 80
+  const TARGET_SEL =
+    '.p-honor-counter, .p-honor-cert, .p-card, .tl__card:not(.tl__card--skeleton)'
+
   class HonorCoins extends HTMLElement {
-    canvas: HTMLCanvasElement
-    ctx: CanvasRenderingContext2D
+    canvas: HTMLCanvasElement | null = null
+    ctx: CanvasRenderingContext2D | null = null
     coins: CharmBody[] = []
     charmImages: CharmImages | null = null
     width = 0
     height = 0
     reduced = false
-    stops: Cleanup[] = []
+    /** 整段挂载期：主题降动效、换页 swap */
+    lifetime: Cleanup[] = []
+    /** 仅武装期：观察者、指针、帧尺寸；降动效时单独拆 */
+    armed: Cleanup[] = []
+    timers: number[] = []
     unframe: Cleanup | null = null
+    observer: IntersectionObserver | null = null
     burstOnce = new WeakSet<Element>()
+    bound = new WeakSet<Element>()
     destroyed = false
     burstTimer = 0
+    staggerUntil = 0
 
     connectedCallback() {
+      this.teardown()
       this.destroyed = false
+      this.burstOnce = new WeakSet()
+      this.bound = new WeakSet()
+
       this.canvas = this.querySelector('.js-canvas')
       const ctx = this.canvas?.getContext('2d')
       if (!this.canvas || !ctx) return
 
       this.ctx = ctx
       this.reduced = prefersReducedMotion()
-      if (this.reduced) return
-
       this.charmImages = loadCharmImages()
       this.resize()
 
-      const ro = new ResizeObserver(() => this.resize())
-      ro.observe(this)
-      this.stops.push(() => ro.disconnect())
-      this.stops.push(onResize(() => this.resize()))
-
-      this.bindTargets()
-
-      this.burstTimer = window.setTimeout(() => {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      const onMq = () => {
         if (this.destroyed) return
-        this.burstFromHero()
-      }, 420)
+        const next = mq.matches
+        if (next === this.reduced) return
+        this.reduced = next
+        if (next) {
+          this.disarm()
+          return
+        }
+        this.arm()
+      }
+      if (typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', onMq)
+        this.lifetime.push(() => mq.removeEventListener('change', onMq))
+      } else {
+        mq.addListener(onMq)
+        this.lifetime.push(() => mq.removeListener(onMq))
+      }
+
+      const onSwap = () => this.teardown()
+      document.addEventListener('astro:before-swap', onSwap)
+      this.lifetime.push(() =>
+        document.removeEventListener('astro:before-swap', onSwap)
+      )
+
+      if (this.reduced) return
+      this.arm()
     }
 
     disconnectedCallback() {
-      this.destroyed = true
-      window.clearTimeout(this.burstTimer)
-      this.burstTimer = 0
+      this.teardown()
+    }
+
+    /** 挂观察者、入场彩头；换页或降动效时由 disarm / teardown 对拆 */
+    arm() {
+      if (this.destroyed || this.reduced) return
+      this.disarm()
+
+      const ro = new ResizeObserver(() => {
+        if (this.destroyed) return
+        this.resize()
+      })
+      ro.observe(this)
+      this.armed.push(() => ro.disconnect())
+      this.armed.push(
+        onResize(() => {
+          if (this.destroyed) return
+          this.resize()
+        })
+      )
+
+      this.bindTargets()
+      this.resize()
+      this.burstTimer = this.schedule(() => this.burstFromHero(), HERO_DELAY)
+    }
+
+    disarm() {
+      this.clearTimers()
       this.suspend()
-      this.stops.forEach((stop) => stop())
-      this.stops = []
+      this.coins = []
+      this.clearCanvas()
+      this.armed.forEach((stop) => stop())
+      this.armed = []
+      this.observer = null
+      this.bound = new WeakSet()
+      this.staggerUntil = 0
+    }
+
+    teardown() {
+      this.destroyed = true
+      this.disarm()
+      this.lifetime.forEach((stop) => stop())
+      this.lifetime = []
+      this.burstOnce = new WeakSet()
+    }
+
+    schedule(fn: () => void, ms: number): number {
+      const id = window.setTimeout(() => {
+        this.timers = this.timers.filter((timer) => timer !== id)
+        if (id === this.burstTimer) this.burstTimer = 0
+        if (this.destroyed) return
+        fn()
+      }, ms)
+      this.timers.push(id)
+      return id
+    }
+
+    clearTimers() {
+      this.timers.forEach((id) => window.clearTimeout(id))
+      this.timers = []
+      this.burstTimer = 0
+    }
+
+    clearCanvas() {
+      const { ctx, canvas } = this
+      if (!ctx || !canvas) return
+      ctx.save()
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.restore()
     }
 
     resume() {
-      if (this.unframe) return
+      if (this.destroyed || this.reduced || this.unframe) return
       this.unframe = onFrame(() => this.paint())
     }
 
@@ -88,6 +187,8 @@
     }
 
     resize() {
+      if (this.destroyed || !this.canvas || !this.ctx) return
+
       const width = this.clientWidth || window.innerWidth
       const height = this.clientHeight || window.innerHeight
       if (!width || !height) return
@@ -100,41 +201,103 @@
       this.height = height
     }
 
-    bindTargets() {
-      const targets = document.querySelectorAll(
-        '.p-honor-counter, .p-honor-cert, .p-card, .tl__card, .p-hero__title'
-      )
+    /** 只认本页卷首/正文，避免 View Transition 期间误绑旧页 */
+    pageRoots(): { head: HTMLElement | null; page: HTMLElement | null } {
+      const head = this.closest('.p-honors-head') as HTMLElement | null
+      const sibling = head?.nextElementSibling as HTMLElement | null
+      const page = sibling?.classList.contains('p-honors')
+        ? sibling
+        : ((head?.parentElement?.querySelector('.p-honors') ||
+            document.querySelector('.p-honors')) as HTMLElement | null)
+      return { head, page }
+    }
 
-      const observer = new IntersectionObserver(
+    bindTargets() {
+      if (this.destroyed) return
+
+      this.observer = new IntersectionObserver(
         (entries) => {
+          if (this.destroyed) return
           entries.forEach((entry) => {
             if (!entry.isIntersecting) return
             this.burstFrom(entry.target as HTMLElement, true)
-            observer.unobserve(entry.target)
+            this.observer?.unobserve(entry.target)
           })
         },
         { threshold: 0.28 }
       )
-
-      targets.forEach((el) => {
-        observer.observe(el)
-        const onEnter = () => this.burstFrom(el as HTMLElement, false)
-        el.addEventListener('pointerenter', onEnter, { passive: true })
-        this.stops.push(() => el.removeEventListener('pointerenter', onEnter))
+      this.armed.push(() => {
+        this.observer?.disconnect()
+        this.observer = null
       })
 
-      this.stops.push(() => observer.disconnect())
+      this.scanTargets()
+
+      const { page } = this.pageRoots()
+      if (page && typeof MutationObserver === 'function') {
+        const scanner = new MutationObserver(() => {
+          if (this.destroyed) return
+          this.scanTargets()
+        })
+        scanner.observe(page, { childList: true, subtree: true })
+        this.armed.push(() => scanner.disconnect())
+      }
+    }
+
+    scanTargets() {
+      if (this.destroyed || !this.observer) return
+
+      const { head, page } = this.pageRoots()
+      const nodes: Element[] = []
+
+      head?.querySelectorAll('.p-hero__title').forEach((el) => nodes.push(el))
+      page?.querySelectorAll(TARGET_SEL).forEach((el) => nodes.push(el))
+
+      nodes.forEach((el) => this.bindEl(el as HTMLElement))
+    }
+
+    bindEl(el: HTMLElement) {
+      if (this.destroyed || this.bound.has(el)) return
+      this.bound.add(el)
+
+      if (!el.matches('.p-hero__title')) {
+        this.observer?.observe(el)
+      }
+
+      const onEnter = () => {
+        if (this.destroyed) return
+        this.burstFrom(el, false)
+      }
+      el.addEventListener('pointerenter', onEnter, { passive: true })
+      this.armed.push(() => el.removeEventListener('pointerenter', onEnter))
     }
 
     burstFromHero() {
-      if (this.destroyed) return
-      const hero = document.querySelector('.p-hero__title') as HTMLElement | null
-      if (hero) this.burstFrom(hero, true)
-      else this.burstAt(this.width * 0.5, 140, 18, this.height * 0.42)
+      if (this.destroyed || this.reduced) return
+
+      const { head } = this.pageRoots()
+      const hero = (head?.querySelector('.p-hero__title') ||
+        document.querySelector('.p-honors-head .p-hero__title')) as HTMLElement | null
+
+      if (hero) {
+        if (this.burstOnce.has(hero)) return
+        this.burstOnce.add(hero)
+        const host = this.getBoundingClientRect()
+        const rect = hero.getBoundingClientRect()
+        this.burstAt(
+          rect.left + rect.width * 0.5 - host.left,
+          rect.top + rect.height * 0.28 - host.top,
+          this.onceCount(),
+          Math.min(this.height - 24, rect.bottom - host.top + 12)
+        )
+        return
+      }
+
+      this.burstAt(this.width * 0.5, 140, this.onceCount(), this.height * 0.42)
     }
 
     burstFrom(el: HTMLElement, once: boolean) {
-      if (this.destroyed) return
+      if (this.destroyed || this.reduced) return
       if (once) {
         if (this.burstOnce.has(el)) return
         this.burstOnce.add(el)
@@ -144,29 +307,58 @@
       const rect = el.getBoundingClientRect()
       const x = rect.left + rect.width * 0.5 - host.left
       const y = rect.top + rect.height * 0.28 - host.top
-      const floor = Math.min(
-        this.height - 24,
-        rect.bottom - host.top + 12
-      )
-      const count = once
-        ? window.innerWidth > 767
-          ? 18
-          : 10
-        : window.innerWidth > 767
-          ? 9
-          : 5
+      const floor = Math.min(this.height - 24, rect.bottom - host.top + 12)
+      const count = once ? this.onceCount() : this.hoverCount()
 
-      this.burstAt(x, y, count, floor)
+      const fire = () => {
+        if (this.destroyed) return
+        this.burstAt(x, y, count, floor)
+      }
+
+      if (!once) {
+        fire()
+        return
+      }
+
+      const delay = this.takeStagger()
+      if (delay > 0) this.schedule(fire, delay)
+      else fire()
+    }
+
+    takeStagger(): number {
+      const now = performance.now()
+      if (this.staggerUntil < now) this.staggerUntil = now
+      const at = this.staggerUntil
+      this.staggerUntil += STAGGER_MS
+      return Math.max(0, Math.round(at - now))
+    }
+
+    onceCount() {
+      return window.innerWidth > 767 ? 14 : 8
+    }
+
+    hoverCount() {
+      return window.innerWidth > 767 ? 8 : 5
     }
 
     burstAt(x: number, y: number, count: number, floor: number) {
-      this.coins.push(...spawnCharmBurst(x, y, count, floor))
+      if (this.destroyed || this.reduced || count <= 0) return
+
+      const room = MAX_COINS - this.coins.length
+      if (room <= 0) return
+
+      this.coins.push(...spawnCharmBurst(x, y, Math.min(count, room), floor))
       this.resume()
     }
 
     paint() {
-      const { ctx, width, height, coins, charmImages } = this
-      if (!width || !height || !charmImages) return
+      const { ctx, coins, charmImages } = this
+      if (this.destroyed || !ctx || !charmImages) return
+      if (!this.width || !this.height) {
+        this.resize()
+        if (!this.width || !this.height) return
+      }
+      const { width, height } = this
 
       for (let i = coins.length - 1; i >= 0; i--) {
         if (!stepCharm(coins[i])) coins.splice(i, 1)

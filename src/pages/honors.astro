@@ -180,10 +180,122 @@ const certs = [
         }
       </div>
     </section>
+    <honor-feel hidden aria-hidden="true"></honor-feel>
   </main>
 
   <PageFoot current="/honors" />
 </BaseLayout>
+
+<script>
+  import { prefersReducedMotion } from '../motion/core'
+
+  const SHEEN_SEL =
+    '.p-honor-counter, .p-honor-cert, .p-card, .tl__card:not(.tl__card--skeleton)'
+
+  /**
+   * 计数卡 / 节点 / 奖状 / 河流卡：指针精细时受光跟手横移。
+   * 触屏与降动效只走 CSS 扫光；换页 disconnect 时摘监听、清 --leaf-sheen。
+   */
+  class HonorFeel extends HTMLElement {
+    page: HTMLElement | null = null
+    live: HTMLElement | null = null
+    reduced = false
+    listening = false
+
+    connectedCallback() {
+      this.teardown()
+      this.page = this.closest('.p-honors')
+      if (!this.page) return
+
+      this.reduced = prefersReducedMotion()
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      mq.addEventListener?.('change', this.onMotion)
+      document.addEventListener('astro:before-swap', this.onSwap)
+      this.listen()
+    }
+
+    disconnectedCallback() {
+      this.teardown()
+    }
+
+    onSwap = () => this.teardown()
+
+    onMotion = (event: MediaQueryListEvent) => {
+      this.reduced = event.matches
+      if (this.reduced) {
+        this.unlisten()
+        this.dropAll()
+        return
+      }
+      this.listen()
+    }
+
+    listen() {
+      if (this.listening || this.reduced || !this.page) return
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        return
+      }
+      this.page.addEventListener('pointermove', this.onMove, { passive: true })
+      this.page.addEventListener('pointerleave', this.onLeave)
+      this.listening = true
+    }
+
+    unlisten() {
+      if (!this.listening) return
+      this.page?.removeEventListener('pointermove', this.onMove)
+      this.page?.removeEventListener('pointerleave', this.onLeave)
+      this.listening = false
+    }
+
+    onMove = (event: PointerEvent) => {
+      if (this.reduced || !this.page) return
+
+      const card = (event.target as Element | null)?.closest<HTMLElement>(
+        SHEEN_SEL
+      )
+      if (this.live && this.live !== card) this.drop(this.live)
+
+      if (!card || !this.page.contains(card)) {
+        this.live = null
+        return
+      }
+
+      const rect = card.getBoundingClientRect()
+      const x = (event.clientX - rect.left) / Math.max(1, rect.width) - 0.5
+      card.style.setProperty('--leaf-sheen', (0.5 - x).toFixed(3))
+      card.classList.add('is-sheen-live')
+      this.live = card
+    }
+
+    onLeave = () => this.dropAll()
+
+    drop(el: HTMLElement) {
+      el.classList.remove('is-sheen-live')
+      el.style.removeProperty('--leaf-sheen')
+    }
+
+    dropAll() {
+      this.page?.querySelectorAll<HTMLElement>('.is-sheen-live').forEach((el) => {
+        this.drop(el)
+      })
+      if (this.live) this.drop(this.live)
+      this.live = null
+    }
+
+    teardown() {
+      document.removeEventListener('astro:before-swap', this.onSwap)
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+      mq.removeEventListener?.('change', this.onMotion)
+      this.unlisten()
+      this.dropAll()
+      this.page = null
+    }
+  }
+
+  if (!customElements.get('honor-feel')) {
+    customElements.define('honor-feel', HonorFeel)
+  }
+</script>
 
 <style lang="scss" is:global>
   /* ── 荣誉页动效（仅本页） ──
@@ -218,17 +330,24 @@ const certs = [
     }
   }
 
-  /* 节点卡受光：一道浅光随悬停扫过，编号如小印掀起 */
+  /* 节点卡受光：默认一道浅扫，指针精细时改跟 --leaf-sheen */
+  .p-honors .p-card {
+    --leaf-sheen: 0.5;
+
+    overflow: hidden;
+  }
+
   .p-honors .p-card::after {
     position: absolute;
     inset: 0;
     z-index: 2;
 
     background: linear-gradient(
-      105deg,
-      transparent 36%,
-      color-mix(in srgb, #{color(primary)} 28%, transparent) 50%,
-      transparent 64%
+      100deg,
+      transparent calc(var(--leaf-sheen, 0.5) * 100% - 22%),
+      color-mix(in srgb, #{color(primary)} 28%, transparent)
+        calc(var(--leaf-sheen, 0.5) * 100%),
+      transparent calc(var(--leaf-sheen, 0.5) * 100% + 22%)
     );
     content: '';
     opacity: 0;
@@ -239,10 +358,20 @@ const certs = [
       transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  .p-honors .p-card.is-sheen-live::after {
+    transform: none;
+    transition: opacity 420ms ease;
+  }
+
   .p-honors .p-card:hover::after,
   .p-honors .p-card:focus-visible::after {
     opacity: 1;
     transform: translateX(18%);
+  }
+
+  .p-honors .p-card.is-sheen-live:hover::after,
+  .p-honors .p-card.is-sheen-live:focus-visible::after {
+    transform: none;
   }
 
   .p-honors .p-card__id {
@@ -286,19 +415,29 @@ const certs = [
     }
   }
 
-  /* 相纸受光：一道随指针横移的浅光掠过奖状 */
+  /* 相纸受光：只扫过奖状图面，不洗掉题名；位置跟 --leaf-sheen */
+  .p-honor-cert {
+    --leaf-sheen: 0.5;
+  }
+
   .p-honor-cert__image {
     transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .p-honor-cert:hover .p-honor-cert__image {
+  .p-honor-cert:hover .p-honor-cert__image,
+  .p-honor-cert:focus-within .p-honor-cert__image {
     transform: scale(1.045);
   }
 
   .p-honor-cert::after {
     position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
     z-index: 2;
-    inset: 0;
+
+    width: 100%;
+    aspect-ratio: 4 / 3;
 
     background: linear-gradient(
       100deg,
@@ -314,7 +453,8 @@ const certs = [
     transition: opacity 0.4s ease(out-quint);
   }
 
-  .p-honor-cert:hover::after {
+  .p-honor-cert:hover::after,
+  .p-honor-cert:focus-within::after {
     opacity: 1;
   }
 
@@ -325,13 +465,16 @@ const certs = [
       letter-spacing 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .p-honor-cert:hover .p-honor-cert__year {
+  .p-honor-cert:hover .p-honor-cert__year,
+  .p-honor-cert:focus-within .p-honor-cert__year {
     color: color(accent-strong);
     letter-spacing: 0.2em;
   }
 
   /* 计数卡悬停：朱砂托底，并走一道受光 */
   .p-honor-counter[data-lift] {
+    --leaf-sheen: 0.5;
+
     position: relative;
     overflow: hidden;
 
@@ -340,7 +483,8 @@ const certs = [
       box-shadow 260ms ease,
       border-color 260ms ease;
 
-    &:hover {
+    &:hover,
+    &:focus-within {
       border-color: color(accent);
       box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 60%, transparent);
     }
@@ -352,9 +496,10 @@ const certs = [
 
       background: linear-gradient(
         108deg,
-        transparent 38%,
-        color-mix(in srgb, #{color(primary)} 30%, transparent) 50%,
-        transparent 62%
+        transparent calc(var(--leaf-sheen, 0.5) * 100% - 18%),
+        color-mix(in srgb, #{color(primary)} 30%, transparent)
+          calc(var(--leaf-sheen, 0.5) * 100%),
+        transparent calc(var(--leaf-sheen, 0.5) * 100% + 18%)
       );
       content: '';
       opacity: 0;
@@ -365,10 +510,20 @@ const certs = [
         transform 640ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    &.is-sheen-live::after {
+      transform: none;
+      transition: opacity 380ms ease;
+    }
+
     &:hover::after,
     &:focus-within::after {
       opacity: 1;
       transform: translateX(16%);
+    }
+
+    &.is-sheen-live:hover::after,
+    &.is-sheen-live:focus-within::after {
+      transform: none;
     }
   }
 
@@ -390,6 +545,61 @@ const certs = [
   .p-honor-counter__line {
     position: relative;
     z-index: 2;
+  }
+
+  /* 成长河流卡：与节点卡同一道受光，骨架卡不跟 */
+  .p-honors .tl__card:not(.tl__card--skeleton) {
+    --leaf-sheen: 0.5;
+
+    position: relative;
+    overflow: hidden;
+
+    transition:
+      border-color 280ms ease,
+      box-shadow 280ms ease;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+
+      background: linear-gradient(
+        100deg,
+        transparent calc(var(--leaf-sheen, 0.5) * 100% - 22%),
+        color-mix(in srgb, #{color(primary)} 28%, transparent)
+          calc(var(--leaf-sheen, 0.5) * 100%),
+        transparent calc(var(--leaf-sheen, 0.5) * 100% + 22%)
+      );
+      content: '';
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-18%);
+      transition:
+        opacity 420ms ease,
+        transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &.is-sheen-live::after {
+      transform: none;
+      transition: opacity 420ms ease;
+    }
+
+    &:hover,
+    &:focus-within {
+      border-color: color(accent);
+      box-shadow: 0 0.4rem 0 color-mix(in srgb, #{color(accent)} 60%, transparent);
+    }
+
+    &:hover::after,
+    &:focus-within::after {
+      opacity: 1;
+      transform: translateX(18%);
+    }
+
+    &.is-sheen-live:hover::after,
+    &.is-sheen-live:focus-within::after {
+      transform: none;
+    }
   }
 
   /* 奖状年份：存档入屏后如一枚小印钤下 */
@@ -419,12 +629,15 @@ const certs = [
     .p-honors .p-card::after,
     .p-honors .p-card__id,
     .p-honor-counter[data-lift]::after,
-    .p-honor-counter__label {
+    .p-honor-counter__label,
+    .p-honors .tl__card::after {
       transition: none;
     }
 
     .p-honors .p-card::after,
-    .p-honor-counter[data-lift]::after {
+    .p-honor-counter[data-lift]::after,
+    .p-honor-cert::after,
+    .p-honors .tl__card::after {
       opacity: 0;
     }
 
@@ -438,7 +651,8 @@ const certs = [
     .p-honor-cert__image,
     .p-honor-cert::after,
     .p-honor-cert__year,
-    .p-honor-counter[data-lift] {
+    .p-honor-counter[data-lift],
+    .p-honors .tl__card:not(.tl__card--skeleton) {
       transition: none;
     }
 
