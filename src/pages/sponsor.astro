@@ -34,7 +34,7 @@ import PageAura from '@/components/pages/PageAura.astro'
             <a
               href="https://github.com/SSC-STUDIO"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
             >@SSC-STUDIO</a>
           </li>
           <li>
@@ -42,14 +42,19 @@ import PageAura from '@/components/pages/PageAura.astro'
             <a href="mailto:3992237161@qq.com" data-copy-email
               >3992237161@qq.com</a>
           </li>
-          <li>把站点分享给同样需要灵感的朋友</li>
+          <li>
+            把站点分享给同样需要灵感的朋友 —
+            <button type="button" class="p-sponsor__text-btn" data-copy-site data-seal>
+              复制链接
+            </button>
+          </li>
         </ul>
-        <div class="p-card__actions">
+        <div class="p-card__actions" data-flow data-intersect>
           <a
             class="p-card__link"
             href="https://github.com/SSC-STUDIO"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             data-seal
           >
             GitHub
@@ -59,6 +64,14 @@ import PageAura from '@/components/pages/PageAura.astro'
            data-copy-email data-seal>
             邮件联系
           </a>
+          <button
+            type="button"
+            class="p-card__link p-card__link--ghost"
+            data-copy-site
+            data-seal
+          >
+            复制站点链接
+          </button>
         </div>
       </PageCard>
       <PageCard kicker="trust" title="边界说明">
@@ -72,10 +85,14 @@ import PageAura from '@/components/pages/PageAura.astro'
         <span class="p-sponsor-qr__stamp" aria-hidden="true">谢</span>
         <img
           src="/images/qr-code.svg"
-          alt="网站二维码"
+          alt="陈润森个人网站二维码"
           width="120"
           height="120"
+          data-sponsor-qr
         />
+        <p class="p-sponsor-qr__fallback" hidden>
+          二维码暂时无法显示 — 请改用上方的 GitHub、邮件或复制链接。
+        </p>
         <p>
           扫码把这个站点带走，或写信到
           <a href="mailto:3992237161@qq.com" data-copy-email>3992237161@qq.com</a>
@@ -88,6 +105,110 @@ import PageAura from '@/components/pages/PageAura.astro'
   <PageFoot current="/sponsor" />
 </BaseLayout>
 
+<script>
+  const FALLBACK_URL = 'https://chenrunsen.cn/'
+
+  function siteUrl() {
+    return location.origin ? `${location.origin}/` : FALLBACK_URL
+  }
+
+  let toastTimer = 0
+
+  function showCopied(anchor: HTMLElement) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let toast = document.querySelector('.copy-toast')
+    if (!(toast instanceof HTMLElement)) {
+      toast = document.createElement('span')
+      toast.className = 'copy-toast'
+      toast.setAttribute('role', 'status')
+      document.body.appendChild(toast)
+    }
+    toast.textContent = '已复制到剪贴板'
+    const rect = anchor.getBoundingClientRect()
+    toast.style.left = `${Math.max(8, rect.left + rect.width / 2)}px`
+    toast.style.top = `${Math.max(8, rect.top - 10)}px`
+    toast.classList.remove('is-visible')
+    void toast.offsetWidth
+    toast.classList.add('is-visible')
+    window.clearTimeout(toastTimer)
+    toastTimer = window.setTimeout(
+      () => toast.classList.remove('is-visible'),
+      reduced ? 2400 : 1500
+    )
+  }
+
+  function copyText(value: string, anchor: HTMLElement) {
+    const done = () => showCopied(anchor)
+    const fallback = () => {
+      const ta = document.createElement('textarea')
+      ta.value = value
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try {
+        document.execCommand('copy')
+      } catch {
+        /* 剪贴板不可用时仍给反馈，避免按钮像坏掉 */
+      }
+      ta.remove()
+      done()
+    }
+
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(value).then(done, fallback)
+    } else {
+      fallback()
+    }
+  }
+
+  function onDocClick(event: Event) {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const btn = target.closest('[data-copy-site]')
+    if (!(btn instanceof HTMLElement)) return
+    event.preventDefault()
+    copyText(siteUrl(), btn)
+  }
+
+  function bindQrFallback() {
+    const img = document.querySelector('[data-sponsor-qr]')
+    if (!(img instanceof HTMLImageElement)) return
+
+    const box = img.closest('.p-sponsor-qr')
+    const fallback = box?.querySelector('.p-sponsor-qr__fallback')
+
+    const fail = () => {
+      img.hidden = true
+      box?.classList.add('is-empty')
+      if (fallback instanceof HTMLElement) fallback.hidden = false
+    }
+
+    if (img.dataset.qrBound === '1') return
+    img.dataset.qrBound = '1'
+
+    if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) {
+      fail()
+      return
+    }
+
+    img.addEventListener('error', fail, { once: true })
+  }
+
+  let bound = false
+
+  function mount() {
+    if (!bound) {
+      bound = true
+      document.addEventListener('click', onDocClick)
+    }
+    bindQrFallback()
+  }
+
+  document.addEventListener('astro:page-load', mount)
+  mount()
+</script>
+
 <style lang="scss" is:global>
   /* ── 赞助页专属：卡内链接与收尾谢语 ── */
 
@@ -98,18 +219,60 @@ import PageAura from '@/components/pages/PageAura.astro'
     text-decoration-color: color(accent);
     text-underline-offset: 0.2em;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       color: color(accent);
+    }
+  }
+
+  /* 行内「复制链接」：看起来像旁边那条朱砂下划线 */
+  .p-sponsor__text-btn {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    background: none;
+
+    color: color(secondary);
+    font: inherit;
+    text-decoration: underline;
+    text-decoration-color: color(accent);
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      color: color(accent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid color(accent);
+      outline-offset: 3px;
+    }
+  }
+
+  .p-sponsor button.p-card__link {
+    cursor: pointer;
+  }
+
+  /* 双列时第三张卡单独占一行，避免右侧空一格 */
+  @media (min-width: 1080px) and (max-width: 1399.98px) {
+    .p-sponsor .p-stack--cards > .p-card:last-of-type {
+      grid-column: 1 / -1;
     }
   }
 
   /* 收尾谢语：小字一行，如卷末跋语 */
   .p-sponsor .p-sponsor-qr__thanks {
+    position: relative;
+    z-index: 2;
+
     margin-top: 0.65rem;
 
     color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
     font: 400 0.85rem / 1.5 font-family(editorial);
     letter-spacing: 0.06em;
+
+    transition: color 320ms ease;
   }
 
   /* 卷底题字 */
@@ -148,12 +311,6 @@ import PageAura from '@/components/pages/PageAura.astro'
       transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .p-sponsor .p-card:hover::after,
-  .p-sponsor .p-card:focus-visible::after {
-    opacity: 1;
-    transform: translateX(18%);
-  }
-
   /* ══════════════════════════════════════════════════════
      赞助页动效：卡片错峰落墨、卡内题识依次落定、
      二维码如一页装裱好的册页随指针轻翻。
@@ -187,13 +344,9 @@ import PageAura from '@/components/pages/PageAura.astro'
     }
   }
 
-  /* 支持方式列表：每条前多一枚朱砂点，悬停时推近一寸 */
+  /* 支持方式列表：每条前多一枚朱砂点 */
   .p-sponsor .p-card__body li {
     transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
-
-    &:hover {
-      transform: translateX(3px);
-    }
 
     &::marker {
       color: color(accent);
@@ -225,14 +378,9 @@ import PageAura from '@/components/pages/PageAura.astro'
         border-color 320ms ease;
     }
 
-    &:hover,
     &:focus-within {
-      --qr-lift: -5px;
-
-      border-color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
-      box-shadow:
-        0 16px 34px -14px color-mix(in srgb, var(--color-shadow) 45%, transparent),
-        0 3px 0 color-mix(in srgb, #{color(accent)} 85%, transparent);
+      outline: 2px solid color-mix(in srgb, #{color(accent)} 55%, transparent);
+      outline-offset: 3px;
     }
 
     img {
@@ -240,10 +388,28 @@ import PageAura from '@/components/pages/PageAura.astro'
         transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
         filter 420ms ease;
     }
+  }
 
-    &:hover img {
-      transform: scale(1.04);
-    }
+  /* 二维码加载失败：收起图，露出空态说明 */
+  .p-sponsor .p-sponsor-qr.is-empty img {
+    display: none;
+  }
+
+  .p-sponsor .p-sponsor-qr__fallback[hidden] {
+    display: none !important;
+  }
+
+  .p-sponsor .p-sponsor-qr__fallback {
+    position: relative;
+    z-index: 2;
+
+    margin: 0.35rem 0 0.85rem;
+    padding: 0.85rem 1rem;
+
+    border: 1.5px dashed color-mix(in srgb, #{color(secondary)} 36%, transparent);
+
+    color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
+    font: 400 0.9rem / 1.5 font-family(editorial);
   }
 
   /* 受光：一道随指针左右游走的纸面反光 */
@@ -266,29 +432,13 @@ import PageAura from '@/components/pages/PageAura.astro'
     transition: opacity 320ms ease;
   }
 
-  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__sheen {
-    opacity: 1;
-  }
-
-  /* 谢语在册页翻起时才悄悄透出朱砂 */
-  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__thanks {
-    color: color-mix(in srgb, #{color(accent-strong)} 72%, #{color(secondary)});
-  }
-
-  .p-sponsor .p-sponsor-qr__thanks {
-    position: relative;
-    z-index: 2;
-
-    transition: color 320ms ease;
-  }
-
   .p-sponsor .p-sponsor-qr img,
   .p-sponsor .p-sponsor-qr > p {
     position: relative;
     z-index: 2;
   }
 
-  /* 册页右上钤「谢」：悬停时落印 */
+  /* 册页右上钤「谢」：悬停或聚焦时落印 */
   .p-sponsor .p-sponsor-qr__stamp {
     position: absolute;
     top: 0.7rem;
@@ -314,10 +464,46 @@ import PageAura from '@/components/pages/PageAura.astro'
       transform 420ms cubic-bezier(0.2, 1.35, 0.32, 1);
   }
 
-  .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__stamp,
-  .p-sponsor .p-sponsor-qr:focus-within .p-sponsor-qr__stamp {
-    opacity: 0.88;
-    transform: scale(1) rotate(-6deg);
+  @media (hover: hover) and (pointer: fine) {
+    .p-sponsor .p-card:hover::after,
+    .p-sponsor .p-card:focus-within::after {
+      opacity: 1;
+      transform: translateX(18%);
+    }
+
+    .p-sponsor .p-card__body li:hover {
+      transform: translateX(3px);
+    }
+
+    .p-sponsor .p-sponsor-qr:hover,
+    .p-sponsor .p-sponsor-qr:focus-within {
+      --qr-lift: -5px;
+
+      border-color: color-mix(in srgb, #{color(secondary)} 68%, transparent);
+      box-shadow:
+        0 16px 34px -14px color-mix(in srgb, var(--color-shadow) 45%, transparent),
+        0 3px 0 color-mix(in srgb, #{color(accent)} 85%, transparent);
+    }
+
+    .p-sponsor .p-sponsor-qr:hover img {
+      transform: scale(1.04);
+    }
+
+    .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__sheen,
+    .p-sponsor .p-sponsor-qr:focus-within .p-sponsor-qr__sheen {
+      opacity: 1;
+    }
+
+    .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__thanks,
+    .p-sponsor .p-sponsor-qr:focus-within .p-sponsor-qr__thanks {
+      color: color-mix(in srgb, #{color(accent-strong)} 72%, #{color(secondary)});
+    }
+
+    .p-sponsor .p-sponsor-qr:hover .p-sponsor-qr__stamp,
+    .p-sponsor .p-sponsor-qr:focus-within .p-sponsor-qr__stamp {
+      opacity: 0.88;
+      transform: scale(1) rotate(-6deg);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
