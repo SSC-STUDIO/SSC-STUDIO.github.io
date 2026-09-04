@@ -222,3 +222,12 @@ export function signalThemeFlip(scheme: ThemeScheme): void {
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
+
+/** 减少动态偏好变化；返回取消函数 */
+export function onReducedMotion(fn: (reduced: boolean) => void): Cleanup {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const handler = () => fn(mq.matches)
+
+  mq.addEventListener('change', handler)
+  return () => mq.removeEventListener('change', handler)
+}

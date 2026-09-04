@@ -5,6 +5,8 @@
  * 同时元素本身有一记极短的「压印」位移（按下沉、弹起回）。
  */
 
+import { prefersReducedMotion } from './core'
+
 const SEAL_RIPPLE = 'seal-ripple'
 
 export function initSealPress(selector = '[data-seal]'): () => void {
@@ -12,7 +14,7 @@ export function initSealPress(selector = '[data-seal]'): () => void {
 
   if (!elements.length) return () => {}
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reduced = prefersReducedMotion()
 
   if (reduced) return () => {}
 

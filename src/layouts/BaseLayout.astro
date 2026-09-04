@@ -119,6 +119,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
 
         function unlockPreparing(root, doc) {
           if (!root) return
+          try {
+            window.__siteRevealed = 1
+          } catch (e) {}
           root.classList.remove('is-scroll-blocked', 'is-intro-active')
           root.classList.add('is-site-ready')
           var wrap = (doc || document).querySelector('.js-site-wrapper')
@@ -128,15 +131,23 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           }
         }
 
-        // 看过开场或回访：尽早摘锁，避免刷新时闪一帧全屏层
-        try {
-          if (sessionStorage.getItem('site-intro-seen') === '1') {
+        function shouldUnlockEarly() {
+          try {
+            if (sessionStorage.getItem('site-intro-seen') === '1') return true
+          } catch (e) {}
+          try {
+            return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          } catch (e) {}
+          return false
+        }
+
+        // 看过开场 / 减少动态：尽早摘锁，避免 is-preparing 白屏
+        if (shouldUnlockEarly()) {
+          unlockPreparing(document.documentElement, document)
+          document.addEventListener('DOMContentLoaded', function () {
             unlockPreparing(document.documentElement, document)
-            document.addEventListener('DOMContentLoaded', function () {
-              unlockPreparing(document.documentElement, document)
-            })
-          }
-        } catch (e) {}
+          })
+        }
 
         document.addEventListener('astro:before-swap', function (event) {
           var nextDoc = event.newDocument
@@ -155,6 +166,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           var root = document.documentElement
           var wrapper = document.querySelector('.js-site-wrapper')
           if (!wrapper || !wrapper.classList.contains('is-preparing')) return
+          try {
+            window.__siteRevealed = 1
+          } catch (e) {}
           wrapper.classList.remove('is-preparing')
           wrapper.style.opacity = '1'
           root.classList.add('is-site-ready')
@@ -188,6 +202,20 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         }
       </style>
     </noscript>
+
+    <!-- 减少动态：不要等模块脚本才摘 is-preparing，否则首屏会白屏 -->
+    <style>
+      @media (prefers-reduced-motion: reduce) {
+        .site-wrapper.is-preparing {
+          opacity: 1 !important;
+          pointer-events: auto;
+        }
+        .site-wrapper.is-preparing .site-head,
+        .site-wrapper.is-preparing .s-hero {
+          opacity: 1 !important;
+        }
+      }
+    </style>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -242,12 +270,13 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     import { initSealPress } from '../motion/seal-press'
     import { initLeafFlip } from '../motion/leaf-flip'
     import { initHandscroll } from '../motion/handscroll'
-    import { markReady, nextFrame } from '../motion/core'
+    import { markReady, nextFrame, prefersReducedMotion } from '../motion/core'
     import {
       playInkIntro,
       revealSiteNow,
       hasSeenIntro,
       consumeHardLoad,
+      wasRevealed,
     } from '../motion/ink-intro'
 
     import Lenis from 'lenis'
@@ -264,6 +293,9 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
         scrollProgress: number
         lenis: any
         __site: any
+        __siteRevealed?: number
+        __siteHardLoadConsumed?: boolean
+        __motionPackBound?: boolean
       }
     }
 
@@ -297,42 +329,68 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       /** data-intersect 观察者（每次换页重建，旧的必须断开，否则逐页累积） */
       pageObserver: IntersectionObserver | null = null
 
+      /** 换页监听只绑一次；HMR / 脚本重评不能再叠一份 */
+      routerBound: boolean = false
+
+      /** 当前这一页是否已经跑过 pageSetup（teardown 后清掉） */
+      didPageSetup: boolean = false
+
+      /** 成功进入 pageSetup 的次数（测「每页一遍」） */
+      setupRuns: number = 0
+
+      teardownRuns: number = 0
+
+      lastTeardown: {
+        inkReady: boolean
+        didSetup: boolean
+        observer: boolean
+        motion: number
+      } | null = null
+
+      hasLoaded: boolean = false
+      os: string = 'unknown'
+      browser: string = 'unknown'
+
       /**
        * Constructor
        */
       constructor() {
-        // OS class
-        let os = 'unknown'
+        this.os = 'unknown'
         if (navigator.userAgent.indexOf('Win') !== -1) {
-          os = 'windows'
+          this.os = 'windows'
         } else if (navigator.userAgent.indexOf('Android') !== -1) {
-          os = 'android'
+          this.os = 'android'
         } else if (navigator.userAgent.indexOf('Mac') !== -1) {
-          os = 'mac'
+          this.os = 'mac'
         } else if (navigator.userAgent.indexOf('Linux') !== -1) {
-          os = 'linux'
+          this.os = 'linux'
         }
-        document.documentElement.classList.add(`is-${os}`)
 
-        // Browser class
-        let browser = 'unknown'
+        this.browser = 'unknown'
         if (navigator.userAgent.indexOf('Firefox') !== -1) {
-          browser = 'firefox'
+          this.browser = 'firefox'
         } else if (navigator.userAgent.indexOf('Chrome') !== -1) {
-          browser = 'chrome'
+          this.browser = 'chrome'
         } else if (navigator.userAgent.indexOf('Safari') !== -1) {
-          browser = 'safari'
-        }
-        document.documentElement.classList.add(`is-${browser}`)
-
-        // Subpages are visible as soon as the shell script runs
-        if (document.body.classList.contains('is-subpage')) {
-          document.documentElement.classList.add('is-subpage-ready')
+          this.browser = 'safari'
         }
 
         this.booted = false
-
+        this.syncEnvironmentClasses()
         this.bindGlobalEvents()
+      }
+
+      /**
+       * ClientRouter 换页会整表替换 <html> 属性，环境类必须写回。
+       */
+      syncEnvironmentClasses() {
+        const root = document.documentElement
+        root.classList.add('js', `is-${this.os}`, `is-${this.browser}`)
+        if (this.hasLoaded) root.classList.add('is-loaded')
+        root.classList.toggle(
+          'is-subpage-ready',
+          document.body.classList.contains('is-subpage')
+        )
       }
 
       /**
@@ -352,17 +410,28 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * Per-page setup — 每次（含 SPA 换页后）都要执行
        */
       pageSetup() {
-        const reducedMotion = window.matchMedia(
-          '(prefers-reduced-motion: reduce)'
-        ).matches
+        if (this.didPageSetup) return
+        this.didPageSetup = true
+        this.setupRuns += 1
+
+        this.syncEnvironmentClasses()
+
+        const reducedMotion = prefersReducedMotion()
         const introSeen = hasSeenIntro()
         const hasIntro = !!document.querySelector('.js-intro')
         // 必须先消耗硬载资格，避免从内页 SPA 回首页时误播全屏森字
         const isHardLoad = consumeHardLoad()
+        const alreadyRevealed =
+          wasRevealed() ||
+          document.documentElement.classList.contains('is-site-ready')
         const playIntro =
-          !reducedMotion && !introSeen && hasIntro && isHardLoad
+          !reducedMotion &&
+          !introSeen &&
+          hasIntro &&
+          isHardLoad &&
+          !alreadyRevealed
 
-        // SPA 换页时 <html> 的属性不会被替换，按页维护
+        // ClientRouter 会整表替换 <html> 属性；开场锁按本页重写
         document.documentElement.classList.toggle(
           'is-scroll-blocked',
           playIntro
@@ -480,7 +549,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           this.stopIdleAnimations = null
         }
 
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (prefersReducedMotion()) {
           return
         }
 
@@ -491,6 +560,8 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * Init lenis
        */
       initLenis() {
+        if (prefersReducedMotion()) return
+
         const lenis = new Lenis()
 
         lenis.on('scroll', ScrollTrigger.update)
@@ -509,6 +580,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * Set loaded class
        */
       siteLoaded() {
+        this.hasLoaded = true
         document.documentElement.classList.add('is-loaded')
         this.onResize()
         markReady()
@@ -518,17 +590,35 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * SPA 换页前：停观察者、闲动画、显影管线，摘 is-ink-ready
        */
       teardownPage() {
+        this.didPageSetup = false
         clearTimeout(this.timeouts.introSafety)
         this.timeouts.introSafety = null
         this.pageObserver?.disconnect()
         this.pageObserver = null
         if (this.stopIdleAnimations) {
-          this.stopIdleAnimations()
+          try {
+            this.stopIdleAnimations()
+          } catch (error) {
+            console.error('[site] idle-anim teardown failed:', error)
+          }
           this.stopIdleAnimations = null
         }
-        this.stopMotion?.forEach((stop) => stop())
+        this.stopMotion?.forEach((stop) => {
+          try {
+            stop()
+          } catch (error) {
+            console.error('[site] motion teardown failed:', error)
+          }
+        })
         this.stopMotion = []
         document.documentElement.classList.remove('is-ink-ready')
+        this.teardownRuns += 1
+        this.lastTeardown = {
+          inkReady: document.documentElement.classList.contains('is-ink-ready'),
+          didSetup: this.didPageSetup,
+          observer: !!this.pageObserver,
+          motion: this.stopMotion.length,
+        }
       }
 
       /**
@@ -536,7 +626,13 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
        * 每次换页重建（旧元素随 swap 销毁）
        */
       initMotion() {
-        this.stopMotion?.forEach((stop) => stop())
+        this.stopMotion?.forEach((stop) => {
+          try {
+            stop()
+          } catch (error) {
+            console.error('[site] motion reset failed:', error)
+          }
+        })
         this.stopMotion = []
         document.documentElement.classList.remove('is-ink-ready')
 
@@ -643,14 +739,28 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     // SPA 单例：模块脚本在 ClientRouter 下只执行一次
     const site = (window.__site ||= new Site())
 
-    document.addEventListener('astro:before-swap', () => {
-      site.teardownPage()
-    })
+    if (!site.routerBound) {
+      site.routerBound = true
 
-    // astro:page-load 在首次加载与每次 SPA 换页后都会触发
-    document.addEventListener('astro:page-load', () => {
+      document.addEventListener('astro:before-swap', () => {
+        site.teardownPage()
+      })
+
+      // 换页后立刻重绑，不要等 window.load；page-load 若再来会被 didPageSetup 挡住
+      document.addEventListener('astro:after-swap', () => {
+        site.syncEnvironmentClasses()
+        site.init()
+        site.pageSetup()
+      })
+
+      document.addEventListener('astro:page-load', () => {
+        site.init()
+        site.pageSetup()
+      })
+
+      // 首屏：astro:page-load 绑在 window.load 上，等图片会把 is-preparing 拖成白屏
       site.init()
       site.pageSetup()
-    })
+    }
   </script>
 </html>

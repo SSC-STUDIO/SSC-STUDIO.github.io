@@ -6,8 +6,11 @@
  * 动画结束后移除 clip-path，避免裁掉卡片悬停时的投影。
  */
 
+import { onReducedMotion, prefersReducedMotion } from './core'
+
 const INK_CLASS = 'is-inked'
 const INK_DONE = 'is-inked-done'
+const READY_CLASS = 'is-ink-ready'
 /** 同屏多个元素时错峰落墨，最多 6 档 */
 const STAGGER_STEP = 70
 
@@ -17,6 +20,22 @@ export type InkRevealOptions = {
   rootMargin?: string
 }
 
+function markReady(): void {
+  document.documentElement.classList.add(READY_CLASS)
+}
+
+function unmarkReady(): void {
+  document.documentElement.classList.remove(READY_CLASS)
+}
+
+function finish(el: HTMLElement): void {
+  el.classList.add(INK_DONE)
+}
+
+function inkNow(el: HTMLElement): void {
+  el.classList.add(INK_CLASS, INK_DONE)
+}
+
 export function initInkReveal(options: InkRevealOptions = {}): () => void {
   const {
     selector = '[data-reveal]',
@@ -24,24 +43,35 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
     rootMargin = '0px 0px -6% 0px',
   } = options
 
-  // 宣告显影管线已接管：撤掉 CSS 侧的 inkFallback 兜底动画。
-  // 若模块脚本在此之前崩溃，该类不会被加上，内容 3 秒后自动淡入。
-  document.documentElement.classList.add('is-ink-ready')
+  // 宣告显影管线已接管：撤掉 CSS 侧「未挂门」的 3s 兜底。
+  // 未 .is-inked 的元素仍走 2.4s 超时淡入，换页失败也不会永久透明。
+  markReady()
 
   const elements = Array.from(
     document.querySelectorAll<HTMLElement>(selector)
-  )
+  ).filter((el) => !el.classList.contains(INK_CLASS))
 
-  if (!elements.length) return () => {}
+  if (!elements.length) return unmarkReady
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reduced = prefersReducedMotion()
 
   if (reduced || typeof IntersectionObserver !== 'function') {
-    elements.forEach((el) => {
-      el.classList.add(INK_CLASS, INK_DONE)
-    })
+    elements.forEach(inkNow)
+    return unmarkReady
+  }
 
-    return () => {}
+  const pending = new Set(elements)
+  const abort = new AbortController()
+
+  const settle = (el: HTMLElement) => {
+    if (!pending.has(el)) return
+    pending.delete(el)
+    el.classList.add(INK_CLASS)
+    observer.unobserve(el)
+    el.addEventListener('animationend', () => finish(el), {
+      once: true,
+      signal: abort.signal,
+    })
   }
 
   const observer = new IntersectionObserver(
@@ -51,25 +81,13 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
 
         // 比首屏还高的区块永远凑不满比例阈值（一屏只占它的几分之一），
         // 死守 threshold 会让它一辈子显影不了、内容永久隐身。
-        // 对这类元素改判「已经进屏」，比例交给下面的短元素分支。
         const taller = entry.boundingClientRect.height > window.innerHeight
 
         if (!taller && entry.intersectionRatio < threshold) return
 
-        const el = entry.target as HTMLElement
-
-        el.classList.add(INK_CLASS)
-        observer.unobserve(el)
-
-        // 墨迹化开后撤去裁切，悬停投影才不会被切掉
-        el.addEventListener(
-          'animationend',
-          () => el.classList.add(INK_DONE),
-          { once: true }
-        )
+        settle(entry.target as HTMLElement)
       })
     },
-    // 0 这一档专为超高区块而设：它们只可能在此处触发
     { threshold: [0, threshold], rootMargin }
   )
 
@@ -78,9 +96,51 @@ export function initInkReveal(options: InkRevealOptions = {}): () => void {
       '--reveal-delay',
       `${Math.min(index % 6, 5) * STAGGER_STEP}ms`
     )
-
     observer.observe(el)
   })
 
-  return () => observer.disconnect()
+  /**
+   * View Transition 期间旧/新页会被 visibility:hidden，
+   * IntersectionObserver 会当成「不在屏」；几何框仍在，按矩形补一次。
+   */
+  const flushVisible = () => {
+    const vh = window.innerHeight || 1
+    const vw = window.innerWidth || 1
+
+    pending.forEach((el) => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width === 0 && rect.height === 0) return
+      if (rect.bottom > 0 && rect.top < vh && rect.right > 0 && rect.left < vw) {
+        settle(el)
+      }
+    })
+  }
+
+  flushVisible()
+  const rafA = requestAnimationFrame(() => {
+    flushVisible()
+    requestAnimationFrame(flushVisible)
+  })
+  const loadFlush = () => {
+    flushVisible()
+    window.setTimeout(flushVisible, 80)
+  }
+  document.addEventListener('astro:page-load', loadFlush)
+
+  const stopReduced = onReducedMotion((prefersReduced) => {
+    if (!prefersReduced) return
+    pending.forEach(inkNow)
+    pending.clear()
+    observer.disconnect()
+  })
+
+  return () => {
+    abort.abort()
+    stopReduced()
+    observer.disconnect()
+    cancelAnimationFrame(rafA)
+    document.removeEventListener('astro:page-load', loadFlush)
+    pending.clear()
+    unmarkReady()
+  }
 }

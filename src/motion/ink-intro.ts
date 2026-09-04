@@ -9,6 +9,13 @@
 
 import { prefersReducedMotion } from './core'
 
+declare global {
+  interface Window {
+    __siteRevealed?: number
+    __siteHardLoadConsumed?: boolean
+  }
+}
+
 const INTRO_SEEN_KEY = 'site-intro-seen'
 
 /** 缓动：落款 / 钤印（微回弹）/ 收卷（两头缓） */
@@ -20,8 +27,6 @@ const EASE_ROLL = 'cubic-bezier(0.65, 0, 0.35, 1)'
 const SEAL_AT_MS = 1220
 const ROLL_AT_MS = 1680
 
-let hardLoadConsumed = false
-
 export function hasSeenIntro(): boolean {
   try {
     return sessionStorage.getItem(INTRO_SEEN_KEY) === '1'
@@ -30,14 +35,34 @@ export function hasSeenIntro(): boolean {
   }
 }
 
+function markRevealed(): void {
+  try {
+    window.__siteRevealed = 1
+  } catch {
+    /* ignore */
+  }
+}
+
+export function wasRevealed(): boolean {
+  try {
+    return window.__siteRevealed === 1
+  } catch {
+    return false
+  }
+}
+
 /**
- * 消耗「本次浏览的硬加载」资格。astro:page-load 首次为硬载，之后皆为 SPA。
- * 必须无条件调用一次，避免短路上首页时误播全屏森字。
+ * 消耗「本次浏览的硬加载」资格。挂在 window 上，避免模块热更后资格被重置、
+ * SPA 回首页又播全屏森字。必须无条件调用一次。
  */
 export function consumeHardLoad(): boolean {
-  if (hardLoadConsumed) return false
-  hardLoadConsumed = true
-  return true
+  try {
+    if (window.__siteHardLoadConsumed) return false
+    window.__siteHardLoadConsumed = true
+    return true
+  } catch {
+    return false
+  }
 }
 
 function rememberIntro(): void {
@@ -59,6 +84,7 @@ function wait(ms: number): Promise<void> {
 export function revealSiteNow(): void {
   const root = document.documentElement
 
+  markRevealed()
   root.classList.add('is-site-ready')
   root.classList.remove('is-scroll-blocked', 'is-intro-active')
 

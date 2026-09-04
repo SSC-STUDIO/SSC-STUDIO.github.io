@@ -8,6 +8,8 @@
  * 这样每个区块可以有自己的开卷方式。
  */
 
+import { onResize, onScroll, prefersReducedMotion } from './core'
+
 export type HandscrollOptions = {
   selector?: string
   /** 视差强度：区块内部图层相对滚动的位移系数（vh） */
@@ -22,6 +24,8 @@ type Entry = {
 export function initHandscroll(options: HandscrollOptions = {}): () => void {
   const { selector = '[data-handscroll]', parallax = 12 } = options
 
+  if (prefersReducedMotion()) return () => {}
+
   const entries: Entry[] = Array.from(
     document.querySelectorAll<HTMLElement>(selector)
   ).map((el) => ({
@@ -30,9 +34,6 @@ export function initHandscroll(options: HandscrollOptions = {}): () => void {
   }))
 
   if (!entries.length) return () => {}
-
-  let frame = 0
-  let running = true
 
   const measure = () => {
     const viewport = window.innerHeight || 1
@@ -53,32 +54,13 @@ export function initHandscroll(options: HandscrollOptions = {}): () => void {
     })
   }
 
-  const loop = () => {
-    if (!running) return
+  const stopScroll = onScroll(() => measure())
+  const stopResize = onResize(() => measure())
 
-    measure()
-    frame = requestAnimationFrame(loop)
-  }
-
-  const onScroll = () => {
-    if (frame) return
-
-    frame = requestAnimationFrame(() => {
-      frame = 0
-      measure()
-    })
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true })
-
-  // 首帧立即量一次，避免刚进页面时变量为空
   measure()
 
   return () => {
-    running = false
-
-    if (frame) cancelAnimationFrame(frame)
-
-    window.removeEventListener('scroll', onScroll)
+    stopScroll()
+    stopResize()
   }
 }

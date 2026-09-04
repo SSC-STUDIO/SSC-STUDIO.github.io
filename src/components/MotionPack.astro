@@ -3,7 +3,7 @@
  * MotionPack — 首页动效增强包
  * 光标拖尾 / 磁吸按钮 / 卡片倾斜 / 滚动视差。
  * 全部仅 pointer:fine 生效，prefers-reduced-motion 下一律关闭。
- * SPA 安全：监听 astro:page-load，每次换页后重新绑定当前 DOM；
+ * SPA 安全：astro:before-swap 拆监听；astro:after-swap / page-load 重绑。
  * 窗口级监听统一登记，销毁时逐一移除，避免跨页残留。
  */
 ---
@@ -12,50 +12,65 @@
 
 <script>
   (function () {
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var fine = window.matchMedia('(pointer: fine)').matches;
-    if (reduced || !fine) return;
+    var w = window
+    if (w.__motionPackBound) return
+    w.__motionPackBound = true
+
+    var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)')
+    var mqFine = window.matchMedia('(pointer: fine)')
+
+    function allowed() {
+      return !mqReduce.matches && mqFine.matches
+    }
 
     var S = {
+      alive: false,
       canvas: null,
       ctx: null,
       dpr: Math.min(window.devicePixelRatio || 1, 2),
       particles: [],
       raf: 0,
+      parallaxRaf: 0,
+      parallaxTick: false,
       running: false,
       lastX: 0,
       lastY: 0,
       lamp: '#c23a2b',
       listeners: [],
-    };
+    }
 
     function on(target, type, fn, opts) {
-      target.addEventListener(type, fn, opts);
-      S.listeners.push([target, type, fn, opts]);
+      target.addEventListener(type, fn, opts)
+      S.listeners.push([target, type, fn, opts])
     }
 
     function destroy() {
+      S.alive = false
       S.listeners.forEach(function (entry) {
-        entry[0].removeEventListener(entry[1], entry[2], entry[3]);
-      });
-      S.listeners = [];
-      cancelAnimationFrame(S.raf);
-      S.running = false;
-      S.particles = [];
-      S.canvas = null;
-      S.ctx = null;
+        entry[0].removeEventListener(entry[1], entry[2], entry[3])
+      })
+      S.listeners = []
+      cancelAnimationFrame(S.raf)
+      cancelAnimationFrame(S.parallaxRaf)
+      S.raf = 0
+      S.parallaxRaf = 0
+      S.parallaxTick = false
+      S.running = false
+      S.particles = []
+      S.canvas = null
+      S.ctx = null
     }
 
     /* ── 光标拖尾：灯色微粒，随指针起落 ─────────────────── */
     function resize() {
-      if (!S.canvas) return;
-      S.canvas.width = window.innerWidth * S.dpr;
-      S.canvas.height = window.innerHeight * S.dpr;
-      S.ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
+      if (!S.canvas || !S.ctx) return
+      S.canvas.width = window.innerWidth * S.dpr
+      S.canvas.height = window.innerHeight * S.dpr
+      S.ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0)
     }
 
     function spawn(x, y, boost) {
-      if (S.particles.length > 56) S.particles.shift();
+      if (S.particles.length > 56) S.particles.shift()
       S.particles.push({
         x: x,
         y: y,
@@ -64,63 +79,67 @@
         size: 1.2 + Math.random() * 2.6,
         life: 0,
         max: 40 + Math.random() * 30,
-      });
+      })
     }
 
     function refreshLamp() {
       S.lamp =
         getComputedStyle(document.documentElement).getPropertyValue(
           '--daypart-lamp'
-        ) || '#c23a2b';
+        ) || '#c23a2b'
     }
 
     function tick() {
+      if (!S.alive || !S.ctx) {
+        S.running = false
+        return
+      }
       if (!S.particles.length) {
-        S.running = false;
-        return;
+        S.running = false
+        return
       }
-      S.raf = requestAnimationFrame(tick);
-      S.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      S.raf = requestAnimationFrame(tick)
+      S.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
       for (var i = S.particles.length - 1; i >= 0; i--) {
-        var p = S.particles[i];
-        p.life++;
+        var p = S.particles[i]
+        p.life++
         if (p.life > p.max) {
-          S.particles.splice(i, 1);
-          continue;
+          S.particles.splice(i, 1)
+          continue
         }
-        p.x += p.vx + Math.sin((p.life + i) * 0.08) * 0.2;
-        p.y += p.vy;
-        var fade = 1 - p.life / p.max;
-        S.ctx.globalAlpha = fade * 0.5;
-        S.ctx.fillStyle = S.lamp.trim();
-        S.ctx.beginPath();
-        S.ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2);
-        S.ctx.fill();
+        p.x += p.vx + Math.sin((p.life + i) * 0.08) * 0.2
+        p.y += p.vy
+        var fade = 1 - p.life / p.max
+        S.ctx.globalAlpha = fade * 0.5
+        S.ctx.fillStyle = S.lamp.trim()
+        S.ctx.beginPath()
+        S.ctx.arc(p.x, p.y, p.size * (0.5 + fade * 0.5), 0, Math.PI * 2)
+        S.ctx.fill()
       }
-      S.ctx.globalAlpha = 1;
+      S.ctx.globalAlpha = 1
     }
 
     function onPointerMove(e) {
-      var d = Math.hypot(e.clientX - S.lastX, e.clientY - S.lastY);
-      S.lastX = e.clientX;
-      S.lastY = e.clientY;
-      if (d < 6) return;
-      var boost = Math.min(40, d);
-      spawn(e.clientX, e.clientY, boost);
-      if (boost > 24) spawn(e.clientX, e.clientY, boost * 0.6);
+      var d = Math.hypot(e.clientX - S.lastX, e.clientY - S.lastY)
+      S.lastX = e.clientX
+      S.lastY = e.clientY
+      if (d < 6) return
+      var boost = Math.min(40, d)
+      spawn(e.clientX, e.clientY, boost)
+      if (boost > 24) spawn(e.clientX, e.clientY, boost * 0.6)
       if (!S.running) {
-        S.running = true;
-        S.raf = requestAnimationFrame(tick);
+        S.running = true
+        S.raf = requestAnimationFrame(tick)
       }
     }
 
     function onVisibilityChange() {
       if (document.hidden) {
-        cancelAnimationFrame(S.raf);
-        S.running = false;
-      } else if (S.particles.length) {
-        S.running = true;
-        S.raf = requestAnimationFrame(tick);
+        cancelAnimationFrame(S.raf)
+        S.running = false
+      } else if (S.alive && S.particles.length) {
+        S.running = true
+        S.raf = requestAnimationFrame(tick)
       }
     }
 
@@ -130,22 +149,22 @@
         document.querySelectorAll(
           '.s-cta .s__button, .studio-card, .sb-menu a, .p-card__link, .p-card__actions a'
         )
-      );
+      )
       magnets.forEach(function (el) {
         function onMove(e) {
-          var r = el.getBoundingClientRect();
-          var dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
-          var dy = (e.clientY - (r.top + r.height / 2)) * 0.16;
-          el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px');
-          el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px');
+          var r = el.getBoundingClientRect()
+          var dx = (e.clientX - (r.left + r.width / 2)) * 0.16
+          var dy = (e.clientY - (r.top + r.height / 2)) * 0.16
+          el.style.setProperty('--magnet-x', Math.max(-14, Math.min(14, dx)).toFixed(1) + 'px')
+          el.style.setProperty('--magnet-y', Math.max(-10, Math.min(10, dy)).toFixed(1) + 'px')
         }
         function onLeave() {
-          el.style.removeProperty('--magnet-x');
-          el.style.removeProperty('--magnet-y');
+          el.style.removeProperty('--magnet-x')
+          el.style.removeProperty('--magnet-y')
         }
-        on(el, 'pointermove', onMove);
-        on(el, 'pointerleave', onLeave);
-      });
+        on(el, 'pointermove', onMove)
+        on(el, 'pointerleave', onLeave)
+      })
     }
 
     /* ── 倾斜视差：作品卡 / 内页卡片（已有册页翻页的不叠第二套） */
@@ -155,70 +174,87 @@
           'scroll-leaf, .p-card, [data-lift], .p-class__metric'
         )
       ).filter(function (el) {
-        return !el.hasAttribute('data-leaf');
-      });
+        return !el.hasAttribute('data-leaf')
+      })
       tilts.forEach(function (el) {
         function onMove(e) {
-          var r = el.getBoundingClientRect();
-          var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4;
-          var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5;
-          el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg');
-          el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg');
+          var r = el.getBoundingClientRect()
+          var rx = (0.5 - (e.clientY - r.top) / Math.max(1, r.height)) * 4
+          var ry = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 5
+          el.style.setProperty('--tilt-x', rx.toFixed(2) + 'deg')
+          el.style.setProperty('--tilt-y', ry.toFixed(2) + 'deg')
         }
         function onLeave() {
-          el.style.removeProperty('--tilt-x');
-          el.style.removeProperty('--tilt-y');
+          el.style.removeProperty('--tilt-x')
+          el.style.removeProperty('--tilt-y')
         }
-        on(el, 'pointermove', onMove);
-        on(el, 'pointerleave', onLeave);
-      });
+        on(el, 'pointermove', onMove)
+        on(el, 'pointerleave', onLeave)
+      })
     }
 
     /* ── 滚动视差：hero 内容与波浪分层 ─────────────────── */
     function bindParallax() {
-      var heroContent = document.querySelector('.s-hero .s__content');
-      var heroWaves = document.querySelector('.s-hero .s__waves');
-      var parallaxTick = false;
+      var heroContent = document.querySelector('.s-hero .s__content')
+      var heroWaves = document.querySelector('.s-hero .s__waves')
 
       function onScroll() {
-        if (parallaxTick) return;
-        parallaxTick = true;
-        requestAnimationFrame(function () {
-          parallaxTick = false;
-          var y = window.scrollY;
+        if (S.parallaxTick) return
+        S.parallaxTick = true
+        S.parallaxRaf = requestAnimationFrame(function () {
+          S.parallaxTick = false
+          S.parallaxRaf = 0
+          if (!S.alive) return
+          var y = window.scrollY
           if (y < window.innerHeight) {
-            if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)';
-            if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)';
+            if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)'
+            if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)'
           }
-        });
+        })
       }
 
-      on(window, 'scroll', onScroll, { passive: true });
+      on(window, 'scroll', onScroll, { passive: true })
     }
 
-    /* ── 挂载：每次 astro:page-load（含首次加载）执行 ──── */
+    /* ── 挂载：首屏立刻 + 换页后重绑 ──── */
     function mount() {
-      destroy();
+      destroy()
+      if (!allowed()) return
 
-      var canvas = document.querySelector('.cursor-trail');
-      if (!canvas) return;
+      var canvas = document.querySelector('.cursor-trail')
+      if (!canvas) return
 
-      S.canvas = canvas;
-      S.ctx = canvas.getContext('2d');
+      S.alive = true
+      S.canvas = canvas
+      S.ctx = canvas.getContext('2d')
 
-      resize();
-      refreshLamp();
+      resize()
+      refreshLamp()
 
-      on(window, 'resize', resize, { passive: true });
-      on(window, 'pointermove', onPointerMove, { passive: true });
-      on(document, 'visibilitychange', onVisibilityChange);
+      on(window, 'resize', resize, { passive: true })
+      on(window, 'pointermove', onPointerMove, { passive: true })
+      on(document, 'visibilitychange', onVisibilityChange)
 
-      bindMagnets();
-      bindTilts();
-      bindParallax();
+      bindMagnets()
+      bindTilts()
+      bindParallax()
     }
 
-    document.addEventListener('astro:page-load', mount);
-    document.addEventListener('astro:before-swap', destroy);
-  })();
+    function onPrefChange() {
+      if (allowed()) mount()
+      else destroy()
+    }
+
+    document.addEventListener('astro:before-swap', destroy)
+    document.addEventListener('astro:after-swap', mount)
+    document.addEventListener('astro:page-load', mount)
+    mqReduce.addEventListener('change', onPrefChange)
+    mqFine.addEventListener('change', onPrefChange)
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', mount, { once: true })
+    } else {
+      mount()
+    }
+  })()
 </script>
