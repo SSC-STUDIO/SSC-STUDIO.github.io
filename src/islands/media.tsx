@@ -34,14 +34,26 @@ export async function uploadAttachment(file: File): Promise<AttachmentMeta> {
     headers: { Accept: "application/json" },
     body,
   });
-  if (response.status === 401) {
+  const payload = (await response.json().catch(() => ({}))) as Partial<AttachmentMeta> & {
+    error?: string;
+  };
+  if (response.status === 401 || payload.error === "unauthorized") {
     const err = new Error("unauthorized") as Error & { code?: string };
     err.code = "unauthorized";
     throw err;
   }
-  if (response.status === 413) {
+  if (response.status === 413 || payload.error === "file_too_large") {
     const err = new Error("too_large") as Error & { code?: string };
     err.code = "too_large";
+    throw err;
+  }
+  if (
+    payload.error === "invalid_file_type" ||
+    payload.error === "invalid_file_extension" ||
+    payload.error === "invalid_file_content"
+  ) {
+    const err = new Error("invalid_type") as Error & { code?: string };
+    err.code = "invalid_type";
     throw err;
   }
   if (!response.ok) {
@@ -49,29 +61,61 @@ export async function uploadAttachment(file: File): Promise<AttachmentMeta> {
     err.code = "upload_failed";
     throw err;
   }
-  return (await response.json()) as AttachmentMeta;
+  const safeUrl = payload.url ? resolveSafeMediaUrl(payload.url) : null;
+  if (!safeUrl) {
+    const err = new Error("unsafe_url") as Error & { code?: string };
+    err.code = "unsafe_url";
+    throw err;
+  }
+  return {
+    url: safeUrl,
+    mimeType: payload.mimeType ?? file.type,
+    kind: payload.kind ?? "file",
+    size: payload.size ?? file.size,
+  };
 }
 
 const ALLOWED_MEDIA_PREFIXES = ["/api/attachments/", "/api/class/media/"];
 
-function isSafeMediaUrl(url: string): boolean {
+function isAllowedMediaPath(pathname: string): boolean {
+  return ALLOWED_MEDIA_PREFIXES.some(
+    (prefix) => pathname === prefix.slice(0, -1) || pathname.startsWith(prefix),
+  );
+}
+
+/**
+ * Keep only same-origin media paths.
+ *
+ * Absolute production URLs (`https://chenrunsen.cn/api/attachments/...`)
+ * are rewritten to a relative path so the local `/api` proxy can serve
+ * them. Foreign origins, credentialed URLs, `javascript:` / `data:` /
+ * `vbscript:`, and paths outside the attachment prefixes are rejected.
+ */
+export function resolveSafeMediaUrl(url: string): string | null {
   const trimmed = url.trim();
+  if (!trimmed) return null;
   const lower = trimmed.toLowerCase();
   if (
     lower.startsWith("javascript:") ||
     lower.startsWith("data:") ||
     lower.startsWith("vbscript:")
   ) {
-    return false;
+    return null;
   }
   try {
-    const parsed = new URL(trimmed, window.location.origin);
-    if (parsed.origin !== window.location.origin) return false;
-    return ALLOWED_MEDIA_PREFIXES.some((prefix) =>
-      parsed.pathname.startsWith(prefix),
-    );
+    const base =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://chenrunsen.cn";
+    const parsed = new URL(trimmed, base);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    if (parsed.username || parsed.password) return null;
+    if (!isAllowedMediaPath(parsed.pathname)) return null;
+    return `${parsed.pathname}${parsed.search}`;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -85,8 +129,9 @@ export function MediaEmbed({
   className?: string;
   title?: string;
 }) {
-  if (!attachment?.url || !isSafeMediaUrl(attachment.url)) return null;
-  const { url, kind } = attachment;
+  const url = attachment?.url ? resolveSafeMediaUrl(attachment.url) : null;
+  if (!url || !attachment) return null;
+  const { kind } = attachment;
   const cls = className ? `att__embed ${className}` : "att__embed";
   switch (kind) {
     case "video":

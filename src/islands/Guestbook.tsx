@@ -3,6 +3,7 @@ import { AUTH_FETCH_OPTIONS, type AuthSession } from "./api";
 import {
   AttachmentPicker,
   MediaEmbed,
+  resolveSafeMediaUrl,
   uploadAttachment,
   type AttachmentMeta,
 } from "./media";
@@ -21,7 +22,8 @@ import { formatTime } from "../utils/format-time";
  *
  * The feed itself is public; posting / replying / liking require a
  * session. Unauthenticated visitors get a `p-lock` style login prompt
- * that routes to `/account`.
+ * that routes to `/account?returnTo=/guestbook`. A 503 / network failure
+ * is an honest offline card, not a login lock.
  */
 
 type CommentDto = {
@@ -53,14 +55,15 @@ type PeerDto = {
 
 type Visibility = "public" | "private";
 
-type SessionState = "loading" | "out" | "in";
-type FeedState = "loading" | "error" | "ready";
+type SessionState = "loading" | "out" | "in" | "unavailable";
+type FeedState = "loading" | "error" | "unavailable" | "ready";
+type NoticeKind = "error" | "ok";
 
 const TARGET_KIND = "site";
 const TARGET_ID = "guestbook";
 const LIST_URL = `/api/comments?targetKind=${TARGET_KIND}&targetId=${TARGET_ID}`;
 const MAX_LENGTH = 2000;
-const LOGIN_PATH = "/account";
+const LOGIN_PATH = "/account?returnTo=/guestbook";
 
 /** Submit the surrounding form on Ctrl/Cmd + Enter. */
 function submitOnCtrlEnter(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -101,7 +104,7 @@ type CommentItemProps = {
   threadOpen: boolean;
   replyDraft: string;
   replyBusy: boolean;
-  likeBusy: boolean;
+  likeBusyId: string | null;
   onToggleThread: (id: string) => void;
   onReplyDraftChange: (id: string, value: string) => void;
   onReplySubmit: (
@@ -141,7 +144,7 @@ function CommentItem({
   threadOpen,
   replyDraft,
   replyBusy,
-  likeBusy,
+  likeBusyId,
   onToggleThread,
   onReplyDraftChange,
   onReplySubmit,
@@ -160,10 +163,16 @@ function CommentItem({
           {formatTime(comment.createdAt)}
         </time>
       </div>
-      <p className="p-guestbook__content">{comment.content}</p>
+      {comment.content ? (
+        <p className="p-guestbook__content">{comment.content}</p>
+      ) : null}
       <MediaEmbed attachment={comment.attachment} />
       <div className="p-guestbook__actions">
-        <LikeButton comment={comment} busy={likeBusy} onLike={onLike} />
+        <LikeButton
+          comment={comment}
+          busy={likeBusyId === comment.id}
+          onLike={onLike}
+        />
         <button
           type="button"
           className="p-guestbook__action"
@@ -203,10 +212,16 @@ function CommentItem({
                       {formatTime(reply.createdAt)}
                     </time>
                   </div>
-                  <p className="p-guestbook__content">{reply.content}</p>
+                  {reply.content ? (
+                    <p className="p-guestbook__content">{reply.content}</p>
+                  ) : null}
                   <MediaEmbed attachment={reply.attachment} />
                   <div className="p-guestbook__actions">
-                    <LikeButton comment={reply} busy={likeBusy} onLike={onLike} />
+                    <LikeButton
+                      comment={reply}
+                      busy={likeBusyId === reply.id}
+                      onLike={onLike}
+                    />
                   </div>
                 </li>
               ))}
@@ -254,6 +269,8 @@ export default function Guestbook() {
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [noticeKind, setNoticeKind] = useState<NoticeKind>("error");
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   const [openThreads, setOpenThreads] = useState<Record<string, boolean>>({});
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
@@ -274,16 +291,30 @@ export default function Guestbook() {
     [comments],
   );
 
-  const loadComments = useCallback(async () => {
+  function showNotice(message: string, kind: NoticeKind = "error") {
+    setNoticeKind(kind);
+    setNotice(message);
+  }
+
+  const loadComments = useCallback(async (signal?: { cancelled: boolean }) => {
     setFeed("loading");
     try {
-      const response = await fetch(LIST_URL, { cache: "no-store" });
+      const response = await fetch(LIST_URL, {
+        ...AUTH_FETCH_OPTIONS,
+        cache: "no-store",
+      });
+      if (signal?.cancelled) return;
+      if (response.status === 503) {
+        setFeed("unavailable");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as CommentsResponse;
+      if (signal?.cancelled) return;
       setComments(Array.isArray(data.items) ? data.items : []);
       setFeed("ready");
     } catch {
-      setFeed("error");
+      if (!signal?.cancelled) setFeed("error");
     }
   }, []);
 
@@ -302,31 +333,39 @@ export default function Guestbook() {
   }, []);
 
   useEffect(() => {
-    void loadComments();
+    const signal = { cancelled: false };
+    void loadComments(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, [loadComments]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setSession("loading");
       try {
         const response = await fetch("/api/auth/session", {
           ...AUTH_FETCH_OPTIONS,
           cache: "no-store",
         });
-        const data = (await response.json()) as AuthSession;
-        if (!cancelled) {
-          const isIn = Boolean(data.authenticated && data.user);
-          setSession(isIn ? "in" : "out");
-          if (isIn) await loadRecipients();
+        if (cancelled) return;
+        if (!response.ok) {
+          setSession("unavailable");
+          return;
         }
+        const data = (await response.json()) as AuthSession;
+        const isIn = Boolean(data.authenticated && data.user);
+        setSession(isIn ? "in" : "out");
+        if (isIn) await loadRecipients();
       } catch {
-        if (!cancelled) setSession("out");
+        if (!cancelled) setSession("unavailable");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadRecipients, sessionAttempt]);
 
   async function handleFile(file: File) {
     setUploadBusy(true);
@@ -338,11 +377,15 @@ export default function Guestbook() {
       const code = (error as Error & { code?: string }).code;
       if (code === "unauthorized") {
         setSession("out");
-        setNotice("会话已失效，无法上传附件，请重新登录。");
+        showNotice("会话已失效，无法上传附件，请重新登录。");
       } else if (code === "too_large") {
-        setNotice("文件太大了，请换一个小一些的附件。");
+        showNotice("文件太大了，请换一个小一些的附件。");
+      } else if (code === "invalid_type") {
+        showNotice("这种文件先不收，请换图片、短视频或音频。");
+      } else if (code === "unsafe_url") {
+        showNotice("附件地址不是本站同源路径，已拒绝保存。");
       } else {
-        setNotice("附件没有传上去，请重试。");
+        showNotice("附件没有传上去，请重试。");
       }
     } finally {
       setUploadBusy(false);
@@ -353,17 +396,27 @@ export default function Guestbook() {
     event.preventDefault();
     const content = draft.trim();
     if (!content && !attachment) {
-      setNotice("先写点什么，或附上一张图/一段视频。");
+      showNotice("先写点什么，或附上一张图/一段视频。");
+      return;
+    }
+    let safeAttachment: AttachmentMeta | undefined;
+    if (attachment) {
+      const url = resolveSafeMediaUrl(attachment.url);
+      if (!url) {
+        showNotice("附件地址不是本站同源路径，已取消发送。");
+        setAttachment(null);
+        return;
+      }
+      safeAttachment = { ...attachment, url };
+    }
+    if (visibility === "private" && !recipientId) {
+      showNotice("选了“仅某人”，请先选择一位同学。");
       return;
     }
     setPosting(true);
     setNotice("");
     try {
       if (visibility === "private") {
-        if (!recipientId) {
-          setNotice("选了“仅某人”，请先选择一位同学。");
-          return;
-        }
         const response = await fetch("/api/messages", {
           method: "POST",
           credentials: "include",
@@ -374,16 +427,20 @@ export default function Guestbook() {
           body: JSON.stringify({
             toUserId: recipientId,
             content,
-            attachment: attachment ?? undefined,
+            attachment: safeAttachment,
           }),
         });
         if (response.status === 401) {
           setSession("out");
-          setNotice("会话已失效，请重新登录后再发布。");
+          showNotice("会话已失效，请重新登录后再发布。");
           return;
         }
         if (response.status === 403) {
-          setNotice("这位同学还没有账号，暂时无法私发。");
+          showNotice("这位同学还没有账号，暂时无法私发。");
+          return;
+        }
+        if (response.status === 503) {
+          showNotice("留言后端暂时连不上，请稍后再试。");
           return;
         }
         if (!response.ok) throw new Error("failed");
@@ -393,10 +450,11 @@ export default function Guestbook() {
         setVisibility("public");
         setAttachment(null);
         setStamp(Date.now());
-        setNotice(
+        showNotice(
           peer
             ? `已私发给${peer.displayName}，可在“消息”页查看。`
             : "已私发成功，可在“消息”页查看。",
+          "ok",
         );
       } else {
         const response = await fetch("/api/comments", {
@@ -410,16 +468,20 @@ export default function Guestbook() {
             targetKind: TARGET_KIND,
             targetId: TARGET_ID,
             content,
-            attachment: attachment ?? undefined,
+            attachment: safeAttachment,
           }),
         });
         if (response.status === 401) {
           setSession("out");
-          setNotice("会话已失效，请重新登录后再发布。");
+          showNotice("会话已失效，请重新登录后再发布。");
           return;
         }
         if (response.status === 429) {
-          setNotice("脚印太密了，歇一会儿再写。");
+          showNotice("脚印太密了，歇一会儿再写。");
+          return;
+        }
+        if (response.status === 503) {
+          showNotice("留言后端暂时连不上，请稍后再试。");
           return;
         }
         if (!response.ok) throw new Error("failed");
@@ -430,7 +492,7 @@ export default function Guestbook() {
         setStamp(Date.now());
       }
     } catch {
-      setNotice("发布失败，请检查网络后重试。");
+      showNotice("发布失败，请检查网络后重试。");
     } finally {
       setPosting(false);
     }
@@ -468,7 +530,11 @@ export default function Guestbook() {
       );
       if (response.status === 401) {
         setSession("out");
-        setNotice("会话已失效，请重新登录后再回复。");
+        showNotice("会话已失效，请重新登录后再回复。");
+        return;
+      }
+      if (response.status === 503) {
+        showNotice("留言后端暂时连不上，回复没有发出去。");
         return;
       }
       if (!response.ok) throw new Error("failed");
@@ -481,7 +547,7 @@ export default function Guestbook() {
       );
       setReplyDrafts((current) => ({ ...current, [parentId]: "" }));
     } catch {
-      setNotice("回复没有发出去，请重试。");
+      showNotice("回复没有发出去，请重试。");
     } finally {
       setReplyBusyId(null);
     }
@@ -522,6 +588,9 @@ export default function Guestbook() {
         window.location.href = LOGIN_PATH;
         return;
       }
+      if (response.status === 503) {
+        throw new Error("unavailable");
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as {
         liked: boolean;
@@ -542,7 +611,7 @@ export default function Guestbook() {
           likesCount: previousCount,
         })),
       );
-      setNotice("点赞没有点上，请重试。");
+      showNotice("点赞没有点上，请重试。");
     } finally {
       setLikeBusyId(null);
     }
@@ -551,7 +620,25 @@ export default function Guestbook() {
   return (
     <div className="p-guestbook">
       {session === "loading" ? (
-        <p className="p-guestbook__hint">正在检查会话…</p>
+        <p className="p-guestbook__hint" role="status">
+          正在检查会话…
+        </p>
+      ) : session === "unavailable" ? (
+        <div className="p-lock">
+          <p className="p-lock__badge">temporarily offline</p>
+          <p className="p-lock__message">
+            留言后端暂时连不上——不是你没登录，稍后再试就能写。
+          </p>
+          <div className="p-card__actions">
+            <button
+              type="button"
+              className="p-guestbook__retry"
+              onClick={() => setSessionAttempt((attempt) => attempt + 1)}
+            >
+              再试一次
+            </button>
+          </div>
+        </div>
       ) : session === "out" ? (
         <div className="p-lock">
           <p className="p-lock__badge">login required</p>
@@ -673,7 +760,11 @@ export default function Guestbook() {
         </form>
       )}
 
-      <p className="p-guestbook__notice" role="alert" hidden={!notice}>
+      <p
+        className={`p-guestbook__notice${noticeKind === "ok" ? " is-ok" : ""}`}
+        role="alert"
+        hidden={!notice}
+      >
         {notice}
       </p>
 
@@ -684,6 +775,17 @@ export default function Guestbook() {
         >
           正在打捞河边的脚印…
         </p>
+      ) : feed === "unavailable" ? (
+        <div className="p-guestbook__state p-guestbook__state--error">
+          <p>留言后端暂时连不上，河面上的脚印稍后再捞。</p>
+          <button
+            type="button"
+            className="p-guestbook__retry"
+            onClick={() => void loadComments()}
+          >
+            再试一次
+          </button>
+        </div>
       ) : feed === "error" ? (
         <div className="p-guestbook__state p-guestbook__state--error">
           <p>留言暂时没有捞上来。</p>
@@ -697,7 +799,17 @@ export default function Guestbook() {
         </div>
       ) : sortedComments.length === 0 ? (
         <p className="p-guestbook__state p-guestbook__state--empty">
-          河面还很安静——做第一个留下脚印的人。
+          <span className="p-guestbook__state-title">河面还很安静</span>
+          {session === "in"
+            ? "做第一个留下脚印的人。"
+            : session === "unavailable"
+              ? "后端连上之后，脚印会在这里浮上来。"
+              : (
+                <>
+                  <a href={LOGIN_PATH}>登录</a>
+                  后即可留下第一枚脚印。
+                </>
+              )}
         </p>
       ) : (
         <ol className="p-guestbook__list">
@@ -710,7 +822,7 @@ export default function Guestbook() {
               threadOpen={Boolean(openThreads[comment.id])}
               replyDraft={replyDrafts[comment.id] ?? ""}
               replyBusy={replyBusyId === comment.id}
-              likeBusy={likeBusyId === comment.id}
+              likeBusyId={likeBusyId}
               onToggleThread={handleToggleThread}
               onReplyDraftChange={handleReplyDraftChange}
               onReplySubmit={handleReplySubmit}
