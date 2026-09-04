@@ -51,7 +51,7 @@ function normalize(repo, override = {}) {
     name: repo.name,
     fullName: repo.full_name,
     url: repo.html_url,
-    homepage: repo.homepage || '',
+    homepage: override.homepage || repo.homepage || '',
     /** 中文名优先，回落仓库名 */
     title: override.title || repo.name,
     /** 中文摘要优先，回落 GitHub 描述 */

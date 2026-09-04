@@ -6,11 +6,10 @@ import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
 import reposData from '@/data/github-repos.json'
 import { projects } from '@/data/projects'
+import { projectVolume } from '@/data/project-volumes'
 
 /** GitHub 数据由 `npm run sync:repos` 生成（构建期静态，不占用运行时配额） */
 const repos = reposData.repos
-
-const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 ---
 
 <BaseLayout
@@ -50,14 +49,15 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
                     alt=""
                     width="540"
                     height="318"
-                    loading="lazy"
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : 'auto'}
                     decoding="async"
                   />
                 </span>
                 <span class="p-projects__window" aria-hidden="true" />
                 <span class="p-projects__slip" aria-hidden="true">
                   <span class="p-projects__slip-text">
-                    卷 · {cnNumerals[i] ?? i + 1}
+                    卷 · {projectVolume(i)}
                   </span>
                 </span>
               </span>
@@ -398,17 +398,23 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
     aspect-ratio: 8 / 5;
     object-fit: cover;
 
-    transform: translate3d(
-        calc((var(--leaf-sheen, 0.5) - 0.5) * -12px),
-        calc(-5% + var(--scroll-shift, 0vh)),
-        0
-      )
+    transform: translate3d(0, calc(-5% + var(--scroll-shift, 0vh)), 0)
       scale(var(--cover-zoom));
     transform-origin: center;
 
     transition-property: --cover-zoom, filter;
     transition-duration: 0.62s, 0.62s;
     transition-timing-function: ease(out-quint), ease;
+  }
+
+  /* 指针在窗上时才横移，离开后立刻回正，避免 --leaf-sheen 残留把画心卡住 */
+  .p-projects .p-projects__figure.is-leaf-live .p-detail-cover {
+    transform: translate3d(
+        calc((var(--leaf-sheen, 0.5) - 0.5) * -12px),
+        calc(-5% + var(--scroll-shift, 0vh)),
+        0
+      )
+      scale(var(--cover-zoom));
   }
 
   /* 悬停：推近半步，并沉入旧宣纸的色调（与首页 ScrollLeaf 同一手感） */
@@ -524,7 +530,8 @@ const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
      ══════════════════════════════════════════════════════ */
 
   @media (prefers-reduced-motion: reduce) {
-    .p-projects .p-projects__figure .p-detail-cover {
+    .p-projects .p-projects__figure .p-detail-cover,
+    .p-projects .p-projects__figure.is-leaf-live .p-detail-cover {
       transform: none;
       transition: none;
     }

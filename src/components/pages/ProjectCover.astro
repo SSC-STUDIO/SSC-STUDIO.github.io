@@ -2,17 +2,18 @@
 /**
  * ProjectCover — 详情页封面画框
  *
- * 窗框 + 画心视差 + 骑缝签条。封面与卷号只从 projects.ts 只读取出，
+ * 窗框 + 画心视差 + 骑缝签条。封面与卷号只从 projects.ts 顺序读出，
  * 不改路由语义。脚本缺席时封面与图注照常可见。
+ * 封面在卷首，eager 加载以免挡住 LCP。
  */
 import { projects } from '@/data/projects'
+import { projectVolume } from '@/data/project-volumes'
 
 interface Props {
   slug: string
 }
 
 const { slug } = Astro.props
-const cnNumerals = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌']
 const index = projects.findIndex((project) => project.slug === slug)
 const project = projects[index]
 
@@ -20,7 +21,7 @@ if (!project) {
   throw new Error(`Unknown project slug: ${slug}`)
 }
 
-const volume = cnNumerals[index] ?? String(index + 1)
+const volume = projectVolume(index)
 const figNo = String(index + 1).padStart(2, '0')
 ---
 
@@ -37,7 +38,8 @@ const figNo = String(index + 1).padStart(2, '0')
       alt={project.name}
       width="1082"
       height="636"
-      loading="lazy"
+      loading="eager"
+      fetchpriority="high"
       decoding="async"
     />
   </span>

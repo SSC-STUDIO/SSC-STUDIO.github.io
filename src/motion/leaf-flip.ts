@@ -6,6 +6,8 @@
  * 保证低端机上也不掉帧。
  */
 
+import { prefersReducedMotion } from './core'
+
 const DEG = 3.2
 
 export function initLeafFlip(selector = '[data-leaf]'): () => void {
@@ -13,7 +15,7 @@ export function initLeafFlip(selector = '[data-leaf]'): () => void {
 
   if (!elements.length) return () => {}
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reduced = prefersReducedMotion()
   // 触屏没有 hover，指针跟随无意义
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
@@ -39,6 +41,7 @@ export function initLeafFlip(selector = '[data-leaf]'): () => void {
       el.classList.remove('is-leaf-live')
       el.style.setProperty('--leaf-ry', '0deg')
       el.style.setProperty('--leaf-rx', '0deg')
+      el.style.setProperty('--leaf-sheen', '0.5')
     }
 
     el.addEventListener('pointerenter', onEnter, { passive: true })
@@ -49,6 +52,10 @@ export function initLeafFlip(selector = '[data-leaf]'): () => void {
       el.removeEventListener('pointerenter', onEnter)
       el.removeEventListener('pointermove', onMove)
       el.removeEventListener('pointerleave', onLeave)
+      el.classList.remove('is-leaf-live')
+      el.style.removeProperty('--leaf-ry')
+      el.style.removeProperty('--leaf-rx')
+      el.style.removeProperty('--leaf-sheen')
     })
   })
 

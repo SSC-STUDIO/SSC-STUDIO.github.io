@@ -3,9 +3,10 @@
  * ProjectNav — 详情页相邻项目
  *
  * 上一 / 下一从 projects.ts 顺序只读环取，路由语义仍由那份数据决定。
- * 牌上露出邻卷封面一角，像册页翻到边口。
+ * 牌上露出邻卷封面一角与卷号，像册页翻到边口。
  */
 import { projects } from '@/data/projects'
+import { projectVolume } from '@/data/project-volumes'
 
 interface Props {
   slug: string
@@ -19,12 +20,16 @@ if (index < 0) {
 }
 
 const total = projects.length
-const prev = projects[(index - 1 + total) % total]
-const next = projects[(index + 1) % total]
+const prevIndex = (index - 1 + total) % total
+const nextIndex = (index + 1) % total
+const prev = projects[prevIndex]
+const next = projects[nextIndex]
+const prevVol = projectVolume(prevIndex)
+const nextVol = projectVolume(nextIndex)
 ---
 
 <nav class="p-projnav" data-flow data-intersect aria-label="相邻项目">
-  <a class="p-projnav__link" href={prev.href} data-seal>
+  <a class="p-projnav__link" href={prev.href} rel="prev" data-seal>
     <span class="p-projnav__thumb" aria-hidden="true">
       <img
         src={prev.cover}
@@ -34,6 +39,7 @@ const next = projects[(index + 1) % total]
         loading="lazy"
         decoding="async"
       />
+      <span class="p-projnav__slip">卷{prevVol}</span>
     </span>
     <span class="p-projnav__copy">
       <span class="p-projnav__dir">← 上一个</span>
@@ -47,7 +53,12 @@ const next = projects[(index + 1) % total]
   >
     全部项目
   </a>
-  <a class="p-projnav__link p-projnav__link--next" href={next.href} data-seal>
+  <a
+    class="p-projnav__link p-projnav__link--next"
+    href={next.href}
+    rel="next"
+    data-seal
+  >
     <span class="p-projnav__thumb" aria-hidden="true">
       <img
         src={next.cover}
@@ -57,6 +68,7 @@ const next = projects[(index + 1) % total]
         loading="lazy"
         decoding="async"
       />
+      <span class="p-projnav__slip">卷{nextVol}</span>
     </span>
     <span class="p-projnav__copy">
       <span class="p-projnav__dir">下一个 →</span>
