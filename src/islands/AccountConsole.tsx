@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AUTH_FETCH_OPTIONS,
   type AuthSession,
   type SessionUser,
 } from "./api";
+import { isSafeReturnTo, resolveReturnTo } from "../utils/safe-return-to";
 
 type Panel = "loading" | "out" | "in";
 
@@ -17,13 +18,15 @@ type AccountSession = Omit<AuthSession, "user"> & { user: AccountUser | null };
 type RegisterResponse = {
   error?: string;
   user?: AccountUser;
-  classmateVerified?: boolean;
 };
+
+const API_DOWN = "无法连接 API，请确认开发服务已启动。";
 
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   invalid_credentials: "用户名或密码不正确。",
   invalid_request: "请检查输入后重试。",
   unauthorized: "会话已失效，请重新登录。",
+  api_unavailable: API_DOWN,
 };
 
 const REGISTER_ERROR_MESSAGES: Record<string, string> = {
@@ -31,18 +34,8 @@ const REGISTER_ERROR_MESSAGES: Record<string, string> = {
   invalid_request: "请检查输入后重试。",
   invalid_realname: "真实姓名需要 1–40 个字符。",
   weak_password: "密码至少 6 个字符。",
+  api_unavailable: API_DOWN,
 };
-
-/**
- * Resolve the post-login destination: a same-site `?returnTo=` query
- * (e.g. `/account?returnTo=/messages`) wins over the prop default.
- */
-function resolveReturnTo(fallback: string): string {
-  if (typeof window === "undefined") return fallback;
-  const raw = new URLSearchParams(window.location.search).get("returnTo");
-  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
-  return fallback;
-}
 
 function formatDate(value?: string): string {
   if (!value) return "—";
@@ -55,15 +48,10 @@ function formatDate(value?: string): string {
 /**
  * Account console island — session check, login, register and logout.
  *
- * Ported from the live dist `/account` page and its
- * `AccountConsole.astro_astro_type_script_index_0_lang.*.js` bundle.
- * On successful login the browser navigates to `returnTo` (same behaviour
- * as the dist script).
- *
- * Registration posts to `POST /api/auth/register` with the optional
- * `realName` field: when the name matches the class roster the API answers
- * `classmateVerified: true` and role `member`, which surfaces a persistent
- * 「已认证为班级同学」 badge on the signed-in panel.
+ * On successful login the browser navigates to a same-site `returnTo`
+ * (query wins over the prop). Registration may send an optional `realName`
+ * as profile data only — the UI never treats a filled name as classmate
+ * verification. Class-space access is whatever the session role already is.
  */
 export default function AccountConsole({
   returnTo = "/leaderboard",
@@ -93,9 +81,15 @@ export default function AccountConsole({
   const [logoutBusy, setLogoutBusy] = useState(false);
   // 挂载后再读 URL 上的 returnTo，避免 SSR/hydration 不一致。
   const [target, setTarget] = useState(returnTo);
+  const [hasReturnTo, setHasReturnTo] = useState(false);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef(false);
 
   useEffect(() => {
-    setTarget(resolveReturnTo(returnTo));
+    const resolved = resolveReturnTo(returnTo);
+    setTarget(resolved);
+    const raw = new URLSearchParams(window.location.search).get("returnTo");
+    setHasReturnTo(isSafeReturnTo(raw));
   }, [returnTo]);
 
   const showLoginStatus = useCallback((message: string, kind: StatusKind) => {
@@ -108,13 +102,21 @@ export default function AccountConsole({
     setRegisterStatusKind(kind);
   }, []);
 
-  const refreshSession = useCallback(async (): Promise<AccountSession | null> => {
-    setPanel("loading");
+  const refreshSession = useCallback(async (opts?: {
+    silent?: boolean;
+  }): Promise<AccountSession | null> => {
+    if (!opts?.silent) setPanel("loading");
     try {
       const response = await fetch("/api/auth/session", {
         ...AUTH_FETCH_OPTIONS,
         cache: "no-store",
       });
+      if (!response.ok) {
+        setSession(null);
+        setPanel("out");
+        showLoginStatus(API_DOWN, "error");
+        return null;
+      }
       const data = (await response.json()) as AccountSession;
       setSession(data);
       setPanel(data.authenticated && data.user ? "in" : "out");
@@ -122,7 +124,7 @@ export default function AccountConsole({
     } catch {
       setSession(null);
       setPanel("out");
-      showLoginStatus("无法连接 API，请确认开发服务已启动。", "error");
+      showLoginStatus(API_DOWN, "error");
       return null;
     }
   }, [showLoginStatus]);
@@ -131,7 +133,15 @@ export default function AccountConsole({
     void refreshSession();
   }, [refreshSession]);
 
+  useEffect(() => {
+    if (!pendingFocusRef.current || panel !== "out") return;
+    pendingFocusRef.current = false;
+    usernameInputRef.current?.focus();
+  }, [mode, panel]);
+
   function switchMode(next: "login" | "register") {
+    if (next === mode) return;
+    pendingFocusRef.current = true;
     setMode(next);
     setUsernameError("");
     setPasswordError("");
@@ -181,9 +191,9 @@ export default function AccountConsole({
         );
         return;
       }
-      window.location.href = target;
+      window.location.href = resolveReturnTo(returnTo);
     } catch {
-      showLoginStatus("无法连接 API，请确认开发服务已启动。", "error");
+      showLoginStatus(API_DOWN, "error");
     } finally {
       setLoginBusy(false);
     }
@@ -243,29 +253,18 @@ export default function AccountConsole({
         );
         return;
       }
-      const verified = data.classmateVerified === true;
       setPassword("");
       setRealName("");
-      // Registration signs the session in; refresh to pick up role/realName.
-      const next = await refreshSession();
+      const next = await refreshSession({ silent: true });
       if (next?.authenticated && next.user) {
-        setInStatus(
-          verified
-            ? "已认证为班级同学——班级空间已解锁。"
-            : "注册成功，已自动登录。",
-        );
+        setInStatus("注册成功，已自动登录。");
         setInStatusKind("ok");
       } else {
         setMode("login");
-        showLoginStatus(
-          verified
-            ? "注册成功，已认证为班级同学——请登录。"
-            : "注册成功，请登录。",
-          "ok",
-        );
+        showLoginStatus("注册成功，请登录。", "ok");
       }
     } catch {
-      showRegisterStatus("无法连接 API，请确认开发服务已启动。", "error");
+      showRegisterStatus(API_DOWN, "error");
     } finally {
       setRegisterBusy(false);
     }
@@ -276,19 +275,30 @@ export default function AccountConsole({
     setLogoutStatus("退出中…");
     setLogoutStatusKind("");
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         ...AUTH_FETCH_OPTIONS,
         method: "POST",
       });
-      setLogoutStatus("已退出当前会话。");
-      setLogoutStatusKind("ok");
+      if (!response.ok) {
+        setLogoutStatus(response.status === 503 ? API_DOWN : "退出失败，请重试。");
+        setLogoutStatusKind("error");
+        return;
+      }
       setUsername("");
       setPassword("");
+      setRealName("");
       setInStatus("");
       setInStatusKind("");
-      showLoginStatus("", "");
       showRegisterStatus("", "");
-      await refreshSession();
+      const next = await refreshSession({ silent: true });
+      if (!next?.authenticated) {
+        setLogoutStatus("");
+        setLogoutStatusKind("");
+        showLoginStatus("已退出当前会话。", "ok");
+      } else {
+        setLogoutStatus("已退出，但会话仍有效，请刷新后再试。");
+        setLogoutStatusKind("error");
+      }
     } catch {
       setLogoutStatus("退出失败，请重试。");
       setLogoutStatusKind("error");
@@ -302,7 +312,8 @@ export default function AccountConsole({
   return (
     <div
       className="p-account"
-      data-return-to={returnTo}
+      data-return-to={target}
+      data-has-return-to={hasReturnTo ? "1" : "0"}
       data-panel={panel}
       data-mode={mode}
     >
@@ -347,14 +358,17 @@ export default function AccountConsole({
           </div>
           <p className="p-account__hint">
             {mode === "login"
-              ? "登录后可提交排行榜成绩、访问班级空间。"
-              : "注册一个账号，提交排行榜成绩、访问班级空间。"}
+              ? hasReturnTo
+                ? "登录后可提交排行榜成绩，并回到刚才的页面。班级空间是否开放由服务端名单决定。"
+                : "登录后可提交排行榜成绩。班级空间是否开放由服务端名单决定，与是否填写姓名无关。"
+              : "注册账号即可提交排行榜成绩。真实姓名选填，填写不会自动认证为同学。"}
           </p>
           {mode === "login" ? (
             <form className="p-form" noValidate onSubmit={handleLogin}>
               <label>
                 用户名
                 <input
+                  ref={usernameInputRef}
                   type="text"
                   name="username"
                   required
@@ -406,6 +420,7 @@ export default function AccountConsole({
               <label>
                 用户名
                 <input
+                  ref={usernameInputRef}
                   type="text"
                   name="username"
                   required
@@ -446,7 +461,7 @@ export default function AccountConsole({
                   onChange={(e) => setRealName(e.target.value)}
                 />
                 <span className="p-account__note">
-                  选填。班级空间是否开放由服务端会话决定，前端不会因填写姓名而自动认证。
+                  选填，仅作资料。班级空间是否开放由服务端名单与会话角色决定，填写姓名不会自动认证。
                 </span>
                 <span className="p-form__field-error" hidden={!realNameError}>
                   {realNameError}
@@ -487,8 +502,8 @@ export default function AccountConsole({
       {panel === "in" && user ? (
         <section className="p-account__panel" key="in">
           <p className="p-card__kicker">signed in</p>
-          {user.role === "member" && user.realName ? (
-            <p className="p-account__badge">已认证为班级同学</p>
+          {user.role === "member" || user.role === "admin" ? (
+            <p className="p-account__badge">班级空间已开放</p>
           ) : null}
           <h2 className="p-card__title">{user.displayName}</h2>
           <dl className="p-account__facts">
