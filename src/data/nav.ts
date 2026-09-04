@@ -5,7 +5,10 @@ export type NavLink = {
   priority?: string
 }
 
-/** 卷末「继续逛」与 sitemap 公开路由同一份（私密页不进 sitemap） */
+/**
+ * 卷末「继续逛」与 sitemap 公开路由同一份。
+ * 班级空间可出现在页脚，但 sitemap:false；sitemap 另有私密路径 denylist。
+ */
 export const navLinks: NavLink[] = [
   { href: '/', label: '首页', sitemap: true, priority: '1.0' },
   { href: '/about', label: '关于', sitemap: true, priority: '0.8' },

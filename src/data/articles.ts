@@ -10,11 +10,12 @@ export type Article = {
   tags: string[]
 }
 
-/** 与正文页标题、日期、字数保持同一份，RSS / 目录都从这里出 */
-export const articles: Article[] = [
+type ArticleDraft = Omit<Article, 'href'>
+
+/** 与正文页标题、日期、字数保持同一份，RSS / 目录 / sitemap 都从这里出 */
+const drafts: ArticleDraft[] = [
   {
     slug: 'why-build-personal-site',
-    href: '/articles/why-build-personal-site',
     kicker: 'featured',
     title: '为什么还在做个人网站',
     summary: '在模板和社交平台之间，个人站仍然值得投入。',
@@ -25,7 +26,6 @@ export const articles: Article[] = [
   },
   {
     slug: 'ai-prototype-loop',
-    href: '/articles/ai-prototype-loop',
     kicker: 'note',
     title: 'AI 原型的快速迭代循环',
     summary: '从想法到可点击 demo，我使用的四步循环。',
@@ -35,3 +35,8 @@ export const articles: Article[] = [
     tags: ['ai', 'engineering'],
   },
 ]
+
+export const articles: Article[] = drafts.map((article) => ({
+  ...article,
+  href: `/articles/${article.slug}`,
+}))

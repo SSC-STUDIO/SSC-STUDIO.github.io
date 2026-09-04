@@ -12,11 +12,12 @@ export type BenchmarkGame = {
   tags: string[]
 }
 
-/** 游戏页、排行榜 tabs、sitemap 共用同一份 id */
-export const benchmarkGames: BenchmarkGame[] = [
+type BenchmarkDraft = Omit<BenchmarkGame, 'href'>
+
+/** 游戏页、排行榜 tabs、sitemap 共用同一份 id；href 由 id 算出 */
+const drafts: BenchmarkDraft[] = [
   {
     id: 'reaction-test',
-    href: '/benchmarks/reaction-test',
     label: '反应时间',
     title: '反应时间',
     kicker: 'reaction',
@@ -29,7 +30,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'number-memory',
-    href: '/benchmarks/number-memory',
     label: '数字记忆',
     title: '数字记忆',
     kicker: 'memory',
@@ -41,7 +41,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'visual-memory',
-    href: '/benchmarks/visual-memory',
     label: '视觉记忆',
     title: '视觉记忆',
     kicker: 'memory',
@@ -53,7 +52,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'sequence-memory',
-    href: '/benchmarks/sequence-memory',
     label: '顺序记忆',
     title: '顺序记忆',
     kicker: 'memory',
@@ -65,7 +63,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'chimp-test',
-    href: '/benchmarks/chimp-test',
     label: '黑猩猩测试',
     title: '黑猩猩测试',
     kicker: 'memory',
@@ -77,7 +74,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'word-memory',
-    href: '/benchmarks/word-memory',
     label: '词语记忆',
     title: '词语记忆',
     kicker: 'attention',
@@ -89,7 +85,6 @@ export const benchmarkGames: BenchmarkGame[] = [
   },
   {
     id: 'schulte-grid',
-    href: '/benchmarks/schulte-grid',
     label: '舒尔特表',
     title: '舒尔特表',
     kicker: 'attention',
@@ -101,3 +96,8 @@ export const benchmarkGames: BenchmarkGame[] = [
     tags: ['注意力', '5×5', '计时'],
   },
 ]
+
+export const benchmarkGames: BenchmarkGame[] = drafts.map((game) => ({
+  ...game,
+  href: `/benchmarks/${game.id}`,
+}))

@@ -1,5 +1,5 @@
 {
-  "_comment": "GitHub 仓库的人工润色层：中文名/摘要/标签/排序。重新运行 npm run sync:repos 不会覆盖这里。order 越小越靠前；hidden 可隐藏；include 可强制纳入 fork。",
+  "_comment": "GitHub 仓库的人工润色层：中文名/摘要/标签/排序/主页。重新运行 npm run sync:repos 不会覆盖这里的文案。order 越小越靠前；hidden 可隐藏；include 可强制纳入 fork；homepage 记录正确项目主页（快照里应与此一致）。",
   "repos": {
     "UniversalDeviceToolkit": {
       "order": 1,
@@ -9,6 +9,7 @@
     },
     "GreedySnake-2026": {
       "order": 2,
+      "homepage": "https://github.com/SSC-STUDIO/GreedySnake-2026/releases",
       "title": "贪吃蛇 2026",
       "summary": "Godot 4.6 做的 Roguelite 竞技场生存贪吃蛇：5 种模式、24 项升级、10 套流派构筑、4 种诅咒变体、29 个成就与 60 余种特效，中英双语。",
       "tags": ["GDScript", "Godot 4", "Roguelite", "游戏开发"]
