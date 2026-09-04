@@ -6,11 +6,14 @@ import PageAura from '@/components/pages/PageAura.astro'
 
 const verse = '行到水穷处，坐看云起时'
 const verseChars = Array.from(verse)
+const markRe = /[\s，。、「」]/
 ---
 
 <BaseLayout
   title="404 · 陈润森"
-  description="页面不存在或已迁移——从首页、文章或联系页继续逛。"
+  description="页面不存在或已迁移——从首页、项目、文章或联系页继续逛。"
+  bodyClass="is-lost"
+  robots="noindex, follow"
 >
   <PageHero
     kicker="迷路"
@@ -27,11 +30,23 @@ const verseChars = Array.from(verse)
       <p class="p-empty__message">
         你访问的地址没有对应内容。如果是从旧链接跳转过来，站点重建后部分路径已调整。
       </p>
-      <p class="p-404__path" hidden>
-        迷失于 <code data-lost-path></code>
+      <p class="p-404__path">
+        迷失于 <code data-lost-path>未知去处</code>
       </p>
       <div class="p-card__actions" data-flow data-intersect>
+        <a
+          class="p-card__link p-card__link--ghost"
+          href="/"
+          hidden
+          data-lost-back
+          data-seal
+        >
+          返回上页
+        </a>
         <a class="p-card__link" href="/" data-seal> 返回首页 </a>
+        <a class="p-card__link p-card__link--ghost" href="/projects" data-seal>
+          去看项目
+        </a>
         <a class="p-card__link p-card__link--ghost" href="/articles" data-seal>
           去看文章
         </a>
@@ -44,7 +59,10 @@ const verseChars = Array.from(verse)
         <span class="p-404__verse__ink" aria-hidden="true">
           {
             verseChars.map((char, index) => (
-              <span class="char" style={`--char-i:${index}`}>
+              <span
+                class:list={['char', { 'is-mark': markRe.test(char) }]}
+                style={`--char-i:${index}`}
+              >
                 {char}
               </span>
             ))
@@ -78,6 +96,10 @@ const verseChars = Array.from(verse)
   /** 指针推开墨点的半径（px）与力度 */
   const PUSH_RADIUS = 130
   const PUSH_FORCE = 26
+  /** 闲游速度上限，避免推力叠加后飞出节奏 */
+  const MAX_SPEED = 48
+  /** 路径过长时中间收成省略，完整地址放 title */
+  const PATH_MAX = 72
 
   /**
    * lost-ink —— 迷路的墨点
@@ -86,7 +108,7 @@ const verseChars = Array.from(verse)
    * 指针靠近时被轻轻推开，像水面上被搅动的浮尘。
    * 同时把指针位置写成 --nf-px / --nf-py，供「空」字水印随之漂移。
    *
-   * 自定义元素生命周期天然对齐 SPA 换页；宿主离屏时停帧；
+   * 自定义元素生命周期天然对齐 SPA 换页；宿主离屏或页签隐藏时停帧；
    * reduced-motion 下一粒墨点也不生成。
    */
   class LostInk extends HTMLElement {
@@ -111,7 +133,18 @@ const verseChars = Array.from(verse)
       ro.observe(this)
       this.stops.push(() => ro.disconnect())
 
-      this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        this.stops.push(onPointer((pos) => this.aim(pos.x, pos.y)))
+      }
+
+      const onVis = () => {
+        if (document.hidden) this.suspend()
+        else this.resume()
+      }
+      document.addEventListener('visibilitychange', onVis)
+      this.stops.push(() =>
+        document.removeEventListener('visibilitychange', onVis)
+      )
 
       this.addEventListener('intersect', this.onIntersect as EventListener, {
         passive: true,
@@ -127,6 +160,8 @@ const verseChars = Array.from(verse)
       this.stops = []
       this.strays.forEach((stray) => stray.node.remove())
       this.strays = []
+      this.empty?.style.removeProperty('--nf-px')
+      this.empty?.style.removeProperty('--nf-py')
       this.empty = null
     }
 
@@ -137,7 +172,8 @@ const verseChars = Array.from(verse)
     }
 
     resume() {
-      if (this.unframe || !this.inView || !this.strays.length) return
+      if (this.unframe || !this.inView || document.hidden || !this.strays.length)
+        return
       this.unframe = onFrame((_time, delta) => this.step(delta))
     }
 
@@ -160,6 +196,10 @@ const verseChars = Array.from(verse)
     }
 
     seed() {
+      const inset = 8
+      const spanX = Math.max(1, this.width - inset * 2)
+      const spanY = Math.max(1, this.height - inset * 2)
+
       for (let i = 0; i < COUNT; i++) {
         const node = document.createElement('span')
         node.className = 'p-404__stray'
@@ -173,8 +213,8 @@ const verseChars = Array.from(verse)
 
         this.strays.push({
           node,
-          x: Math.random() * this.width,
-          y: Math.random() * this.height,
+          x: inset + Math.random() * spanX,
+          y: inset + Math.random() * spanY,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
         })
@@ -188,6 +228,20 @@ const verseChars = Array.from(verse)
 
       const empty = this.empty
       if (!empty || !this.width || !this.height) return
+
+      const inside =
+        this.pointerX >= -8 &&
+        this.pointerX <= this.width + 8 &&
+        this.pointerY >= -8 &&
+        this.pointerY <= this.height + 8
+
+      if (!inside) {
+        this.pointerX = -9999
+        this.pointerY = -9999
+        empty.style.setProperty('--nf-px', '0')
+        empty.style.setProperty('--nf-py', '0')
+        return
+      }
 
       empty.style.setProperty(
         '--nf-px',
@@ -218,6 +272,12 @@ const verseChars = Array.from(verse)
         stray.vx *= 0.992
         stray.vy *= 0.992
 
+        const speed = Math.hypot(stray.vx, stray.vy)
+        if (speed > MAX_SPEED) {
+          stray.vx *= MAX_SPEED / speed
+          stray.vy *= MAX_SPEED / speed
+        }
+
         stray.x += stray.vx * dt
         stray.y += stray.vy * dt
 
@@ -247,26 +307,118 @@ const verseChars = Array.from(verse)
     customElements.define('lost-ink', LostInk)
   }
 
+  function formatLostPath(raw: string) {
+    let path = raw || '/'
+    try {
+      path = decodeURIComponent(path)
+    } catch {
+      /* 畸形编码就原样展示 */
+    }
+    if (path.length > PATH_MAX) {
+      return `${path.slice(0, 40)}…${path.slice(-14)}`
+    }
+    return path
+  }
+
   /** 迷路路径：模块脚本只执行一次，每次 astro:page-load 重写当前地址 */
   function stampLostPath() {
     const code = document.querySelector('[data-lost-path]')
     if (!(code instanceof HTMLElement)) return
-    code.textContent = location.pathname
-    const row = code.closest('.p-404__path')
-    if (row instanceof HTMLElement) row.hidden = false
+    const full = location.pathname || '/'
+    const shown = formatLostPath(full)
+    code.textContent = shown
+    if (shown !== full) code.title = full
+    else code.removeAttribute('title')
   }
 
-  document.addEventListener('astro:page-load', stampLostPath)
+  type NavEntry = { url: string }
+  type NavAPI = {
+    entries?: () => NavEntry[]
+    canGoBack?: boolean
+  }
+
+  function previousPath() {
+    const nav = (window as Window & { navigation?: NavAPI }).navigation
+    if (nav?.entries) {
+      try {
+        const entries = nav.entries()
+        for (let i = entries.length - 2; i >= 0; i--) {
+          const url = new URL(entries[i].url, location.href)
+          if (url.origin === location.origin && url.pathname !== location.pathname) {
+            return url.pathname
+          }
+        }
+      } catch {
+        /* Navigation API 条目读失败就改走 referrer */
+      }
+    }
+    try {
+      if (document.referrer) {
+        const ref = new URL(document.referrer)
+        if (ref.origin === location.origin && ref.pathname !== location.pathname) {
+          return ref.pathname
+        }
+      }
+    } catch {
+      /* 畸形 referrer 就当没有 */
+    }
+    return ''
+  }
+
+  /** 站内上一页才露出「返回上页」，避免把人送出本站。
+   *  ClientRouter 不改 document.referrer，优先读 Navigation API 历史。 */
+  function bindLostBack() {
+    const back = document.querySelector('[data-lost-back]')
+    if (!(back instanceof HTMLAnchorElement)) return
+
+    if (!previousPath()) {
+      back.hidden = true
+      return
+    }
+
+    back.hidden = false
+    if (back.dataset.bound === '1') return
+    back.dataset.bound = '1'
+    back.addEventListener(
+      'click',
+      (event) => {
+        event.preventDefault()
+        history.back()
+      },
+      { once: true }
+    )
+  }
+
+  function setupLostPage() {
+    stampLostPath()
+    bindLostBack()
+  }
+
+  document.addEventListener('astro:page-load', setupLostPage)
+  setupLostPage()
 </script>
 
 <style lang="scss" is:global>
   /* ── 404 专属：迷失路径、卷末诗与「空」字呼吸 ── */
+
+  /* 迷路页卷首收一寸，把空态行动区留在首屏 */
+  body.is-lost .p-hero {
+    padding-top: 5.5rem;
+    padding-bottom: 2.15rem;
+  }
 
   .p-404 {
     /* 由 <lost-ink> 写入：指针在空框内的相对位置 ±0.5 */
     .p-empty {
       --nf-px: 0;
       --nf-py: 0;
+
+      /* 卷首已经很高，空框少留上下白，行动区尽量落在首屏 */
+      padding: 2.25rem 1.25rem 1.85rem;
+    }
+
+    .p-empty__message {
+      margin-bottom: 1rem;
     }
 
     /* 「迷」印：落在空框右上，入屏后钤下 */
@@ -295,18 +447,16 @@ const verseChars = Array.from(verse)
       animation: p-404-seal 660ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
     }
 
-    /* 迷失路径回显：等宽小字，如批注一笔 */
+    /* 迷失路径回显：等宽小字，如批注一笔。无 JS 时展示「未知去处」空态 */
     .p-404__path {
       position: relative;
       z-index: 2;
 
-      margin: -0.5rem 0 1.5rem;
+      margin: 0 0 1.15rem;
 
       color: color-mix(in srgb, #{color(secondary)} 60%, transparent);
       font: 400 0.8rem / 1.5 font-family(editorial);
       letter-spacing: 0.06em;
-
-      animation: nf-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms backwards;
 
       code {
         padding: 0.2em 0.5em;
@@ -317,6 +467,10 @@ const verseChars = Array.from(verse)
         font: 700 0.95em / 1.4 font-family(fraktion);
         overflow-wrap: anywhere;
       }
+    }
+
+    .p-empty.is-in-view .p-404__path {
+      animation: nf-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms backwards;
     }
 
     /* 卷末一句诗：既然无路，不妨看云 */
@@ -347,6 +501,17 @@ const verseChars = Array.from(verse)
     /* 「空」字水印缓缓呼吸，并随指针极轻地漂移 */
     .p-empty::before {
       animation: p-404-breathe 8s ease(in-out-sine) infinite;
+    }
+
+    @include mq(phone) {
+      .p-empty {
+        padding: 1.85rem 1rem 1.5rem;
+      }
+
+      .p-404__seal {
+        top: 0.75rem;
+        right: 0.75rem;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -410,13 +575,14 @@ const verseChars = Array.from(verse)
 
   /* ── 卷末诗逐字浮现 ──
      默认态即落定态：观察者不触发也照常可读，
-     只在 .is-in-view 落上之后才播，fill-mode 取 backwards。 */
+     只在 .is-in-view 落上之后才播，fill-mode 取 backwards。
+     标点不跟着跳，免得逗号先于字落墨。 */
 
   .p-404__verse .char {
     display: inline-block;
   }
 
-  .p-404__verse.is-in-view .char {
+  .p-404__verse.is-in-view .char:not(.is-mark) {
     animation: nf-verse 720ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: calc(var(--char-i, 0) * 78ms);
   }
@@ -452,10 +618,18 @@ const verseChars = Array.from(verse)
     }
   }
 
-  /* 入口按钮：悬停时朱丝自左扫入（落印涟漪交给 [data-seal]） */
+  /* 入口按钮：悬停轻提（落印涟漪交给 [data-seal]） */
   .p-404 .p-card__actions {
     position: relative;
     z-index: 2;
+
+    justify-content: center;
+  }
+
+  /* .p-card__link 的 display:inline-flex 会盖掉 UA 的 [hidden]，
+     直达 404 时「返回上页」必须真正从布局里拿走。 */
+  .p-404 .p-card__actions [hidden] {
+    display: none !important;
   }
 
   .p-404 .p-card__link {
@@ -464,8 +638,13 @@ const verseChars = Array.from(verse)
       color 0.2s ease,
       transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 
-    &:hover,
     &:focus-visible {
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .p-404 .p-card__link:hover {
       transform: translateY(-2px);
     }
   }
@@ -475,7 +654,7 @@ const verseChars = Array.from(verse)
     .p-404 .p-empty.is-in-view .p-empty__title,
     .p-404 .p-empty.is-in-view .p-empty__message,
     .p-404 .p-empty.is-in-view .p-404__seal,
-    .p-404__path {
+    .p-404 .p-empty.is-in-view .p-404__path {
       animation: none;
     }
 
