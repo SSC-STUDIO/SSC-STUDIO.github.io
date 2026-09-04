@@ -3,14 +3,15 @@
  * AboutScroll — 关于页专用立轴
  *
  * 对照首页 ScrollLeaf 的装裱语言：天杆 / 地杆、绫边、四角朱砂碰头。
- * 指针沿中缝轻翻交给 [data-leaf]（本组件只挂属性，不改 leaf-flip）。
+ * 指针沿中缝轻翻交给 [data-leaf]（只挂属性，不改 leaf-flip）；
+ * 倾斜写在画心上，宿主本身不写 transform，免得 sticky 失效、3D 翻面被压扁。
+ * 不挂 data-reveal：入场若先 opacity:0，左栏会空出一块宣纸白屏。
  * 点轴翻到背面题识；无 JS 或 reduced-motion 时照片常显，题识不是正文。
  */
 ---
 
 <about-scroll
   class="p-about-photo p-about-scroll"
-  data-reveal
   data-leaf
 >
   <span class="p-about-scroll__rod p-about-scroll__rod--sky" aria-hidden="true">
@@ -30,7 +31,9 @@
           alt="陈润森的个人照片"
           width="640"
           height="811"
-          loading="lazy"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
         />
         <figcaption>
           <span class="p-about-photo__name">陈润森</span>
@@ -73,8 +76,7 @@
       this.classList.add('is-live')
       this.tabIndex = 0
       this.setAttribute('role', 'button')
-      this.setAttribute('aria-expanded', 'false')
-      this.setAttribute('aria-label', '立轴照片，点按翻看背面题识')
+      this.syncFace()
 
       const onClick = (event: Event) => {
         if ((event.target as Element | null)?.closest('a')) return
@@ -84,16 +86,19 @@
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           this.toggle()
-        } else if (event.key === 'Escape' && this.verso) {
-          this.toggle(false)
         }
+      }
+      const onDocKey = (event: KeyboardEvent) => {
+        if (event.key === 'Escape' && this.verso) this.toggle(false)
       }
 
       this.addEventListener('click', onClick)
       this.addEventListener('keydown', onKey)
+      document.addEventListener('keydown', onDocKey)
       this.stops.push(() => {
         this.removeEventListener('click', onClick)
         this.removeEventListener('keydown', onKey)
+        document.removeEventListener('keydown', onDocKey)
       })
     }
 
@@ -102,18 +107,26 @@
       this.stops = []
     }
 
-    toggle(next = !this.verso) {
-      this.verso = next
-      this.classList.toggle('is-verso', next)
-      this.setAttribute('aria-expanded', next ? 'true' : 'false')
+    syncFace() {
+      this.classList.toggle('is-verso', this.verso)
+      this.setAttribute('aria-expanded', this.verso ? 'true' : 'false')
+      this.setAttribute(
+        'aria-label',
+        this.verso
+          ? '立轴背面题识，点按翻回正面'
+          : '立轴照片，点按翻看背面题识'
+      )
 
       const verso = this.querySelector('.p-about-scroll__verso')
-      verso?.setAttribute('aria-hidden', next ? 'false' : 'true')
+      verso?.setAttribute('aria-hidden', this.verso ? 'false' : 'true')
 
-      if (prefersReducedMotion()) return
-      this.classList.remove('is-pressed')
-      void this.offsetWidth
-      this.classList.add('is-pressed')
+      const hint = this.querySelector('.p-about-scroll__hint')
+      if (hint) hint.textContent = this.verso ? '再点翻回正面' : '点轴翻看题识'
+    }
+
+    toggle(next = !this.verso) {
+      this.verso = next
+      this.syncFace()
     }
   }
 
@@ -130,7 +143,13 @@
 
       const onClick = (event: Event) => {
         const chip = (event.target as Element | null)?.closest('.p-chip')
-        if (!(chip instanceof HTMLElement)) return
+        if (!(chip instanceof HTMLElement) || !this.contains(chip)) return
+
+        const prevTimer = Number(chip.dataset.stampTimer || 0)
+        if (prevTimer) window.clearTimeout(prevTimer)
+        chip.querySelectorAll('.p-about-chip-stamp').forEach((node) => {
+          node.remove()
+        })
 
         const stamp = document.createElement('i')
         stamp.className = 'p-about-chip-stamp'
@@ -139,6 +158,7 @@
         chip.appendChild(stamp)
 
         const timer = window.setTimeout(() => stamp.remove(), 920)
+        chip.dataset.stampTimer = String(timer)
         this.timers.push(timer)
       }
 
@@ -179,6 +199,12 @@
       outline: 2px dashed color-mix(in srgb, #{color(accent)} 70%, transparent);
       outline-offset: 8px;
     }
+  }
+
+  /* 全局 [data-leaf] 会写 transform，和 sticky / 内层 rotateY(180) 抢同一条。
+     变量仍写在宿主上，倾斜落到画心，翻面才翻得开。 */
+  .p-about-scroll[data-leaf] {
+    transform: none;
   }
 
   .p-about-scroll__rod {
@@ -281,17 +307,29 @@
   .p-about-scroll__stage {
     position: relative;
 
-    overflow: hidden;
+    overflow: visible;
 
     @include ink-frame;
     @include ink-corner-marks($len: 13px, $w: 1.5px, $inset: 5px, $softness: 0.85);
 
     perspective: 72rem;
+    transform: perspective(60rem) rotateX(var(--leaf-rx, 0deg))
+      rotateY(var(--leaf-ry, 0deg));
+    transform-style: preserve-3d;
+
+    transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .p-about-scroll.is-leaf-live .p-about-scroll__stage {
+    transition: transform 120ms linear;
   }
 
   .p-about-scroll__flip {
     position: relative;
 
+    background: color(primary);
+
+    transform: rotateY(0deg);
     transform-style: preserve-3d;
     transition: transform 720ms cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -300,30 +338,15 @@
     transform: rotateY(180deg);
   }
 
-  .p-about-scroll.is-pressed .p-about-scroll__stage {
-    animation: about-scroll-press 420ms cubic-bezier(0.2, 1.2, 0.32, 1);
-  }
-
-  @keyframes about-scroll-press {
-    0% {
-      transform: scale(1);
-    }
-
-    40% {
-      transform: scale(0.985);
-    }
-
-    100% {
-      transform: scale(1);
-    }
-  }
-
   .p-about-scroll__plate {
     position: relative;
 
     margin: 0;
+    overflow: hidden;
 
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    transform: rotateY(0deg) translateZ(1px);
 
     img {
       display: block;
@@ -347,7 +370,7 @@
     }
   }
 
-  .p-about-scroll:hover .p-about-scroll__plate img {
+  .p-about-scroll:hover:not(.is-verso) .p-about-scroll__plate img {
     transform: scale(1.035);
   }
 
@@ -371,7 +394,7 @@
     transition: opacity 0.4s ease(out-quint);
   }
 
-  .p-about-scroll:hover .p-about-scroll__plate::after {
+  .p-about-scroll:hover:not(.is-verso) .p-about-scroll__plate::after {
     opacity: 1;
   }
 
@@ -428,8 +451,9 @@
       );
 
     text-align: center;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    transform: rotateY(180deg);
+    transform: rotateY(180deg) translateZ(1px);
     pointer-events: none;
   }
 
@@ -496,6 +520,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .p-about-scroll__stage,
     .p-about-scroll__flip,
     .p-about-scroll__plate img,
     .p-about-scroll__plate::after,
@@ -503,12 +528,15 @@
       transition: none;
     }
 
-    .p-about-scroll:hover .p-about-scroll__plate img {
+    .p-about-scroll__stage {
       transform: none;
     }
 
-    .p-about-scroll.is-live:hover .p-about-scroll__tassel,
-    .p-about-scroll.is-pressed .p-about-scroll__stage {
+    .p-about-scroll:hover:not(.is-verso) .p-about-scroll__plate img {
+      transform: none;
+    }
+
+    .p-about-scroll.is-live:hover .p-about-scroll__tassel {
       animation: none;
     }
   }

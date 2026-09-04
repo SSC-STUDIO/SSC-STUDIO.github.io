@@ -90,17 +90,16 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
     background-image: none;
   }
 
-  /* 技能签改成按钮后，收掉默认按钮皮，手感仍是纸签 */
+  /* 技能签改成按钮后，只剥默认按钮皮，不改 .p-chip 的字号字距 */
   .p-about .p-chips .p-chip {
     appearance: none;
+    -webkit-appearance: none;
 
     position: relative;
     overflow: visible;
 
+    margin: 0;
     cursor: pointer;
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
 
     transition:
       transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
@@ -145,6 +144,7 @@ import InkSeal3D from '@/components/InkSeal3D.astro'
 
     color: color(accent-strong);
     font: 700 0.62rem / 1 font-family(editorial);
+    font-style: normal;
     pointer-events: none;
 
     animation: about-chip-stamp 880ms cubic-bezier(0.2, 1.35, 0.32, 1) both;
