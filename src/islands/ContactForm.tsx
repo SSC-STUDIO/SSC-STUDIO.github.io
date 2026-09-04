@@ -7,6 +7,7 @@ type Status = "idle" | "submitting" | "ok" | "busy" | "unavailable" | "error";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONTENT_MIN = 10;
 const CONTENT_MAX = 2000;
+const CONTENT_NEAR = CONTENT_MAX - 200;
 
 /**
  * Contact form island — posts a message to `/api/contact/messages`.
@@ -27,17 +28,30 @@ export default function ContactForm({
   const [status, setStatus] = useState<Status>("idle");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [contentLength, setContentLength] = useState(0);
+  const [contentTrim, setContentTrim] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const inflight = useRef(false);
+
+  function syncContent(value: string) {
+    setContentLength(value.length);
+    setContentTrim(value.trim().length);
+  }
+
+  function dismissStatus() {
+    setStatus((current) => (current === "submitting" ? current : "idle"));
+  }
 
   function validateField(name: FieldName, value: string): string | undefined {
-    if (name === "name" && !value) return "请填写姓名";
-    if (name === "email" && value && !EMAIL_PATTERN.test(value)) {
-      return "邮箱格式不正确";
+    if (name === "name" && !value.trim()) return "请填写姓名";
+    if (name === "email") {
+      const email = value.trim();
+      if (email && !EMAIL_PATTERN.test(email)) return "邮箱格式不正确";
     }
-    if (name === "subject" && !value) return "请填写主题";
+    if (name === "subject" && !value.trim()) return "请填写主题";
     if (name === "content") {
-      if (!value) return "请填写消息";
-      if (value.length < CONTENT_MIN) return `消息至少 ${CONTENT_MIN} 个字`;
+      const trimmed = value.trim();
+      if (!trimmed) return "请填写消息";
+      if (trimmed.length < CONTENT_MIN) return `消息至少 ${CONTENT_MIN} 个字`;
       if (value.length > CONTENT_MAX) return `消息最多 ${CONTENT_MAX} 个字`;
     }
     return undefined;
@@ -63,7 +77,7 @@ export default function ContactForm({
       return;
     }
     const name = field.name as FieldName;
-    const error = validateField(name, field.value.trim());
+    const error = validateField(name, field.value);
     setErrors((current) => ({ ...current, [name]: error }));
   }
 
@@ -84,21 +98,25 @@ export default function ContactForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inflight.current) return;
+
     const form = event.currentTarget;
     const formData = new FormData(form);
     const values: Record<FieldName, string> = {
-      name: String(formData.get("name") ?? "").trim(),
-      email: String(formData.get("email") ?? "").trim(),
-      subject: String(formData.get("subject") ?? "").trim(),
-      content: String(formData.get("content") ?? "").trim(),
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      subject: String(formData.get("subject") ?? ""),
+      content: String(formData.get("content") ?? ""),
     };
 
     const fieldErrors = validate(values);
     if (Object.keys(fieldErrors).some((name) => fieldErrors[name as FieldName])) {
+      setStatus("idle");
       focusFirstError(fieldErrors);
       return;
     }
 
+    inflight.current = true;
     setStatus("submitting");
     try {
       const response = await fetch("/api/contact/messages", {
@@ -107,7 +125,12 @@ export default function ContactForm({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          name: values.name.trim(),
+          email: values.email.trim(),
+          subject: values.subject.trim(),
+          content: values.content.trim(),
+        }),
       });
       if (response.status === 429) {
         setStatus("busy");
@@ -121,9 +144,11 @@ export default function ContactForm({
       setStatus("ok");
       form.reset();
       setErrors({});
-      setContentLength(0);
+      syncContent("");
     } catch {
       setStatus("error");
+    } finally {
+      inflight.current = false;
     }
   }
 
@@ -140,12 +165,36 @@ export default function ContactForm({
               ? `发送失败，请直接邮件联系 ${fallbackEmail}`
               : "";
 
+  const hintText =
+    contentLength === 0
+      ? ""
+      : contentLength >= CONTENT_MAX
+        ? `已写满 ${CONTENT_MAX} 字`
+        : contentTrim < CONTENT_MIN
+          ? `还差 ${CONTENT_MIN - contentTrim} 个字（至少 ${CONTENT_MIN} 字）· ${contentLength} / ${CONTENT_MAX}`
+          : `${contentLength} / ${CONTENT_MAX} 字`;
+
+  const hintClass =
+    contentLength >= CONTENT_MAX
+      ? " is-full"
+      : contentLength >= CONTENT_NEAR
+        ? " is-near"
+        : "";
+
+  const inkClass =
+    contentLength >= CONTENT_MAX
+      ? " is-full"
+      : contentLength >= CONTENT_NEAR
+        ? " is-near"
+        : "";
+
   return (
     <form
       className="p-form p-form--contact"
       noValidate
       onSubmit={handleSubmit}
       ref={formRef}
+      aria-busy={status === "submitting"}
     >
       <label>
         姓名
@@ -157,7 +206,10 @@ export default function ContactForm({
           aria-invalid={Boolean(errors.name)}
           aria-describedby="contact-error-name"
           onBlur={handleBlur}
-          onChange={() => clearError("name")}
+          onChange={() => {
+            clearError("name");
+            dismissStatus();
+          }}
         />
         <span
           className="p-form__field-error"
@@ -176,7 +228,10 @@ export default function ContactForm({
           aria-invalid={Boolean(errors.email)}
           aria-describedby="contact-error-email"
           onBlur={handleBlur}
-          onChange={() => clearError("email")}
+          onChange={() => {
+            clearError("email");
+            dismissStatus();
+          }}
         />
         <span
           className="p-form__field-error"
@@ -196,7 +251,10 @@ export default function ContactForm({
           aria-invalid={Boolean(errors.subject)}
           aria-describedby="contact-error-subject"
           onBlur={handleBlur}
-          onChange={() => clearError("subject")}
+          onChange={() => {
+            clearError("subject");
+            dismissStatus();
+          }}
         />
         <span
           className="p-form__field-error"
@@ -214,11 +272,26 @@ export default function ContactForm({
           minLength={CONTENT_MIN}
           maxLength={CONTENT_MAX}
           aria-invalid={Boolean(errors.content)}
-          aria-describedby="contact-error-content"
+          aria-describedby="contact-error-content contact-hint-content"
           onBlur={handleBlur}
           onChange={(event) => {
+            const node = event.target;
+            if (
+              !event.nativeEvent.isComposing &&
+              node.value.length > CONTENT_MAX
+            ) {
+              node.value = node.value.slice(0, CONTENT_MAX);
+            }
             clearError("content");
-            setContentLength(event.target.value.trim().length);
+            dismissStatus();
+            syncContent(node.value);
+          }}
+          onCompositionEnd={(event) => {
+            const node = event.currentTarget;
+            if (node.value.length > CONTENT_MAX) {
+              node.value = node.value.slice(0, CONTENT_MAX);
+            }
+            syncContent(node.value);
           }}
         />
         <span
@@ -228,17 +301,15 @@ export default function ContactForm({
         >
           {errors.content}
         </span>
-        {contentLength > 0 && contentLength < CONTENT_MIN && !errors.content ? (
-          <span className="p-form__field-hint">
-            还差 {CONTENT_MIN - contentLength} 个字（至少 {CONTENT_MIN} 字）
-          </span>
-        ) : contentLength > 0 ? (
-          <span className="p-form__field-hint">
-            {contentLength} / {CONTENT_MAX} 字
-          </span>
-        ) : null}
         <span
-          className="p-form__ink"
+          className={`p-form__field-hint${hintClass}`}
+          id="contact-hint-content"
+          hidden={!hintText}
+        >
+          {hintText}
+        </span>
+        <span
+          className={`p-form__ink${inkClass}`}
           hidden={contentLength === 0}
           aria-hidden="true"
         >
@@ -256,9 +327,11 @@ export default function ContactForm({
         className={`p-form__status${
           status === "ok"
             ? " is-ok"
-            : status === "error" || status === "unavailable" || status === "busy"
-              ? " is-error"
-              : ""
+            : status === "submitting"
+              ? " is-pending"
+              : status === "error" || status === "unavailable" || status === "busy"
+                ? " is-error"
+                : ""
         }`}
         role={
           status === "error" || status === "unavailable" || status === "busy"

@@ -16,15 +16,44 @@
 
   const SKIP =
     'a,button,input,textarea,select,label,summary,[role="button"],ink-seal3d,.js-stamp,.p-card__link,.p-form'
+  const MAX_BLOTS = 8
 
   class ContactLetter extends HTMLElement {
     stops: Cleanup[] = []
     timers: number[] = []
+    layer: HTMLElement | null = null
 
     connectedCallback() {
       this.classList.add('is-live')
 
-      const onClick = (event: PointerEvent) => {
+      const layer = document.createElement('span')
+      layer.className = 'p-contact-blots'
+      layer.setAttribute('aria-hidden', 'true')
+      this.appendChild(layer)
+      this.layer = layer
+
+      const spawnBlot = (event: PointerEvent) => {
+        if (!this.layer || prefersReducedMotion()) return
+
+        const rect = this.getBoundingClientRect()
+        const blot = document.createElement('i')
+        blot.className = 'p-contact-blot'
+        blot.style.left = `${event.clientX - rect.left}px`
+        blot.style.top = `${event.clientY - rect.top}px`
+        this.layer.appendChild(blot)
+
+        while (this.layer.childElementCount > MAX_BLOTS) {
+          this.layer.firstElementChild?.remove()
+        }
+
+        const done = () => blot.remove()
+        blot.addEventListener('animationend', done, { once: true })
+        const timer = window.setTimeout(done, 1400)
+        this.timers.push(timer)
+      }
+
+      const onPointerDown = (event: PointerEvent) => {
+        if (event.button !== 0) return
         const target = event.target as Element | null
         if (!target) return
 
@@ -35,22 +64,22 @@
         }
 
         if (target.closest(SKIP)) return
-        if (prefersReducedMotion()) return
-
-        const rect = this.getBoundingClientRect()
-        const blot = document.createElement('i')
-        blot.className = 'p-contact-blot'
-        blot.setAttribute('aria-hidden', 'true')
-        blot.style.left = `${event.clientX - rect.left}px`
-        blot.style.top = `${event.clientY - rect.top}px`
-        this.appendChild(blot)
-
-        const timer = window.setTimeout(() => blot.remove(), 1100)
-        this.timers.push(timer)
+        spawnBlot(event)
       }
 
-      this.addEventListener('click', onClick)
-      this.stops.push(() => this.removeEventListener('click', onClick))
+      const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        const item = event.target
+        if (!(item instanceof HTMLElement)) return
+        if (item.tagName !== 'LI' || !this.contains(item)) return
+        event.preventDefault()
+        item.classList.toggle('is-ticked')
+      }
+
+      this.addEventListener('pointerdown', onPointerDown)
+      this.addEventListener('keydown', onKeyDown)
+      this.stops.push(() => this.removeEventListener('pointerdown', onPointerDown))
+      this.stops.push(() => this.removeEventListener('keydown', onKeyDown))
     }
 
     disconnectedCallback() {
@@ -58,6 +87,8 @@
       this.timers = []
       this.stops.forEach((stop) => stop())
       this.stops = []
+      this.layer?.remove()
+      this.layer = null
     }
   }
 
