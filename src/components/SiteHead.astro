@@ -1,10 +1,12 @@
 ---
 import SenMark from './SenMark.astro'
+import { isNavCurrent, normalizePath } from '../utils/nav-current'
 
 const isSubpage = Astro.url.pathname !== '/'
 
 // 当前页路径（去尾斜杠），用于导航 aria-current 标记
-const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/'
+const currentPath = normalizePath(Astro.url.pathname)
+const currentHash = Astro.url.hash
 
 const menu = isSubpage
   ? [
@@ -65,7 +67,11 @@ const consoleLines = [
               <a
                 href={item.href}
                 class="js-menu-link"
-                aria-current={item.href === currentPath ? 'page' : undefined}
+                aria-current={
+                  isNavCurrent(item.href, currentPath, currentHash)
+                    ? 'page'
+                    : undefined
+                }
               >
                 <span class="sb__text">{item.text}</span>
               </a>
@@ -136,9 +142,10 @@ const consoleLines = [
     signalThemeFlip,
     type Cleanup,
   } from '../motion/core'
+  import { isNavCurrent } from '../utils/nav-current'
 
   import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
   const STORAGE_KEY = 'site-theme'
   const THEME_COLORS = {
@@ -264,11 +271,16 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
       this.bindEvents()
       applyTheme(resolveTheme(), false)
+      this.syncNav()
+      this.syncContrastPressed()
 
       const introSeen =
         typeof sessionStorage !== 'undefined' &&
         sessionStorage.getItem('site-intro-seen') === '1'
-      if (this.isSubPage || introSeen) {
+      const siteReady =
+        document.documentElement.classList.contains('is-site-ready')
+      if (this.isSubPage || introSeen || siteReady) {
+        this.el.classList.add('is-ready')
         this.canWrite = true
       } else {
         document.addEventListener('intro', this.intro.bind(this), {
@@ -276,6 +288,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
           signal: this.abort.signal,
         })
       }
+
+      this.scrollToHash()
     }
 
     bindEvents() {
@@ -295,6 +309,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
       this.el.addEventListener('intersect', this.onIntersect.bind(this), {
         passive: true,
+        signal,
+      })
+
+      window.addEventListener('hashchange', this.syncNav.bind(this), {
         signal,
       })
     }
@@ -324,7 +342,60 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
      */
     intro() {
       this.canWrite = true
+      this.el?.classList.add('is-ready')
       this.playQrReveal()
+    }
+
+    /**
+     * SPA / 硬载都按 location 重标当前项（SSR 看不到 hash）
+     */
+    syncNav() {
+      if (!this.links) return
+      const path = location.pathname
+      const hash = location.hash
+
+      this.links.forEach((link) => {
+        const href = link.getAttribute('href') ?? ''
+        if (isNavCurrent(href, path, hash)) {
+          link.setAttribute('aria-current', 'page')
+        } else {
+          link.removeAttribute('aria-current')
+        }
+      })
+    }
+
+    syncContrastPressed() {
+      this.contrastButton?.setAttribute(
+        'aria-pressed',
+        resolveTheme() === 'dark' ? 'true' : 'false'
+      )
+    }
+
+    /**
+     * 从子页点 /#about 回来时，ClientRouter 常常停在卷首，这里补一次滚动
+     */
+    scrollToHash() {
+      const hash = location.hash
+      if (!hash || hash === '#') return
+
+      const target = document.querySelector(hash)
+      if (!target) return
+
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      requestAnimationFrame(() => {
+        if (window.lenis) {
+          window.lenis.scrollTo(target, {
+            duration: reduced ? 0 : 1.2,
+            easing: (t) =>
+              t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t,
+          })
+          return
+        }
+        target.scrollIntoView({
+          behavior: reduced ? 'auto' : 'smooth',
+          block: 'start',
+        })
+      })
     }
 
     /**
@@ -362,23 +433,34 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
      */
     onNavClick(e) {
       const href = e.currentTarget.getAttribute('href') ?? ''
-      if (!href.startsWith('#')) return
+      const hash = href.startsWith('#')
+        ? href
+        : href.startsWith('/#')
+          ? href.slice(1)
+          : ''
 
-      const target = document.querySelector(href)
+      if (!hash) return
+
+      const target = document.querySelector(hash)
       if (!target) return
 
-      e.preventDefault()
+      /* 已在首页：拦截整页跳转，只平滑滚到章节 */
+      if (location.pathname === '/' || location.pathname === '') {
+        e.preventDefault()
+        history.replaceState(null, '', hash)
+        this.syncNav()
 
-      if (window.lenis) {
-        window.lenis.scrollTo(href, {
-          duration: 1.5,
-          easing: (t) =>
-            t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t,
-        })
-        return
+        if (window.lenis) {
+          window.lenis.scrollTo(hash, {
+            duration: 1.5,
+            easing: (t) =>
+              t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t,
+          })
+          return
+        }
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
-
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
 
     /**
@@ -386,7 +468,13 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
      */
     toggleContrast() {
       const mask = this.contrastMask
-      if (!mask) return
+      if (!mask) {
+        const next = resolveTheme() === 'dark' ? 'light' : 'dark'
+        applyTheme(next)
+        this.syncContrastPressed()
+        signalThemeFlip(next)
+        return
+      }
 
       /* 快速连点防护：先终止在途的旧补间，防止遮罩停在半途盖住页面 */
       gsap.killTweensOf(mask)
@@ -424,6 +512,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
             /* 翻色后布局度量可能变化，刷新 ScrollTrigger 防止 pin 错位 */
             ScrollTrigger.refresh()
             signalThemeFlip(theme)
+            this.syncContrastPressed()
           },
         }
       )
@@ -438,7 +527,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
      * Update console
      */
     updateConsole(time) {
-      if (!this.canWrite || time - this.lastTypeTime < this.writeDelay) {
+      if (
+        !this.console ||
+        !this.canWrite ||
+        time - this.lastTypeTime < this.writeDelay
+      ) {
         return
       }
 
@@ -488,15 +581,19 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
      * Get random message
      */
     getRandomMessage() {
-      let message =
-        this.messages[Math.floor(Math.random() * this.messages.length)]
-
-      if (message === this.lastMessage) {
-        message = this.getRandomMessage()
+      if (!this.messages.length) return ''
+      if (this.messages.length === 1) {
+        this.lastMessage = this.messages[0]
+        return this.lastMessage
       }
 
-      this.lastMessage = message
+      let message = this.messages[0]
+      do {
+        message =
+          this.messages[Math.floor(Math.random() * this.messages.length)]
+      } while (message === this.lastMessage)
 
+      this.lastMessage = message
       return message
     }
   }
@@ -635,6 +732,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
       }
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .sb-console__inner::after {
+        animation: none;
+      }
+    }
+
     .sb-console {
       @include flex(column, flex-start, flex-end);
 
@@ -674,6 +777,16 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
         height: 4.2em;
 
         overflow: hidden;
+
+        &::after {
+          display: inline-block;
+          margin-left: 0.12em;
+
+          color: color(accent);
+          animation: site-head-caret 1s step-end infinite;
+
+          content: '▌';
+        }
       }
     }
 

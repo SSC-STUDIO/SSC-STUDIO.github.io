@@ -186,7 +186,7 @@ html.theme-contrasted[data-daypart='dusk'] {
   font-weight: 700;
   letter-spacing: 0.08em;
   pointer-events: none;
-  animation: studioClockIn 700ms 1800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  opacity: 1;
 
   &__lamp {
     width: 7px;
@@ -215,6 +215,17 @@ html.theme-contrasted[data-daypart='dusk'] {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 开场才延迟入场；SPA 回首页必须立刻可见，否则会空 1.8s */
+html.is-intro-active .studio-clock,
+.site-wrapper.is-preparing .studio-clock {
+  animation: studioClockIn 700ms 1800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+html.is-intro-active .studio-card,
+.site-wrapper.is-preparing .studio-card {
+  animation: studioClockIn 700ms 2100ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes studioLamp {
@@ -247,7 +258,6 @@ html.theme-contrasted[data-daypart='dusk'] {
     border-color 320ms ease,
     background 320ms ease,
     box-shadow 320ms ease;
-  animation: studioClockIn 700ms 2100ms cubic-bezier(0.16, 1, 0.3, 1) both;
 
   @media (min-width: 1100px) {
     display: block;
@@ -259,6 +269,10 @@ html.theme-contrasted[data-daypart='dusk'] {
     background: var(--color-primary);
     box-shadow: 0 10px 30px color-mix(in srgb, var(--color-mist) 34%, transparent);
     transform: rotate(0deg);
+  }
+
+  figure {
+    margin: 0;
   }
 
   /* 档案编号：左上角，呼应站点 mono 标签语言 */

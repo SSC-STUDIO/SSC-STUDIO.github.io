@@ -6,44 +6,47 @@
 ---
 
 <aside class="studio-card" aria-label="工作室名片">
-  <figure class="studio-card__photo">
-    <img
-      src="/legacy-assets/personal/chen-sm.webp"
-      alt="陈润森"
-      width="300"
-      height="300"
-      loading="lazy"
-      decoding="async"
-    />
+  <figure>
+    <div class="studio-card__photo">
+      <img
+        src="/legacy-assets/personal/chen-sm.webp"
+        alt="陈润森"
+        width="300"
+        height="300"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <figcaption class="studio-card__meta">
+      <strong class="js-studio-duty">陈润森 · 值班中</strong>
+      <span>工作室 · 上海</span>
+    </figcaption>
   </figure>
-  <figcaption class="studio-card__meta">
-    <strong class="js-studio-duty">陈润森 · 值班中</strong>
-    <span>工作室 · 上海</span>
-  </figcaption>
   <span class="studio-card__no" aria-hidden="true">ID.019</span>
 </aside>
 
 <script>
-  // 值班文案随时段变化（与 StudioClock 的 data-daypart 同步）
-  ;(function () {
-    var DUTIES = {
-      dawn: '陈润森 · 晨光值守',
-      day: '陈润森 · 白昼在线',
-      dusk: '陈润森 · 暮色在班',
-      night: '陈润森 · 夜灯值守',
-    }
-    /* 每次都重新取元素：ClientRouter 换页后旧节点已销毁 */
-    function sync() {
-      var duty = document.querySelector('.js-studio-duty')
-      if (!duty) return
-      var part = document.documentElement.getAttribute('data-daypart') || 'night'
-      duty.textContent = DUTIES[part] || DUTIES.night
-    }
-    sync()
-    new MutationObserver(sync).observe(document.documentElement, {
+  import { DAYPART_DUTY, resolveDaypartKey, startDaypartTicker } from '../utils/daypart'
+
+  let observer: MutationObserver | null = null
+
+  function paintDuty() {
+    const duty = document.querySelector('.js-studio-duty')
+    if (!duty) return
+    duty.textContent = DAYPART_DUTY[resolveDaypartKey()]
+  }
+
+  function bindDuty() {
+    paintDuty()
+    if (observer) return
+    observer = new MutationObserver(paintDuty)
+    observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-daypart'],
     })
-    document.addEventListener('astro:page-load', sync)
-  })()
+  }
+
+  startDaypartTicker(paintDuty)
+  bindDuty()
+  document.addEventListener('astro:page-load', paintDuty)
 </script>

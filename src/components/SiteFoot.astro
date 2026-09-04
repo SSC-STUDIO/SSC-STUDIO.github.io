@@ -32,7 +32,12 @@ const term = getSolarTerm()
     <InkKnot size={36} class="ink-knot--drift" />
   </p>
 
-  <p class="site-foot__term" data-solar-term data-season={term.season}>
+  <p
+    class="site-foot__term"
+    data-solar-term
+    data-season={term.season}
+    aria-live="polite"
+  >
     <span class="site-foot__term-badge" data-term-name>今值{term.name}</span>
     <span class="site-foot__term-line" data-term-line>{term.line}</span>
   </p>
@@ -50,10 +55,11 @@ const term = getSolarTerm()
 
 <script>
   import { getSolarTerm } from '../utils/solar-terms'
+  import { startDaypartTicker } from '../utils/daypart'
 
   // 用实时日期覆写构建时的节气兜底；SPA 换页后节点是新的，需重写
   function stampSolarTerm() {
-    const root = document.querySelector('[data-solar-term]')
+    const root = document.querySelector('.site-foot [data-solar-term]')
     if (!root) return
 
     const term = getSolarTerm()
@@ -66,8 +72,12 @@ const term = getSolarTerm()
     if (line) line.textContent = term.line
   }
 
+  startDaypartTicker()
   stampSolarTerm()
-  document.addEventListener('astro:page-load', stampSolarTerm)
+  document.addEventListener('astro:page-load', () => {
+    stampSolarTerm()
+    startDaypartTicker()
+  })
 </script>
 
 <style lang="scss">

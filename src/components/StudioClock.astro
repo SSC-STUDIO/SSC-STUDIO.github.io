@@ -6,42 +6,34 @@
  */
 ---
 
-<span class="studio-clock" role="status" aria-label="本地时间">
+<span class="studio-clock" role="status" aria-live="polite" aria-label="本地时间">
   <span class="studio-clock__lamp" aria-hidden="true"></span>
   <span class="studio-clock__time">--:--</span>
   <span class="studio-clock__part">亮灯</span>
 </span>
 
 <script>
-  (function () {
-    function daypart(hour) {
-      if (hour >= 5 && hour < 8) return { key: 'dawn', label: '晨光' };
-      if (hour >= 8 && hour < 17) return { key: 'day', label: '白昼' };
-      if (hour >= 17 && hour < 20) return { key: 'dusk', label: '暮色' };
-      return { key: 'night', label: '夜灯' };
-    }
+  import {
+    formatClockTime,
+    getDaypart,
+    startDaypartTicker,
+  } from '../utils/daypart'
 
-    /* 每次都重新取元素：ClientRouter 换页后旧节点已销毁，
-       捕获式引用会让新时钟永远停在 SSR 占位文案上 */
-    function sync() {
-      var now = new Date();
-      var part = daypart(now.getHours());
-      document.documentElement.setAttribute('data-daypart', part.key);
+  function paintClock() {
+    const clock = document.querySelector('.studio-clock')
+    if (!clock) return
 
-      var clock = document.querySelector('.studio-clock');
-      if (!clock) return;
-      clock.querySelector('.studio-clock__time').textContent =
-        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-      clock.querySelector('.studio-clock__part').textContent = part.label;
-    }
+    const now = new Date()
+    const part = getDaypart(now)
+    const time = formatClockTime(now)
+    const timeEl = clock.querySelector('.studio-clock__time')
+    const partEl = clock.querySelector('.studio-clock__part')
 
-    sync();
-    var delay = 60000 - (Date.now() % 60000);
-    setTimeout(function () {
-      sync();
-      setInterval(sync, 60000);
-    }, delay);
+    if (timeEl) timeEl.textContent = time
+    if (partEl) partEl.textContent = part.label
+    clock.setAttribute('aria-label', `本地时间 ${time} · ${part.label}`)
+  }
 
-    document.addEventListener('astro:page-load', sync);
-  })();
+  startDaypartTicker(paintClock)
+  document.addEventListener('astro:page-load', paintClock)
 </script>

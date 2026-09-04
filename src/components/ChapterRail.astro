@@ -1,7 +1,7 @@
 ---
 /**
  * ChapterRail — 首页右侧章节胶片导轨
- * IntersectionObserver 追踪当前章节；进度复用 Site class 的 window.scrollProgress。
+ * 滚动位置追踪当前章节；进度复用 Site class 的 window.scrollProgress。
  */
 const chapters = [
   { selector: '.s-hero', index: '壹', label: '序' },
@@ -9,7 +9,7 @@ const chapters = [
   { selector: '.s-work', index: '叁', label: '作品' },
   { selector: '.s-my-way', index: '肆', label: '路' },
   { selector: '.s-cta', index: '伍', label: '联系' },
-];
+]
 ---
 
 <nav class="chapter-rail" aria-label="章节导航">
@@ -18,7 +18,11 @@ const chapters = [
     {
       chapters.map((chapter) => (
         <li>
-          <button type="button" class="chapter-rail__tick" data-target={chapter.selector}>
+          <button
+            type="button"
+            class="chapter-rail__tick"
+            data-target={chapter.selector}
+          >
             <span class="chapter-rail__index">{chapter.index}</span>
             <span class="chapter-rail__label">{chapter.label}</span>
             <span class="chapter-rail__sprocket" aria-hidden="true" />
@@ -32,81 +36,152 @@ const chapters = [
 <script>
   /* ClientRouter 下模块脚本只执行一次：每次 astro:page-load 重挂当前 DOM，
      旧的观察者与 window 滚动监听在换页前统一摘除 */
-  (function () {
-    var cleanup = null;
+  ;(function () {
+    var cleanup = null
+    var rail = null
 
-    function destroy() {
-      if (!cleanup) return;
-      cleanup();
-      cleanup = null;
+    function easeExpo(t) {
+      return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t
+    }
+
+    function destroy(removeRail) {
+      if (cleanup) {
+        cleanup()
+        cleanup = null
+      }
+      if (removeRail && rail && rail.parentNode === document.body) {
+        rail.remove()
+      }
+      rail = null
     }
 
     function mount() {
-      destroy();
+      destroy(false)
 
-      var rail = document.querySelector('.chapter-rail');
-      if (!rail) return;
+      rail = document.querySelector('.chapter-rail')
+      if (!rail) return
 
-      // 逃离任何可能的 transform 上下文，挂到 body 下
-      document.body.appendChild(rail);
+      // clip-path / isolation 会把 fixed 困在画心里，挂到 body 下
+      if (rail.parentNode !== document.body) {
+        document.body.appendChild(rail)
+      }
 
-      var ticks = Array.from(rail.querySelectorAll('.chapter-rail__tick'));
+      var ticks = Array.from(rail.querySelectorAll('.chapter-rail__tick'))
       var chapters = ticks
         .map(function (tick) {
-          var el = document.querySelector(tick.getAttribute('data-target'));
-          return el ? { el: el, tick: tick } : null;
+          var el = document.querySelector(tick.getAttribute('data-target'))
+          return el ? { el: el, tick: tick } : null
         })
-        .filter(Boolean);
-      if (!chapters.length) return;
+        .filter(Boolean)
+      if (!chapters.length) return
 
-      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      var abort = new AbortController()
+      var { signal } = abort
 
-      ticks[0] && ticks[0].setAttribute('data-active', 'true');
+      function activate(tick) {
+        ticks.forEach(function (item) {
+          if (item === tick) {
+            item.setAttribute('data-active', 'true')
+            item.setAttribute('aria-current', 'true')
+          } else {
+            item.removeAttribute('data-active')
+            item.removeAttribute('aria-current')
+          }
+        })
+      }
 
-      var observer = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (entry) {
-            if (!entry.isIntersecting) return;
-            chapters.forEach(function (c) {
-              if (c.el === entry.target) c.tick.setAttribute('data-active', 'true');
-              else c.tick.removeAttribute('data-active');
-            });
-          });
-        },
-        { rootMargin: '-42% 0px -42% 0px', threshold: 0 }
-      );
-      chapters.forEach(function (c) {
-        observer.observe(c.el);
-        c.tick.addEventListener('click', function () {
-          c.el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-        });
-      });
+      function pickActive() {
+        var mid = window.innerHeight * 0.42
+        var best = null
+        var bestDist = Infinity
 
-      // 进度填充：优先复用 Site class 的 window.scrollProgress，缺失时自算
-      var ticking = false;
+        chapters.forEach(function (chapter) {
+          var box = chapter.el.getBoundingClientRect()
+          if (box.bottom < 80 || box.top > window.innerHeight - 80) return
+          var center = (box.top + box.bottom) / 2
+          var dist = Math.abs(center - mid)
+          if (dist < bestDist) {
+            bestDist = dist
+            best = chapter
+          }
+        })
+
+        if (best) activate(best.tick)
+      }
+
+      function scrollToChapter(el) {
+        if (window.lenis) {
+          window.lenis.scrollTo(el, {
+            duration: reduced ? 0 : 1.2,
+            easing: easeExpo,
+          })
+          return
+        }
+        el.scrollIntoView({
+          behavior: reduced ? 'auto' : 'smooth',
+          block: 'start',
+        })
+      }
+
+      if (location.hash) {
+        var hashed = chapters.find(function (chapter) {
+          var id = location.hash.slice(1)
+          return (
+            chapter.el.id === id ||
+            (id && chapter.el.querySelector('#' + CSS.escape(id)))
+          )
+        })
+        activate(hashed ? hashed.tick : ticks[0])
+      } else {
+        ticks[0] && activate(ticks[0])
+      }
+
+      chapters.forEach(function (chapter) {
+        chapter.tick.addEventListener(
+          'click',
+          function () {
+            scrollToChapter(chapter.el)
+          },
+          { signal }
+        )
+      })
+
+      var ticking = false
       function onScroll() {
-        if (ticking) return;
-        ticking = true;
+        if (ticking) return
+        ticking = true
         requestAnimationFrame(function () {
-          ticking = false;
-          var p =
+          ticking = false
+          if (!rail) return
+          var progress =
             typeof window.scrollProgress === 'number'
               ? window.scrollProgress
               : window.scrollY /
-                Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-          rail.style.setProperty('--rail-progress', Math.min(1, Math.max(0, p)).toFixed(4));
-        });
+                Math.max(
+                  1,
+                  document.documentElement.scrollHeight - window.innerHeight
+                )
+          rail.style.setProperty(
+            '--rail-progress',
+            Math.min(1, Math.max(0, progress)).toFixed(4)
+          )
+          pickActive()
+        })
       }
-      onScroll();
-      window.addEventListener('scroll', onScroll, { passive: true });
+
+      onScroll()
+      window.addEventListener('scroll', onScroll, { passive: true, signal })
 
       cleanup = function () {
-        observer.disconnect();
-        window.removeEventListener('scroll', onScroll);
-      };
+        abort.abort()
+        window.removeEventListener('scroll', onScroll)
+      }
     }
 
-    document.addEventListener('astro:page-load', mount);
-    document.addEventListener('astro:before-swap', destroy);
-  })();
+    document.addEventListener('astro:page-load', mount)
+    document.addEventListener('astro:before-swap', function () {
+      destroy(true)
+    })
+  })()
 </script>
