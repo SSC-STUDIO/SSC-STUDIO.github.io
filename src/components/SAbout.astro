@@ -228,39 +228,132 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       whenReady(() => this.init())
     }
 
+    viewWidth() {
+      return window.safeWidth || window.innerWidth || 0
+    }
+
+    viewHeight() {
+      return window.safeHeight || window.innerHeight || 0
+    }
+
+    axisRange() {
+      return this.viewWidth() > 767 ? 400 : 200
+    }
+
+    isSectionVisible() {
+      if (!this.el) return false
+      if (this.el.classList.contains('is-in-view')) return true
+      const rect = this.el.getBoundingClientRect()
+      const vh = this.viewHeight()
+      return rect.bottom > 0 && rect.top < vh
+    }
+
+    /**
+     * 立轴位移：先写 CSS 变量再画网格，避免首帧 offsetY=0 再跳变。
+     * safeHeight 未就绪时回退 innerHeight，杜绝 --offset-y: NaNpx。
+     */
+    syncAxis(immediate = false) {
+      if (!this.el || !this.bounding) return
+
+      if (this.reduced) {
+        this.bounding.offsetY = 0
+        this.el.style.removeProperty('--offset-y')
+        this.el.style.removeProperty('--par-x')
+        this.el.style.removeProperty('--par-y')
+        return
+      }
+
+      if (immediate) this.scroll.sp = this.scroll.p
+      const next = this.axisRange() * (this.scroll.sp * 2 - 1)
+      this.bounding.offsetY = Number.isFinite(next) ? next : 0
+      this.el.style.setProperty('--offset-y', `${this.bounding.offsetY}px`)
+    }
+
+    applyReduced(on: boolean) {
+      this.reduced = on
+      if (!this.el) return
+
+      if (on) {
+        this.el.classList.remove('is-armed')
+        this.awards?.forEach((award) => award.classList.add('is-revealed'))
+        this.charms = []
+        this.par.x = this.par.y = this.par.sx = this.par.sy = 0
+        this.par.active = false
+        if (this.bounding) this.bounding.offsetY = 0
+        this.el.style.removeProperty('--offset-y')
+        this.el.style.removeProperty('--par-x')
+        this.el.style.removeProperty('--par-y')
+        if (this.ctx && this.bounding) {
+          this.ctx.clearRect(0, 0, this.bounding.width, this.bounding.height)
+        }
+        this.setLines()
+        this.stopFrame()
+        return
+      }
+
+      this.el.classList.add('is-armed')
+      this.setScroll()
+      this.syncAxis(true)
+      this.isForced = true
+      if (!this.isPaused) this.startFrame()
+    }
+
+    revealVisibleAwards() {
+      if (this.destroyed || !this.awards) return
+      const vh = this.viewHeight()
+      this.awards.forEach((award) => {
+        const box = award.getBoundingClientRect()
+        if (box.top < vh && box.bottom > 0) {
+          award.classList.add('is-revealed')
+          this.throwCharms(award, true)
+        }
+      })
+    }
+
     /**
      * Init
      */
     init() {
       if (this.destroyed || !this.el) return
 
-      this.setSize()
-      this.setScroll()
-      this.setLines()
-      this.drawLines()
+      try {
+        this.setSize()
+        this.setScroll()
+        this.syncAxis(true)
+        this.setLines()
 
-      /* 有动效才武装遮罩；无 JS / reduced-motion 时荣誉格保持默认可读 */
-      if (!this.reduced) this.el.classList.add('is-armed')
+        this.bindEvents()
 
-      this.bindEvents()
+        /* 观察者就位后再武装遮罩：绑失败时荣誉格仍保持默认可读 */
+        if (this.reduced) {
+          this.awards?.forEach((award) => award.classList.add('is-revealed'))
+        } else {
+          this.el.classList.add('is-armed')
+        }
 
-      if (this.el.classList.contains('is-in-view') && this.isPaused) {
-        this.isPaused = false
-        this.startFrame()
-      }
+        if (this.isSectionVisible() && this.isPaused) {
+          this.isPaused = false
+          if (!this.reduced) this.startFrame()
+        }
 
-      this.revealRaf = requestAnimationFrame(() => {
-        this.revealRaf = 0
-        if (this.destroyed) return
-        this.awards.forEach((award) => {
-          const bounding = award.getBoundingClientRect()
-
-          if (bounding.top < window.innerHeight && bounding.bottom > 0) {
-            award.classList.add('is-revealed')
-            this.throwCharms(award, true)
-          }
+        this.revealRaf = requestAnimationFrame(() => {
+          this.revealRaf = 0
+          if (this.destroyed) return
+          this.revealVisibleAwards()
         })
-      })
+
+        /* 已入视却没被观察者揭开的格子：2.8s 后强制显影，防荣誉格白屏 */
+        this.awardTimers.push(
+          window.setTimeout(() => {
+            if (this.destroyed) return
+            this.revealVisibleAwards()
+          }, 2800)
+        )
+      } catch (error) {
+        this.el.classList.remove('is-armed')
+        this.awards?.forEach((award) => award.classList.add('is-revealed'))
+        console.error('[s-about] init failed:', error)
+      }
     }
 
     /**
@@ -278,9 +371,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         })
       )
       this.stops.push(
-        onScroll((scrollY) => {
+        onScroll(() => {
           if (this.destroyed) return
-          this.onScroll(scrollY)
+          this.onScroll()
         })
       )
       this.stops.push(
@@ -297,23 +390,13 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
               this.hotAward.style.setProperty('--award-sheen', sheen.toFixed(3))
             }
           }
+
+          if (!this.isPaused && !this.unframe) this.startFrame()
         })
       )
 
       const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-      const onMq = () => {
-        this.reduced = mq.matches
-        if (!this.el) return
-        if (this.reduced) {
-          this.el.classList.remove('is-armed')
-          this.awards.forEach((award) => award.classList.add('is-revealed'))
-          this.el.style.removeProperty('--offset-y')
-          this.el.style.removeProperty('--par-x')
-          this.el.style.removeProperty('--par-y')
-        } else {
-          this.el.classList.add('is-armed')
-        }
-      }
+      const onMq = () => this.applyReduced(mq.matches)
       if (typeof mq.addEventListener === 'function') {
         mq.addEventListener('change', onMq)
         this.stops.push(() => mq.removeEventListener('change', onMq))
@@ -335,7 +418,8 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           })
         },
         {
-          threshold: 0.2,
+          threshold: 0.08,
+          rootMargin: '0px 0px -4% 0px',
         }
       ))
 
@@ -371,8 +455,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           if (this.destroyed) return
           this.setSize()
           this.setScroll()
+          this.syncAxis(true)
           this.isForced = true
-          if (!this.isPaused) this.startFrame()
+          if (this.reduced) this.setLines()
+          else if (!this.isPaused) this.startFrame()
         })
         this.heightObserver.observe(this.el)
         this.stops.push(() => this.heightObserver?.disconnect())
@@ -380,7 +466,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     startFrame() {
-      if (this.unframe) return
+      if (this.destroyed || this.unframe) return
       this.unframe = onFrame(() => this.tick())
     }
 
@@ -400,9 +486,17 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         cancelAnimationFrame(this.revealRaf)
         this.revealRaf = 0
       }
-      this.stops.forEach((stop) => stop())
+      this.stops.forEach((stop) => {
+        try {
+          stop()
+        } catch (e) {}
+      })
       this.stops = []
-      this.awardCleanups.forEach((stop) => stop())
+      this.awardCleanups.forEach((stop) => {
+        try {
+          stop()
+        } catch (e) {}
+      })
       this.awardCleanups = []
       this.awardTimers.forEach((id) => clearTimeout(id))
       this.awardTimers = []
@@ -412,11 +506,17 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       this.heightObserver = null
       this.hotAward = null
       this.charms = []
+      this.par.x = this.par.y = this.par.sx = this.par.sy = 0
       this.par.active = false
       this.el?.classList.remove('is-armed')
       this.el?.style.removeProperty('--offset-y')
       this.el?.style.removeProperty('--par-x')
       this.el?.style.removeProperty('--par-y')
+      this.awards?.forEach((award) => {
+        award.style.removeProperty('--award-sheen')
+        award.classList.remove('is-active')
+      })
+      this.path?.setAttribute('d', '')
       if (this.ctx && this.bounding) {
         this.ctx.clearRect(0, 0, this.bounding.width, this.bounding.height)
       }
@@ -425,13 +525,14 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     /**
      * Resize handler
      */
-    onResize(widthChanged) {
-      if (widthChanged) {
-        this.setSize()
-        this.setScroll()
-
-        this.isForced = true
-      }
+    onResize(widthChanged: boolean) {
+      if (!widthChanged) return
+      this.setSize()
+      this.setScroll()
+      this.syncAxis(true)
+      this.isForced = true
+      if (this.reduced) this.setLines()
+      else if (!this.isPaused) this.startFrame()
     }
 
     /**
@@ -439,36 +540,43 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     onScroll(_scrollY?: number) {
       const { scroll } = this
-      if (!this.el) return
+      if (!this.el || !scroll) return
 
       const rect = this.el.getBoundingClientRect()
-      const total = rect.height + window.safeHeight
-      scroll.p = Math.min(
-        1,
-        Math.max(0, (window.safeHeight - rect.top) / total)
-      )
+      const vh = this.viewHeight()
+      const total = rect.height + vh
+      if (!(total > 0)) {
+        scroll.p = 0
+        return
+      }
+
+      const next = (vh - rect.top) / total
+      scroll.p = Math.min(1, Math.max(0, Number.isFinite(next) ? next : 0))
     }
 
     /**
-     * Intersect handler
+     * Intersect handler —— 只管帧循环，不一次揭开全部荣誉格
      */
     onIntersect = (e: CustomEvent) => {
       if (this.destroyed) return
       this.isPaused = !e.detail.isIntersecting
 
       if (e.detail.isIntersecting) {
-        this.awards.forEach((award) => award.classList.add('is-revealed'))
+        this.setScroll()
+        this.syncAxis(true)
+        this.isForced = true
+        if (!this.reduced) this.startFrame()
       }
 
       if (this.isPaused && !this.charms.length) this.stopFrame()
-      else this.startFrame()
+      else if (!this.reduced) this.startFrame()
     }
 
     /**
      * Award interaction handler
      */
     onAwardInteraction(award: HTMLElement) {
-      if (this.destroyed) return
+      if (this.destroyed || this.reduced) return
       award.classList.add('is-active')
 
       this.throwCharms(award, false)
@@ -477,7 +585,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         this.awardTimers = this.awardTimers.filter((id) => id !== timer)
         if (this.destroyed) return
         award.classList.remove('is-active')
-      }, 100)
+      }, 180)
       this.awardTimers.push(timer)
     }
 
@@ -486,10 +594,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     throwCharms(award: HTMLElement, once = false) {
       const { el, charms, bounding } = this
-      if (this.destroyed || !this.ctx || this.reduced) return
+      if (this.destroyed || !this.ctx || this.reduced || !el) return
       if (once) {
         if (award.dataset.charmBurst === '1') return
         award.dataset.charmBurst = '1'
+      } else {
+        const now = performance.now()
+        const last = Number(award.dataset.charmAt || 0)
+        if (now - last < 480) return
+        award.dataset.charmAt = String(now)
       }
 
       const elBounding = el.getBoundingClientRect()
@@ -498,10 +611,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       const x = awardBounding.left + awardBounding.width * 0.5 - elBounding.left
       const y = awardBounding.top + awardBounding.height * 0.35 - elBounding.top
       const floor = awardBounding.bottom - elBounding.top + 8
-      const wide = window.safeWidth > 767
-      const count = once ? (wide ? 12 : 7) : wide ? 8 : 5
+      const wide = this.viewWidth() > 767
+      const count = once ? (wide ? 8 : 5) : wide ? 6 : 4
+      const cap = 26
+      if (charms.length + count > cap) {
+        charms.splice(0, charms.length + count - cap)
+      }
+      const fallback = bounding?.height ? bounding.height * 0.7 : 240
 
-      charms.push(...spawnCharmBurst(x, y, count, floor || bounding.height * 0.7))
+      charms.push(...spawnCharmBurst(x, y, count, floor || fallback))
       this.startFrame()
     }
     /**
@@ -552,24 +670,36 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     setLines() {
       const { bounding } = this
-      if (!bounding) return
+      if (!bounding || !this.el || !this.inner) return
 
       this.lines = []
 
-      // Calculate gaps and inner position
-      const leanX = this.reduced ? 0 : this.par.sx * 22
-      const leanY = this.reduced ? 0 : this.par.sy * 14
-      const innerX = (bounding.width - bounding.innerWidth) / 2 + leanX
-      const innerY =
-        (bounding.height - bounding.innerHeight) / 2 + bounding.offsetY + leanY
+      if (!(bounding.width > 0) || !(bounding.height > 0)) return
 
-      const vLines = window.safeWidth > 767 ? 12 : 8
+      /* 按立轴实绘位置取样，与 translate/rotate 对齐，不再另加一套 lean */
+      const elBox = this.el.getBoundingClientRect()
+      const innerBox = this.inner.getBoundingClientRect()
+      let innerX = innerBox.left - elBox.left
+      let innerY = innerBox.top - elBox.top
+      let innerW = innerBox.width
+      let innerH = innerBox.height
+
+      if (innerW < 8 || innerH < 8) {
+        const leanX = this.reduced ? 0 : this.par.sx * 12
+        innerX = (bounding.width - bounding.innerWidth) / 2 + leanX
+        innerY =
+          (bounding.height - bounding.innerHeight) / 2 + (bounding.offsetY || 0)
+        innerW = bounding.innerWidth
+        innerH = bounding.innerHeight
+      }
+
+      const vLines = this.viewWidth() > 767 ? 12 : 8
       const hLines = 4
 
       const outerGapX = bounding.width / vLines
       const outerGapY = bounding.height / vLines
-      const innerGapX = bounding.innerWidth / vLines
-      const innerGapY = bounding.innerHeight / vLines
+      const innerGapX = innerW / vLines
+      const innerGapY = innerH / vLines
       const hGap = 1 / hLines
 
       // Corner lines
@@ -581,9 +711,9 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       }
       const inner = {
         x1: innerX,
-        x2: innerX + bounding.innerWidth,
+        x2: innerX + innerW,
         y1: innerY,
-        y2: innerY + bounding.innerHeight,
+        y2: innerY + innerH,
       }
       const corners = []
 
@@ -758,7 +888,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     drawCanvas() {
       const { bounding, ctx, charms, charmImages } = this
-      if (!ctx) return
+      if (!ctx || !bounding) return
 
       ctx.clearRect(0, 0, bounding.width, bounding.height)
 
@@ -773,13 +903,13 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
      */
     tick() {
       const { bounding, el, scroll, par } = this
-      if (!el) return
+      if (this.destroyed || !el || !bounding || !scroll) return
 
       if (this.reduced) {
         if (this.charms.length) {
           this.moveCharms()
           this.drawCanvas()
-        } else if (this.isPaused) {
+        } else {
           this.stopFrame()
         }
         return
@@ -789,10 +919,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       scroll.sp += (scroll.p - scroll.sp) * 0.2
       const sd = Math.round((scroll.p - scroll.sp) * 1000) / 1000
 
-      bounding.offsetY =
-        (window.safeWidth > 767 ? 400 : 200) * (this.scroll.sp * 2 - 1)
-
-      el.style.setProperty('--offset-y', `${this.bounding.offsetY}px`)
+      this.syncAxis()
 
       if (par.active) {
         par.sx += (par.x - par.sx) * 0.06
@@ -806,7 +933,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       // Lines
       if (sd !== 0 || pd > 0.001 || this.isForced) {
         this.setLines()
-        this.drawLines()
       }
 
       // 彩头
@@ -832,13 +958,15 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     ;(window as any).__sAbout = hasAbout ? new Section() : null
   }
 
-  document.addEventListener('astro:page-load', mountAbout)
-  document.addEventListener('astro:before-swap', () => {
+  const unmountAbout = () => {
     try {
       ;(window as any).__sAbout?.destroy?.()
     } catch (e) {}
     ;(window as any).__sAbout = null
-  })
+  }
+
+  document.addEventListener('astro:page-load', mountAbout)
+  document.addEventListener('astro:before-swap', unmountAbout)
 </script>
 
 <style lang="scss">
@@ -1127,8 +1255,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
         clip-path: inset(-1px);
         cursor: default;
 
-        will-change: transform;
-
         &:before {
           position: absolute;
           top: -1px;
@@ -1154,8 +1280,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           transition:
             translate 1s ease(out-quint),
             scale 1.5s ease(in-out-quint);
-
-          will-change: translate, scale;
         }
 
         &__mask {
@@ -1170,8 +1294,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
           transition: clip-path 0.8s ease(in-out-quint);
 
-          will-change: clip-path;
-
           &:before {
             position: absolute;
             top: 0;
@@ -1185,7 +1307,6 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
             mask: url('/images/asset-plum.svg') center / 1.5rem 1.5rem no-repeat;
 
             transition: transform 0.8s ease(in-cubic);
-            will-change: transform;
 
             content: '';
           }
@@ -1322,11 +1443,12 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
           }
 
           .s__award__text {
-            font-size: clamp(0.8rem, 1.85vw, 1.25rem);
-            line-height: 1.16;
+            font-size: clamp(0.75rem, 1.7vw, 1.15rem);
+            line-height: 1.18;
+            overflow-wrap: anywhere;
 
             @include mq(phone) {
-              font-size: clamp(0.72rem, 3vw, 1.05rem);
+              font-size: clamp(0.7rem, 2.8vw, 1rem);
             }
           }
         }
@@ -1601,7 +1723,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       path {
         fill: none;
-        stroke: color(secondary);
+        stroke: color-mix(in srgb, #{color(secondary)} 42%, transparent);
         stroke-width: 1px;
       }
     }
@@ -1622,10 +1744,12 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     &.is-armed .s__award:not(.is-revealed):not(.s__award--blank) {
       .s__award__inner {
         translate: -50% 0;
+        will-change: translate;
       }
 
       .s__award__mask {
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        will-change: clip-path;
 
         &:before {
           transform: none;
@@ -1706,6 +1830,10 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
 
       .s__awards-more .s__awards-more__arrow {
         transition: none;
+      }
+
+      .s__canvas {
+        display: none;
       }
     }
   }
