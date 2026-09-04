@@ -35,11 +35,27 @@ import MessagesConsole from '@/islands/MessagesConsole'
 
 <style lang="scss" is:global>
   /* ── 私信卷首 ──
-     轴杆只作装饰，绝不给卷首加 overflow / clip，
-     远山已贴右边，再裁就会露出直缝。 */
+     轴杆只作装饰。外层与卷首都不要 overflow / clip：
+     远山纸雕侧转后天缘会收一寸，再裁就会在画心右边裁出直缝。
+     多出的山体探进装裱边，交给 .site-wrapper 的 clip-path 收住。 */
 
   .p-msg-open {
     position: relative;
+    overflow: visible;
+  }
+
+  .p-msg-open .p-hero {
+    overflow: visible;
+  }
+
+  .p-msg-open .p-hero__range {
+    right: -4.75rem;
+    left: -4.75rem;
+    overflow: visible;
+  }
+
+  .p-msg-open .ink-mountains.ink-mountains--dimensional {
+    overflow: visible;
   }
 
   .p-msg-open__rod {
@@ -296,6 +312,12 @@ import MessagesConsole from '@/islands/MessagesConsole'
       @include mq(phone) {
         min-height: 18rem;
       }
+
+      &--idle {
+        @include mq(phone) {
+          display: none;
+        }
+      }
     }
 
     &__pane-head {
@@ -445,6 +467,10 @@ import MessagesConsole from '@/islands/MessagesConsole'
   .p-msg .p-lock .p-card__actions {
     animation: p-msg-fade-in 520ms ease backwards;
     animation-delay: 320ms;
+  }
+
+  .p-msg .p-lock .p-msg__notice {
+    padding-top: 0;
   }
 
   @keyframes p-msg-seal-drop {

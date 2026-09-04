@@ -18,7 +18,9 @@ import { formatTime } from "../utils/format-time";
  * (role member/admin). Opening a thread marks inbound messages as read.
  */
 
-type SessionState = "loading" | "out" | "in";
+type SessionState = "loading" | "out" | "in" | "down";
+type ListState = "loading" | "error" | "ready";
+type ThreadState = "loading" | "error" | "ready";
 
 type MessageDto = {
   id: string;
@@ -115,11 +117,11 @@ export default function MessagesConsole() {
   const [session, setSession] = useState<SessionState>("loading");
   const [conversations, setConversations] = useState<ConversationDto[]>([]);
   const [recipients, setRecipients] = useState<PeerDto[]>([]);
-  const [listState, setListState] = useState<"loading" | "error" | "ready">("loading");
+  const [listState, setListState] = useState<ListState>("loading");
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [activePeer, setActivePeer] = useState<PeerDto | null>(null);
   const [thread, setThread] = useState<MessageDto[]>([]);
-  const [threadState, setThreadState] = useState<"loading" | "error" | "ready">("loading");
+  const [threadState, setThreadState] = useState<ThreadState>("loading");
   const [composeOpen, setComposeOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -127,6 +129,8 @@ export default function MessagesConsole() {
   const [attachment, setAttachment] = useState<AttachmentMeta | null>(null);
   const [notice, setNotice] = useState("");
   const threadRef = useRef<HTMLDivElement>(null);
+  const threadReq = useRef(0);
+  const aliveRef = useRef(true);
 
   // 新消息或切换会话后把时间线滚到底部（尊重减动效偏好）。
   useEffect(() => {
@@ -138,106 +142,159 @@ export default function MessagesConsole() {
     });
   }, [thread, threadState]);
 
+  useEffect(() => {
+    if (!composeOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setComposeOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [composeOpen]);
+
+  const kickOut = useCallback((message?: string) => {
+    setSession("out");
+    setActiveUserId(null);
+    setActivePeer(null);
+    setThread([]);
+    setComposeOpen(false);
+    if (message) setNotice(message);
+  }, []);
+
   const loadRecipients = useCallback(async () => {
     try {
       const response = await fetch("/api/messages/recipients", {
         ...AUTH_FETCH_OPTIONS,
         cache: "no-store",
       });
+      if (response.status === 401) {
+        kickOut("会话已失效，请重新登录。");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as { items: PeerDto[] };
       setRecipients(Array.isArray(data.items) ? data.items : []);
     } catch {
       setRecipients([]);
     }
-  }, []);
+  }, [kickOut]);
 
-  const loadConversations = useCallback(async () => {
-    setListState("loading");
-    try {
-      const response = await fetch("/api/messages", {
-        ...AUTH_FETCH_OPTIONS,
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error("failed");
-      const data = (await response.json()) as { items: ConversationDto[] };
-      setConversations(Array.isArray(data.items) ? data.items : []);
-      setListState("ready");
-    } catch {
-      setListState("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const loadConversations = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setListState("loading");
       try {
-        const response = await fetch("/api/auth/session", {
+        const response = await fetch("/api/messages", {
           ...AUTH_FETCH_OPTIONS,
           cache: "no-store",
         });
-        const data = (await response.json()) as AuthSession;
-        if (cancelled) return;
-        if (data.authenticated && data.user) {
-          setSession("in");
-          await Promise.all([loadRecipients(), loadConversations()]);
-        } else {
-          setSession("out");
+        if (response.status === 401) {
+          kickOut("会话已失效，请重新登录。");
+          return;
         }
+        if (!response.ok) throw new Error("failed");
+        const data = (await response.json()) as { items: ConversationDto[] };
+        setConversations(Array.isArray(data.items) ? data.items : []);
+        setListState("ready");
       } catch {
-        if (!cancelled) setSession("out");
+        if (!opts?.silent) setListState("error");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    },
+    [kickOut],
+  );
+
+  const checkSession = useCallback(async () => {
+    setSession("loading");
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/session", {
+        ...AUTH_FETCH_OPTIONS,
+        cache: "no-store",
+      });
+      if (!aliveRef.current) return;
+      if (response.status === 401) {
+        setSession("out");
+        return;
+      }
+      if (!response.ok) {
+        setSession("down");
+        return;
+      }
+      const data = (await response.json()) as AuthSession;
+      if (!aliveRef.current) return;
+      if (data.authenticated && data.user) {
+        setSession("in");
+        await Promise.all([loadRecipients(), loadConversations()]);
+      } else {
+        setSession("out");
+      }
+    } catch {
+      if (aliveRef.current) setSession("down");
+    }
   }, [loadRecipients, loadConversations]);
 
-  const updateConversationFromActive = useCallback(
-    (threadList: MessageDto[]) => {
-      if (!threadList.length) return;
-      const last = threadList[threadList.length - 1];
+  useEffect(() => {
+    aliveRef.current = true;
+    void checkSession();
+    return () => {
+      aliveRef.current = false;
+    };
+  }, [checkSession]);
+
+  const rememberActiveConversation = useCallback(
+    (last: MessageDto | null, peerId: string, peer: PeerDto | null) => {
       setConversations((current) => {
-        const idx = current.findIndex((c) => c.userId === last.toUserId || c.userId === last.fromUserId);
-        if (idx < 0) return current;
-        const next = current.map((c) =>
-          c.userId === activeUserId
-            ? { ...c, lastMessage: last, unreadCount: 0 }
-            : c,
-        );
-        return next;
+        const idx = current.findIndex((c) => c.userId === peerId);
+        if (idx >= 0) {
+          return current.map((c) =>
+            c.userId === peerId
+              ? { ...c, lastMessage: last ?? c.lastMessage, unreadCount: 0 }
+              : c,
+          );
+        }
+        if (!peer) return current;
+        return [{ ...peer, lastMessage: last, unreadCount: 0 }, ...current];
       });
     },
-    [activeUserId],
+    [],
   );
 
   async function openThread(userId: string) {
+    const req = ++threadReq.current;
     const peer =
       conversations.find((c) => c.userId === userId) ??
       recipients.find((r) => r.userId === userId) ??
       null;
+    const peerDto = peer
+      ? {
+          userId,
+          username: peer.username,
+          displayName: peer.displayName,
+          role: peer.role,
+        }
+      : null;
     setActiveUserId(userId);
-    setActivePeer(peer ? { userId, username: peer.username, displayName: peer.displayName, role: peer.role } : null);
+    setActivePeer(peerDto);
     setComposeOpen(false);
+    setNotice("");
     setThreadState("loading");
     try {
       const response = await fetch(`/api/messages/${encodeURIComponent(userId)}`, {
         ...AUTH_FETCH_OPTIONS,
         cache: "no-store",
       });
+      if (req !== threadReq.current) return;
+      if (response.status === 401) {
+        kickOut("会话已失效，请重新登录。");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as { items: MessageDto[] };
+      if (req !== threadReq.current) return;
       const items = Array.isArray(data.items) ? data.items : [];
       setThread(items);
       setThreadState("ready");
-      updateConversationFromActive(items);
-      setConversations((current) =>
-        current.map((c) =>
-          c.userId === userId ? { ...c, unreadCount: 0 } : c,
-        ),
-      );
+      rememberActiveConversation(items.length ? items[items.length - 1] : null, userId, peerDto);
     } catch {
-      setThreadState("error");
+      if (req === threadReq.current) setThreadState("error");
     }
   }
 
@@ -250,8 +307,7 @@ export default function MessagesConsole() {
     } catch (error) {
       const code = (error as Error & { code?: string }).code;
       if (code === "unauthorized") {
-        setSession("out");
-        setNotice("会话已失效，无法上传附件，请重新登录。");
+        kickOut("会话已失效，无法上传附件，请重新登录。");
       } else if (code === "too_large") {
         setNotice("文件太大了，请换一个小一些的附件。");
       } else {
@@ -287,8 +343,7 @@ export default function MessagesConsole() {
         }),
       });
       if (response.status === 401) {
-        setSession("out");
-        setNotice("会话已失效，请重新登录。");
+        kickOut("会话已失效，请重新登录。");
         return;
       }
       if (response.status === 429) {
@@ -312,8 +367,10 @@ export default function MessagesConsole() {
       setThread((current) => [...current, created]);
       setDraft("");
       setAttachment(null);
-      updateConversationFromActive([...thread, created]);
-      await loadConversations();
+      if (activeUserId) {
+        rememberActiveConversation(created, activeUserId, activePeer);
+      }
+      await loadConversations({ silent: true });
     } catch {
       setNotice("消息没有发出去，请检查网络后重试。");
     } finally {
@@ -331,12 +388,33 @@ export default function MessagesConsole() {
         <p className="p-msg__hint p-msg__hint--checking" role="status">
           正在检查会话…
         </p>
+      ) : session === "down" ? (
+        <div className="p-lock">
+          <p className="p-lock__badge">temporarily offline</p>
+          <p className="p-lock__message">
+            信匣暂时连不上。会话还在，过一会儿再试，不必重新登录。
+          </p>
+          <div className="p-card__actions">
+            <button
+              type="button"
+              className="p-msg__retry"
+              onClick={() => void checkSession()}
+            >
+              再试一次
+            </button>
+          </div>
+        </div>
       ) : session === "out" ? (
         <div className="p-lock">
           <p className="p-lock__badge">login required</p>
           <p className="p-lock__message">
             私信只对登录账号开放——登录后才能看到你和别人互相写的留言。
           </p>
+          {notice ? (
+            <p className="p-msg__notice" role="alert">
+              {notice}
+            </p>
+          ) : null}
           <div className="p-card__actions">
             <a className="p-card__link" href={LOGIN_PATH}>
               去登录
@@ -345,7 +423,7 @@ export default function MessagesConsole() {
         </div>
       ) : (
         <div className="p-msg__shell">
-          <aside className="p-msg__rail">
+          <aside className="p-msg__rail" aria-label="会话列表">
             <div className="p-msg__rail-head">
               <span className="p-msg__rail-title">会话</span>
               <button
@@ -355,13 +433,14 @@ export default function MessagesConsole() {
                   setComposeOpen((current) => !current);
                 }}
                 aria-expanded={composeOpen}
+                aria-controls={composeOpen ? "p-msg-compose" : undefined}
               >
-                + 新消息
+                {composeOpen ? "收起" : "+ 新消息"}
               </button>
             </div>
 
             {composeOpen ? (
-              <div className="p-msg__compose">
+              <div className="p-msg__compose" id="p-msg-compose">
                 {recipients.length === 0 ? (
                   <p className="p-msg__hint">
                     暂时没有可私信的同学（需要有账号）。
@@ -416,6 +495,7 @@ export default function MessagesConsole() {
                           "--conv-i": Math.min(index, FLOW_CAP),
                         } as React.CSSProperties
                       }
+                      aria-current={activeUserId === c.userId ? "true" : undefined}
                       onClick={() => void openThread(c.userId)}
                     >
                       <span className="p-msg__conv-name">
@@ -442,7 +522,10 @@ export default function MessagesConsole() {
             )}
           </aside>
 
-          <section className="p-msg__pane">
+          <section
+            className={`p-msg__pane${!activeUserId ? " p-msg__pane--idle" : ""}`}
+            aria-label="对话"
+          >
             {!activeUserId ? (
               <div className="p-msg__empty">
                 <p>选择左侧的会话，或点“新消息”开始和同学聊天。</p>
@@ -464,7 +547,18 @@ export default function MessagesConsole() {
                   {threadState === "loading" ? (
                     <InkSkeleton variant="thread" label="正在加载对话…" />
                   ) : threadState === "error" ? (
-                    <p className="p-msg__state">对话加载失败，请重试。</p>
+                    <div className="p-msg__state">
+                      <p>对话加载失败。</p>
+                      <button
+                        type="button"
+                        className="p-msg__retry"
+                        onClick={() => {
+                          if (activeUserId) void openThread(activeUserId);
+                        }}
+                      >
+                        再试一次
+                      </button>
+                    </div>
                   ) : thread.length === 0 ? (
                     <p className="p-msg__state">
                       还没有消息。写一句开场白吧。
@@ -478,7 +572,9 @@ export default function MessagesConsole() {
                             key={m.id}
                             className={`p-msg__bubble${mine ? " is-mine" : " is-theirs"}`}
                           >
-                            <p className="p-msg__bubble-content">{m.content}</p>
+                            {m.content ? (
+                              <p className="p-msg__bubble-content">{m.content}</p>
+                            ) : null}
                             <MediaEmbed attachment={m.attachment} />
                             <time className="p-msg__bubble-time" dateTime={m.createdAt}>
                               {formatTime(m.createdAt)}
