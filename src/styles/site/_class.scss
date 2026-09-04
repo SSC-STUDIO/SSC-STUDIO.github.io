@@ -997,7 +997,7 @@
 /* ------------------------------------------------------------------ */
 
 .p-account {
-  /* 「已认证为班级同学」 — accent chip shown atop the signed-in panel */
+  /* Session-role chip: class space open. Not a name-equals-verified mark. */
 
   &__badge {
     display: inline-block;
