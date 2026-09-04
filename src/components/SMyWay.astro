@@ -101,7 +101,7 @@ const ecosystem = [
 const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 ---
 
-<section class="s-my-way" data-intersect>
+<section id="my-way" class="s-my-way" data-intersect>
   <InkMountains compact dimensional />
   <InkBloom class="s__bloom" size={260} />
   <InkBubbles class="s__bubbles" />
@@ -130,6 +130,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
           <figure class="a__inner">
             <img
               loading="lazy"
+              draggable="false"
               class="a__img"
               src={frame.src}
               alt={frame.caption}
@@ -307,6 +308,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     lastTouch: number
+    lastDragEnd: number
 
     isPaused: boolean
     stops: Cleanup[] = []
@@ -316,6 +318,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     ripples: { x: number; y: number; born: number }[] = []
     compassDeg = 0
     compassAim = 0
+    compassKick = 0
     paperPress = 0
     catcherRx = 0
     catcherRy = 0
@@ -391,6 +394,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       this.isPaused = true
       this.reduced = prefersReducedMotion()
+      this.lastTouch = 0
+      this.lastDragEnd = 0
 
       whenReady(() => this.init())
     }
@@ -434,8 +439,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         object.el.removeEventListener('mousedown', this.onObjectDragStart)
         object.el.removeEventListener('touchstart', this.onObjectDragStart)
       })
-      this.el?.removeEventListener('mouseup', this.onObjectDragEnd)
-      this.el?.removeEventListener('touchend', this.onObjectDragEnd)
+      window.removeEventListener('pointerup', this.onObjectDragEnd)
+      window.removeEventListener('pointercancel', this.onObjectDragEnd)
       this.objectsWrapper?.removeEventListener(
         'touchmove',
         this.onTouchMoveBound
@@ -464,8 +469,12 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         object.el.addEventListener('mousedown', this.onObjectDragStart)
         object.el.addEventListener('touchstart', this.onObjectDragStart)
       })
-      this.el.addEventListener('mouseup', this.onObjectDragEnd)
-      this.el.addEventListener('touchend', this.onObjectDragEnd)
+      window.addEventListener('pointerup', this.onObjectDragEnd)
+      window.addEventListener('pointercancel', this.onObjectDragEnd)
+      this.stops.push(() => {
+        window.removeEventListener('pointerup', this.onObjectDragEnd)
+        window.removeEventListener('pointercancel', this.onObjectDragEnd)
+      })
 
       // Esc 关闭正在细看的物件
       const onKey = (e: KeyboardEvent) => {
@@ -510,6 +519,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       if (!visible) return
 
+      this.setSize()
+
       this.thrownObjects.forEach((object) => {
         object.isWaiting = false
         object.el.classList.remove('is-waiting')
@@ -517,6 +528,40 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       if (this.scroll.p > 0.58) {
         this.launchEcosystemCards()
+      }
+    }
+
+    viewportSize() {
+      return {
+        w: window.safeWidth || window.innerWidth,
+        h: window.safeHeight || window.innerHeight,
+      }
+    }
+
+    liveRect() {
+      const rect = this.el.getBoundingClientRect()
+      if (this.bounding) {
+        this.bounding.left = rect.left
+        this.bounding.top = rect.top
+        this.bounding.width = rect.width
+        this.bounding.height = rect.height
+      }
+      return rect
+    }
+
+    objectOrigin() {
+      return {
+        x: (this.bounding?.width || 0) / 2,
+        y: (this.bounding?.height || 0) / 2,
+      }
+    }
+
+    clientToObject(clientX: number, clientY: number) {
+      const rect = this.liveRect()
+      const origin = this.objectOrigin()
+      return {
+        x: clientX - rect.left - origin.x,
+        y: clientY - rect.top - origin.y,
       }
     }
 
@@ -531,7 +576,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Touch handler
      */
     onTouchMove(e) {
-      e.preventDefault()
+      if (this.draggedObject?.isDragging) e.preventDefault()
 
       const delta = performance.now() - this.lastTouch
       if (delta < frameDelta()) return
@@ -933,22 +978,26 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       if (target.closest('.a-object, a, button, [role="button"]')) return
 
       const ev = e as PointerEvent
-      const x = ev.clientX - this.bounding.left
-      const y = ev.clientY - this.bounding.top
+      const rect = this.liveRect()
+      const x = ev.clientX - rect.left
+      const y = ev.clientY - rect.top
 
       this.ripples.push({ x, y, born: performance.now() })
       if (this.ripples.length > 5) this.ripples.shift()
 
       this.paperPress = 1
       this.catcherPulse = 1
+      this.compassKick = 1
       this.el.classList.add('is-blank-pulse')
 
       if (target.closest('.js-smiley')) {
         this.compassAim = 0
-      } else {
+      } else if (this.smiley.el) {
+        const smile = this.smiley.el.getBoundingClientRect()
+        const sx = smile.left + smile.width / 2
+        const sy = smile.top + smile.height / 2
         this.compassAim =
-          Math.atan2(x - this.smiley.rel.x, -(y - this.smiley.rel.y)) *
-          (180 / Math.PI)
+          Math.atan2(ev.clientX - sx, -(ev.clientY - sy)) * (180 / Math.PI)
       }
 
       const tid = window.setTimeout(() => {
@@ -964,19 +1013,31 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     updateFeel() {
       const { mouse, smiley, el } = this
 
-      if (this.inspectedObject) {
-        this.compassAim =
-          Math.atan2(this.inspectedObject.x, -this.inspectedObject.y) *
-          (180 / Math.PI)
-      } else if (mouse.set && !this.el.classList.contains('is-blank-pulse')) {
-        this.compassAim =
-          Math.atan2(mouse.sx - smiley.rel.x, -(mouse.sy - smiley.rel.y)) *
-          (180 / Math.PI)
+      if (this.inspectedObject?.el && smiley.el) {
+        const o = this.inspectedObject.el.getBoundingClientRect()
+        const s = smiley.el.getBoundingClientRect()
+        const ox = o.left + o.width / 2
+        const oy = o.top + o.height / 2
+        const sx = s.left + s.width / 2
+        const sy = s.top + s.height / 2
+        const d = Math.hypot(ox - sx, oy - sy)
+        if (d > 40) {
+          this.compassAim = Math.atan2(ox - sx, -(oy - sy)) * (180 / Math.PI)
+        }
+      } else if (this.compassKick <= 0.02 && mouse.set && smiley.el && this.bounding) {
+        const s = smiley.el.getBoundingClientRect()
+        const sx = s.left + s.width / 2
+        const sy = s.top + s.height / 2
+        const mx = this.bounding.left + mouse.sx
+        const my = this.bounding.top + mouse.sy
+        this.compassAim = Math.atan2(mx - sx, -(my - sy)) * (180 / Math.PI)
       }
 
       let delta = this.compassAim - this.compassDeg
       delta = ((delta + 540) % 360) - 180
-      this.compassDeg += delta * 0.08
+      const follow = this.compassKick > 0.02 ? 0.22 : 0.08
+      this.compassDeg += delta * follow
+      this.compassKick += (0 - this.compassKick) * 0.08
       smiley.el?.style.setProperty('--needle', this.compassDeg.toFixed(2) + 'deg')
 
       if (mouse.set && this.bounding?.width) {
@@ -1041,69 +1102,66 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
      * Object drag start
      */
     objectDragStart(e) {
-      e.preventDefault()
+      if (e instanceof MouseEvent) e.preventDefault()
 
       this.lastTouch = performance.now()
 
-      if (e instanceof MouseEvent === false) {
-        this.onTouchMove(e)
-      }
+      const startX = e.clientX ?? e.touches?.[0]?.clientX ?? 0
+      const startY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
+      this.updateMousePosition(startX, startY)
+      this.mouse.sx = this.mouse.x
+      this.mouse.sy = this.mouse.y
 
       const el = e.currentTarget
       const object = this.thrownObjects.find((o) => o.el === el)
 
-      if (!object || object.isDragging || object.isVanishing) return
+      if (!object || object.isDragging || object.isVanishing || object.dragPending)
+        return
 
       this.draggedObject = object
-      object.isDragging = true
-      object.dragStartX = e.clientX ?? e.touches?.[0]?.clientX ?? 0
-      object.dragStartY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
-      el.classList.add('is-dragging')
+      object.dragPending = true
+      object.dragStartX = startX
+      object.dragStartY = startY
     }
 
     /**
      * Object drag end
      */
     objectDragEnd(e) {
-      e.preventDefault()
+      const now = performance.now()
+      if (now - this.lastDragEnd < 40) return
+      this.lastDragEnd = now
 
       const object = this.draggedObject
 
       if (!object) {
-        // 空点（没按在物件上）：有正在细看的物件则送它退场
         if (this.inspectedObject) this.dismissInspected()
         return
       }
 
-      const endX = e.clientX ?? e.changedTouches?.[0]?.clientX ?? object.dragStartX
-      const endY = e.clientY ?? e.changedTouches?.[0]?.clientY ?? object.dragStartY
+      const endX =
+        e.clientX ?? e.changedTouches?.[0]?.clientX ?? object.dragStartX
+      const endY =
+        e.clientY ?? e.changedTouches?.[0]?.clientY ?? object.dragStartY
       const dragDistance = Math.hypot(
         endX - object.dragStartX,
         endY - object.dragStartY
       )
       const isEcosystem = object.el.classList.contains('a-object--ecosystem')
+      const wasDragging = object.isDragging
 
+      object.dragPending = false
       object.isDragging = false
       object.el.classList.remove('is-dragging')
-
       this.draggedObject = null
 
-      // Ecosystem cards act as links: a tap (not a drag) follows the anchor
-      if (isEcosystem) {
-        if (dragDistance < 10) {
+      if (!wasDragging && dragDistance < 10) {
+        if (isEcosystem) {
           const link = object.el.querySelector('a[href]')
-
-          if (link instanceof HTMLAnchorElement) {
-            link.click()
-          }
+          if (link instanceof HTMLAnchorElement) link.click()
+          return
         }
 
-        return
-      }
-
-      // 轻点（非拖拽）→ 放大细看：物件飞到画面中央端正呈现；
-      // 再点它一下 / 点旁处 / Esc 才以墨点消散退场（对齐老站手感）
-      if (dragDistance < 10) {
         if (object.isInspecting) {
           this.dismissInspected()
         } else {
@@ -1113,50 +1171,38 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
         return
       }
 
-      // 真正拖拽后松手：继承甩动速度抛出 + 墨点消散
-      this.vanishObject(object)
+      if (isEcosystem) return
+
+      if (wasDragging) this.vanishObject(object)
     }
 
     /**
      * 细看：把物件请到画面中央放大端正呈现
      */
     inspectObject(object) {
-      const rect = this.el.getBoundingClientRect()
-      const wRect = this.objectsWrapper.getBoundingClientRect()
-      const wStyle = getComputedStyle(this.objectsWrapper)
+      const { w: viewW, h: viewH } = this.viewportSize()
 
       // 放大倍率按视口归一：宽高双约束取小者（竖构图照片本体就很高，
-      // 只按宽放大会溢出视口），换算成透视 z 位移。
-      // 超高帧允许缩到完整可见——「看清内容」优先于「更大」
-      const perspective = parseFloat(wStyle.perspective) || 1200
+      // 只按宽放大会溢出视口）。超高帧允许缩到完整可见。
       const baseW = object.el.offsetWidth || 500
       const baseH = object.el.offsetHeight || baseW
       const scale = Math.min(
-        1.6,
+        1.28,
         Math.max(
-          0.62,
-          Math.min(
-            (window.safeWidth * 0.52) / baseW,
-            (window.safeHeight * 0.8) / baseH
-          )
+          0.52,
+          Math.min((viewW * 0.46) / baseW, (viewH * 0.72) / baseH)
         )
       )
 
-      object.inspectZ = perspective * (1 - 1 / scale)
+      // 细看用平面 scale，不再靠 translateZ 放大——透视拉近会把竖构图
+      // 和梅花飞星撑出视口，bounding box 也无法预测。
+      object.inspectScale = scale
+      object.inspectZ = 48
 
-      // 投影逆变换：把「希望呈现在视口中央」折算回 3D 世界坐标——
-      // z 前移后离透视原点的偏移会被放大，直接给视口坐标会落偏
-      const originY =
-        wRect.top +
-        (parseFloat(wStyle.perspectiveOrigin.split(' ')[1]) ||
-          wRect.height / 2)
-      const desiredY = window.safeHeight * 0.5
-      const virtualClientY = originY + (desiredY - originY) / scale
-
-      // 换算进拖拽同款坐标系（区块本地系，锚在笑脸相对位）
-      object.inspectX = rect.width / 2 - this.smiley.rel.x
-      object.inspectY = virtualClientY - rect.top - this.smiley.rel.y * 1.5
-
+      const world = this.clientToObject(viewW * 0.5, viewH * 0.5)
+      const lim = Math.max(this.bounding.width, this.bounding.height) * 0.55
+      object.inspectX = Math.max(-lim, Math.min(lim, world.x))
+      object.inspectY = Math.max(-lim, Math.min(lim, world.y))
       object.isInspecting = true
       object.el.classList.add('is-inspecting')
 
@@ -1262,7 +1308,12 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       if (this.isPaused) return
 
-      if (this.canThrow && time - this.lastThrow > this.throwDelay) {
+      if (
+        this.canThrow &&
+        !this.inspectedObject &&
+        !this.draggedObject &&
+        time - this.lastThrow > this.throwDelay
+      ) {
         this.throwObject()
       }
     }
@@ -1301,8 +1352,14 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     inspectX: number
     inspectY: number
     inspectZ: number
+    inspectScale: number
+    dragPending: boolean
     dragStartX: number
     dragStartY: number
+    flickVx: number
+    flickVy: number
+    prevX: number | null
+    prevY: number | null
 
     /**
      * Constructor
@@ -1358,6 +1415,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.inspectX = 0
       this.inspectY = 0
       this.inspectZ = 0
+      this.inspectScale = 1
+      this.dragPending = false
       this.dragStartX = 0
       this.dragStartY = 0
       this.flickVx = 0
@@ -1371,7 +1430,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       this.el.classList.remove('is-inspecting')
 
       this.vanishStart = 0
-      this.vanishDelay = 1000
+      this.vanishDelay = 900
 
       if (!fromScratch) {
         this.isWaiting = true
@@ -1396,9 +1455,31 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     move(time) {
       if (this.isWaiting) return
 
+      if (this.dragPending && this.parent.draggedObject === this) {
+        const startX = this.dragStartX - this.parent.bounding.left
+        const startY = this.dragStartY - this.parent.bounding.top
+        const dist = Math.hypot(
+          this.parent.mouse.x - startX,
+          this.parent.mouse.y - startY
+        )
+        if (dist > 10) {
+          this.dragPending = false
+          if (this.isInspecting) {
+            this.isInspecting = false
+            this.el.classList.remove('is-inspecting')
+            if (this.parent.inspectedObject === this) {
+              this.parent.inspectedObject = null
+            }
+          }
+          this.isDragging = true
+          this.el.classList.add('is-dragging')
+        }
+      }
+
       if (this.isDragging) {
-        const x = this.parent.mouse.x - this.parent.smiley.rel.x
-        const y = this.parent.mouse.y - this.parent.smiley.rel.y * 1.5
+        const origin = this.parent.objectOrigin()
+        const x = this.parent.mouse.x - origin.x
+        const y = this.parent.mouse.y - origin.y
 
         this.vx += (x - this.x) * 0.075
         this.vy += (y - this.y) * 0.075
@@ -1436,26 +1517,23 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
           this.rx = Math.round(this.rx / 360) * 360
           this.ry = Math.round(this.ry / 360) * 360
           this.rz = 0
-          this.s = 1
+          this.s = this.inspectScale || 1
         } else {
-          this.vx += (this.inspectX - this.x) * 0.06
-          this.vy += (this.inspectY - this.y) * 0.06
-          this.vz += (this.inspectZ - this.z) * 0.25
-
-          this.vx *= 0.86
-          this.vy *= 0.86
-          this.vz *= 0.72
-
-          this.x += this.vx
-          this.y += this.vy + Math.sin(time * 0.0016) * 0.35
-          this.z += this.vz
+          this.x += (this.inspectX - this.x) * 0.14
+          this.y +=
+            (this.inspectY - this.y) * 0.14 + Math.sin(time * 0.0016) * 0.35
+          this.z += (this.inspectZ - this.z) * 0.18
+          this.z = Math.min(this.z, 160)
+          this.vx *= 0.7
+          this.vy *= 0.7
+          this.vz = 0
 
           // 转回正面（就近归零，不多转圈）
-          this.rx += (Math.round(this.rx / 360) * 360 - this.rx) * 0.14
-          this.ry += (Math.round(this.ry / 360) * 360 - this.ry) * 0.14
-          this.rz += (0 - this.rz) * 0.14
+          this.rx += (Math.round(this.rx / 360) * 360 - this.rx) * 0.16
+          this.ry += (Math.round(this.ry / 360) * 360 - this.ry) * 0.16
+          this.rz += (0 - this.rz) * 0.16
 
-          this.s += (1 - this.s) * 0.3
+          this.s += ((this.inspectScale || 1) - this.s) * 0.22
         }
       } else if (this.isVanishing) {
         if (this.parent.reduced) {
@@ -1659,13 +1737,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       color: color(accent);
 
-      animation: sm-way-sway 14s ease-in-out infinite alternate;
-      will-change: transform;
-
       :global(svg) {
         display: block;
         width: 62%;
         height: 62%;
+
+        animation: sm-way-sway 14s ease-in-out infinite alternate;
+        will-change: transform;
       }
 
       &__ring {
@@ -1821,6 +1899,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
     @media (prefers-reduced-motion: reduce) {
       .s__smiley,
+      .s__smiley :global(svg),
       .s__smiley__ring,
       .s__smiley__pips,
       .s__bloom {
@@ -1931,6 +2010,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
       display: block;
 
       cursor: grab;
+      touch-action: manipulation;
 
       filter: drop-shadow(0 14px 22px rgba(30, 10, 60, var(--shadow-o, 0.08)));
 
@@ -2073,8 +2153,6 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       &--star {
         --depth: 1rem;
-
-        left: 65%;
 
         width: calc(var(--size) * 400px);
         height: calc(var(--size) * 400px);
@@ -2662,6 +2740,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       width: 100%;
       height: 100%;
+
+      pointer-events: none;
 
       &__circular-path {
         fill: none;
