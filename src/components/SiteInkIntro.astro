@@ -86,7 +86,7 @@ import SealMark from './SealMark.astro'
       will-change: clip-path;
     }
 
-    /* 墨团：径向渐变淡出边缘 + 不规则圆角，像一滴墨洇开 */
+    /* 淡墨底：只作纸上水渍，浓度压住会把浓墨森字吃掉 */
     &__blot {
       --blot-size: min(62vmin, 460px);
 
@@ -101,9 +101,9 @@ import SealMark from './SealMark.astro'
 
       background: radial-gradient(
         closest-side,
-        rgba(20, 28, 22, 0.58) 0%,
-        rgba(28, 42, 34, 0.36) 38%,
-        rgba(61, 90, 102, 0.2) 66%,
+        rgba(28, 42, 34, 0.16) 0%,
+        rgba(28, 42, 34, 0.09) 40%,
+        rgba(61, 90, 102, 0.05) 68%,
         transparent 100%
       );
       border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%;
@@ -128,7 +128,7 @@ import SealMark from './SealMark.astro'
 
         background: radial-gradient(
           closest-side,
-          rgba(28, 42, 34, 0.72) 0%,
+          rgba(28, 42, 34, 0.2) 0%,
           transparent 88%
         );
         border-radius: 62% 38% 54% 46% / 52% 60% 40% 48%;
@@ -157,7 +157,7 @@ import SealMark from './SealMark.astro'
       border-radius: 62% 38% 54% 46% / 48% 58% 42% 52%;
       background: radial-gradient(
         closest-side,
-        rgba(28, 42, 34, 0.4) 0%,
+        rgba(28, 42, 34, 0.16) 0%,
         transparent 78%
       );
       mix-blend-mode: multiply;
@@ -212,7 +212,7 @@ import SealMark from './SealMark.astro'
       z-index: 3;
 
       overflow: visible;
-      color: #141c16;
+      color: #0f1612;
 
       translate: -50% -54%;
       opacity: 1;
@@ -224,14 +224,23 @@ import SealMark from './SealMark.astro'
       }
 
       :global(.sen-mark path) {
-        stroke-width: 16;
+        stroke-width: 17;
+      }
+
+      /* 首屏有锁才开长；避免模块晚到时生长已经演完 */
+      :global(.sen-mark--grow path) {
+        animation-play-state: paused;
       }
     }
 
-    /* 木 / 林 / 森 叙事字，随三木错峰亮起 */
+    :global(html.is-intro-active) &__mark :global(.sen-mark--grow path) {
+      animation-play-state: running;
+    }
+
+    /* 木 / 林 / 森 叙事字：落在森标下方，不和笔画抢位 */
     &__stage {
       position: absolute;
-      top: calc(50% + min(22vmin, 8.4rem));
+      top: calc(50% + min(28vmin, 10.5rem));
       left: 50%;
       z-index: 3;
 
@@ -247,7 +256,7 @@ import SealMark from './SealMark.astro'
       pointer-events: none;
 
       @include mq(phone) {
-        top: calc(50% + min(24vmin, 7.2rem));
+        top: calc(50% + min(30vmin, 8.8rem));
         font-size: 0.95rem;
       }
 
@@ -272,11 +281,11 @@ import SealMark from './SealMark.astro'
       }
     }
 
-    /* 小印：森成之后钤在右下，不抢森标 */
+    /* 小印：森成之后钤在字外右下，不再盖住下两木 */
     &__seal {
       position: absolute;
-      top: calc(50% + min(12vmin, 4.8rem));
-      left: calc(50% + min(18vmin, 7.6rem));
+      top: calc(50% + min(16vmin, 5.8rem));
+      left: calc(50% + min(30vmin, 13.2rem));
       z-index: 4;
 
       opacity: 0;
@@ -284,16 +293,16 @@ import SealMark from './SealMark.astro'
       will-change: transform, opacity;
 
       @include mq(phone) {
-        top: calc(50% + min(14vmin, 4.2rem));
-        left: calc(50% + min(16vmin, 5.8rem));
+        top: calc(50% + min(22vmin, 6.8rem));
+        left: calc(50% + min(20vmin, 6.8rem));
       }
     }
 
     /* 竖排落款，如画上题名 */
     &__name {
       position: absolute;
-      top: calc(50% + min(16vmin, 6.2rem));
-      left: calc(50% + min(22vmin, 9.2rem));
+      top: calc(50% + min(6vmin, 2.4rem));
+      left: calc(50% + min(28vmin, 12rem));
       z-index: 4;
 
       margin: 0;
@@ -308,8 +317,8 @@ import SealMark from './SealMark.astro'
       will-change: transform, opacity;
 
       @include mq(phone) {
-        top: calc(50% + min(18vmin, 5.4rem));
-        left: calc(50% + min(20vmin, 7.2rem));
+        top: calc(50% + min(10vmin, 3.2rem));
+        left: calc(50% + min(22vmin, 7.4rem));
 
         font-size: 0.74rem;
       }

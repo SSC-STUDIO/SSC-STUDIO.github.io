@@ -86,20 +86,20 @@ const { class: className } = Astro.props
 
   :global(.theme-contrasted) {
     .ink-mist {
-      color: color-mix(in srgb, #{color(indigo)} 62%, #{color(secondary)});
+      color: color-mix(in srgb, #{color(indigo)} 70%, #{color(secondary)});
     }
 
     .ink-mist__layer {
       &--far {
-        opacity: 0.08;
-      }
-
-      &--mid {
         opacity: 0.11;
       }
 
+      &--mid {
+        opacity: 0.16;
+      }
+
       &--near {
-        opacity: 0.14;
+        opacity: 0.2;
       }
     }
   }

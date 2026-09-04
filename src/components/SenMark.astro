@@ -83,10 +83,11 @@ const strokes = [
   }
 
   /* ── grow：三木错峰按笔顺长出 ──
-     竖干先落 → 横枝 → 撇捺开枝。描边 + 从笔根放大，避免只靠 dash 时几乎看不见。 */
+     竖干先落 → 横枝 → 撇捺开枝。
+     必须用 stroke-box：横竖是零面积折线，fill-box 会把笔收成看不见的点。 */
   .sen-mark--grow path {
-    transform: scale(0.12);
-    transform-box: fill-box;
+    transform: scale(0.22);
+    transform-box: stroke-box;
     transform-origin: 50% 0%;
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
@@ -164,9 +165,9 @@ const strokes = [
     0% {
       opacity: 0;
       stroke-dashoffset: 1;
-      transform: scale(0.12);
+      transform: scale(0.22);
     }
-    18% {
+    12% {
       opacity: 1;
     }
     100% {

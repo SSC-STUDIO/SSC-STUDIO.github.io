@@ -10,6 +10,7 @@ import InkBubbles from './InkBubbles.astro'
 import InkBamboo from './InkBamboo.astro'
 import InkFish from './InkFish.astro'
 import InkMoon from './InkMoon.astro'
+import InkRipple from './InkRipple.astro'
 import DateSeal from './DateSeal.astro'
 ---
 
@@ -22,6 +23,7 @@ import DateSeal from './DateSeal.astro'
   <InkBamboo class="s__bamboo" size={280} flip />
   <InkMoon class="s__moon" size={190} />
   <InkFish class="s__fish" size={200} />
+  <InkRipple class="s__ripple" size={168} />
   <DateSeal class="s__seal" />
   <InkRidges class="s__waves" />
 
@@ -156,9 +158,6 @@ import DateSeal from './DateSeal.astro'
       this.isWaiting = true
       this.split = null
       this.introPlayed = false
-
-      // Init
-      this.splitWords()
 
       document.addEventListener('intro', this.onIntro, {
         once: true,
@@ -359,16 +358,20 @@ import DateSeal from './DateSeal.astro'
 
     /** 点森标：重放生长，三木再破土一次 */
     pressSen() {
-      const sen = this.el.querySelector('.js-sen-press .sen-mark')
-      if (!sen) return
+      const wrap = this.el.querySelector('.js-sen-press')
+      const sen = wrap?.querySelector('.sen-mark')
+      if (!wrap || !sen) return
 
+      wrap.classList.remove('is-pressed')
       sen.classList.remove('sen-mark--grow')
-      void (sen as HTMLElement).offsetWidth
+      void (wrap as HTMLElement).offsetWidth
+      wrap.classList.add('is-pressed')
       sen.classList.add('sen-mark--grow')
 
       const timer = window.setTimeout(() => {
         sen.classList.remove('sen-mark--grow')
-      }, 1800)
+        wrap.classList.remove('is-pressed')
+      }, 1400)
       this.charTimers.push(timer)
     }
 
@@ -421,6 +424,7 @@ import DateSeal from './DateSeal.astro'
      * Resize handler
      */
     onResize() {
+      if (this.destroyed || this.isWaiting) return
       this.splitWords()
     }
 
@@ -438,8 +442,14 @@ import DateSeal from './DateSeal.astro'
       const waves = this.el.querySelector('ink-ridges')
       const content = this.el.querySelector('.js-content')
 
+      const unlock = () => {
+        if (this.destroyed) return
+        this.isWaiting = false
+      }
+
       if (!waves || !content) {
         waves?.dispatchEvent(new CustomEvent('introend'))
+        unlock()
         return
       }
 
@@ -451,13 +461,17 @@ import DateSeal from './DateSeal.astro'
       /* reduced-motion：跳过整段时间线，直接落终态 */
       if (prefersReducedMotion()) {
         waves.dispatchEvent(new CustomEvent('introend'))
-        this.isWaiting = false
-
+        unlock()
         return
       }
 
       try {
-        const tl = (this.tl = gsap.timeline())
+        const tl = (this.tl = gsap.timeline({
+          onComplete: unlock,
+        }))
+
+        /* 字一落定就可以点，不必等整段装饰演完 */
+        tl.call(unlock, null, 1.05)
 
         /* 竖向线场显影自理（InkRidges 收到信号后自行淡入） */
         tl.call(
@@ -508,16 +522,18 @@ import DateSeal from './DateSeal.astro'
         tl.from(
           star,
           {
-            rotate: 90,
-            duration: 2,
+            autoAlpha: 0,
+            scale: 0.72,
+            rotate: 12,
+            duration: 1.35,
             ease: 'expo.out',
           },
           0.5
         )
 
-        /* 背景装饰错峰入场：雾-月-鱼-竹自远及近浮现，拉开纵深 */
+        /* 背景装饰错峰入场：雾-月-鱼-竹-涟漪自远及近浮现 */
         const decos = this.el.querySelectorAll(
-          '.s__mist, .s__moon, .s__fish, .s__bamboo'
+          '.s__mist, .s__moon, .s__fish, .s__ripple, .s__bamboo'
         )
         if (decos.length) {
           tl.from(
@@ -527,7 +543,7 @@ import DateSeal from './DateSeal.astro'
               y: 14,
               duration: 1.4,
               ease: 'expo.out',
-              stagger: 0.16,
+              stagger: 0.14,
               clearProps: 'transform',
             },
             0.55
@@ -557,20 +573,17 @@ import DateSeal from './DateSeal.astro'
           },
           0.35
         )
-
-        tl.call(() => {
-          this.isWaiting = false
-        })
       } catch (e) {
         console.error('SHero intro failed:', e)
         waves?.dispatchEvent(new CustomEvent('introend'))
-      } finally {
-        /* 非破坏性兜底：无论动画成功或中断，确保 .s__content 终态可见，
-           避免 clipPath 之类的破坏性属性把首屏锁在隐藏态 */
         try {
           gsap.set(content, { clearProps: 'opacity,transform' })
-        } catch (e) {}
+        } catch (err) {}
+        unlock()
       }
+
+      const safety = window.setTimeout(unlock, 2800)
+      this.charTimers.push(safety)
     }
 
     /**
@@ -883,6 +896,27 @@ import DateSeal from './DateSeal.astro'
       }
     }
 
+    /* 涟漪：贴在游鱼身侧，只装饰不抢点击 */
+    .s__ripple {
+      bottom: clamp(2.2rem, 7vh, 5.8rem);
+      left: clamp(8.5rem, 28vw, 26rem);
+      z-index: 1;
+
+      opacity: 0.88;
+      pointer-events: none;
+
+      translate: calc(var(--par-x, 0) * 10px) calc(var(--par-y, 0) * 6px);
+
+      @include mq(tablet-sm) {
+        left: 4.5rem;
+        opacity: 0.55;
+      }
+
+      @include mq(phone) {
+        display: none;
+      }
+    }
+
     /* 游鱼：贴着水波缓游 */
     .s__fish {
       bottom: clamp(3rem, 9vh, 7rem);
@@ -982,6 +1016,24 @@ import DateSeal from './DateSeal.astro'
       }
     }
 
+    :global(html.theme-contrasted) & {
+      .s__moon {
+        opacity: 1;
+      }
+
+      .s__fish {
+        opacity: 1;
+      }
+
+      .s__bamboo {
+        opacity: 0.82;
+      }
+
+      .s__ripple {
+        opacity: 1;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       :global(.date-seal),
       :global(.date-seal.is-chopped) {
@@ -996,6 +1048,11 @@ import DateSeal from './DateSeal.astro'
         cursor: default;
         animation: none;
         pointer-events: none;
+      }
+
+      .s__title__asset.is-pressed {
+        transform: none;
+        transition: none;
       }
     }
 
@@ -1085,6 +1142,10 @@ import DateSeal from './DateSeal.astro'
       letter-spacing: 0.02em;
       text-transform: none;
 
+      @media (max-height: 900px) {
+        font-size: min(16vw, 8.4rem);
+      }
+
       @include mq(tablet) {
         padding: 0.2rem 0.75rem 0.4rem;
         flex-wrap: wrap;
@@ -1112,13 +1173,17 @@ import DateSeal from './DateSeal.astro'
 
       &__asset {
         display: flex;
+        flex: 0 0 auto;
         align-items: center;
         justify-content: center;
         margin: 0 0.12em 0.08em;
-        width: 0.18em;
-        height: 0.18em;
+        width: 0.22em;
+        height: 0.22em;
+        min-width: 0.22em;
+        min-height: 0.22em;
         color: color(secondary);
         cursor: pointer;
+        transform-origin: 50% 55%;
 
         :global(svg) {
           display: block;
@@ -1126,11 +1191,16 @@ import DateSeal from './DateSeal.astro'
           height: 100%;
         }
 
+        &.is-pressed {
+          transform: scale(0.9);
+          transition: transform 180ms cubic-bezier(0.2, 1.35, 0.32, 1);
+        }
+
         @media (hover: hover) and (pointer: fine) {
           transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-          &:hover {
-            transform: rotate(14deg);
+          &:hover:not(.is-pressed) {
+            transform: rotate(10deg);
           }
         }
       }
