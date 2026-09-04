@@ -13,7 +13,7 @@ import Leaderboard from '@/islands/Leaderboard'
   <PageHero
     kicker="experiment"
     title="Leaderboard"
-    summary="实验与游戏的分数排行 — 看看谁把反应和记忆推到了极限。"
+    summary="实验与游戏的分数排行 — 反应、记忆、注意力，看谁把极限再推远一点。"
   />
 
   <main
@@ -65,6 +65,11 @@ import Leaderboard from '@/islands/Leaderboard'
         color 0.2s ease,
         border-color 0.2s ease,
         transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+
+      &:focus-visible {
+        outline: 2px solid color(accent);
+        outline-offset: 2px;
+      }
 
       /* 压脚一线朱砂：选中的一枚自左扫满 */
       &::after {
@@ -245,6 +250,25 @@ import Leaderboard from '@/islands/Leaderboard'
       animation-delay: calc(180ms + var(--row-i, 0) * 52ms);
     }
 
+    /* 空榜 / 离线：侧栏计数与正文用不同语气，换 tab 时一眼能分清 */
+    .lb-meta[data-state='offline'] p:last-child,
+    .lb-meta[data-state='loading'] p:last-child {
+      color: color(accent-strong);
+    }
+
+    .lb-empty--offline {
+      font-style: normal;
+    }
+
+    .lb-empty--vacant {
+      font-style: italic;
+    }
+
+    .lb-table[data-state='offline'] {
+      outline: 1px dashed color-mix(in srgb, #{color(accent)} 42%, transparent);
+      outline-offset: 8px;
+    }
+
     /* ── 空态与按钮 ── */
 
     /* 载入中：句末一点墨在呼吸。
@@ -322,6 +346,21 @@ import Leaderboard from '@/islands/Leaderboard'
       .lb-more,
       .lb-empty-actions .p-card__link {
         transition: none;
+      }
+
+      .lb-table[data-state='offline'] {
+        outline: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .lb-tabs button {
+        min-height: 44px;
+        padding: 0.55rem 0.75rem;
+      }
+
+      .lb-table[data-state='offline'] {
+        outline-offset: 4px;
       }
     }
   }
