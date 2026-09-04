@@ -3,24 +3,27 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import ArticleMotion from '@/components/pages/ArticleMotion.astro'
+import { articlePage } from './_view'
+
+const { article, older, minutes } = articlePage('why-build-personal-site')
 ---
 
 <BaseLayout
-  title="为什么还在做个人网站 · 陈润森"
+  title={`${article.title} · 陈润森`}
   description="在模板和社交平台之间，个人站仍然值得投入：叙事控制权、实验场与长期资产，三个坚持自建站点的理由。"
 >
-  <PageHero
-    kicker="article"
-    title="为什么还在做个人网站"
-    summary="在模板和社交平台之间，个人站仍然值得投入。"
-  />
+  <PageHero kicker="article" title={article.title} summary={article.summary} />
 
   <main class="p-page p-article">
     <ArticleMotion />
     <div class="p-detail-meta" data-reveal>
-      <span>发布于 2026年3月1日</span>
-      <span>全文约 260 字 · 1 分钟读完</span>
-      <span class="p-detail-meta__badge">Featured</span>
+      <span>发布于 {article.date}</span>
+      <span>全文约 {article.words} 字 · {minutes} 分钟读完</span>
+      {
+        article.kicker === 'featured' && (
+          <span class="p-detail-meta__badge">Featured</span>
+        )
+      }
     </div>
     <div class="p-prose" data-reveal>
       <h2>问题</h2>
@@ -52,20 +55,18 @@ import ArticleMotion from '@/components/pages/ArticleMotion.astro'
       </button>
     </div>
     <div class="p-chips" data-flow data-intersect>
-      <span class="p-chip">meta</span>
-      <span class="p-chip">writing</span>
+      {article.tags.map((tag) => <span class="p-chip">{tag}</span>)}
     </div>
-    <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
-      <a
-        class="p-article-nav__link"
-        href="/articles/ai-prototype-loop"
-        data-seal
-        data-leaf
-      >
-        <span class="p-article-nav__label">下一篇 · 更早</span>
-        <span class="p-article-nav__title">AI 原型的快速迭代循环 →</span>
-      </a>
-    </nav>
+    {
+      older && (
+        <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
+          <a class="p-article-nav__link" href={older.href} data-seal data-leaf>
+            <span class="p-article-nav__label">下一篇 · 更早</span>
+            <span class="p-article-nav__title">{older.title} →</span>
+          </a>
+        </nav>
+      )
+    }
     <p class="p-back" data-reveal>
       <a class="p-card__link p-card__link--ghost" href="/articles" data-seal
         >← 全部文章</a

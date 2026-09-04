@@ -7,6 +7,7 @@
  * 轨身随阅读进度自上而下洇满，轨尾一枚小印记着读了几成。
  *
  * 章次从正文 DOM 现取，不必在每篇文章里重复登记。
+ * 进度与当前章走滚动量，跳到底也不会钉在第一节。
  * 自定义元素生命周期天然对齐 SPA 换页；窄屏整根收起（右缘已有卷轴进度杆）。
  */
 interface Props {
@@ -30,7 +31,12 @@ const { target = '.p-prose' } = Astro.props
 </article-rail>
 
 <script>
-  import { onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+  import { onResize, onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+  import {
+    articleReadProgress,
+    findArticleBody,
+    syncArticleHeads,
+  } from '../../motion/article-read'
 
   class ArticleRail extends HTMLElement {
     body: HTMLElement | null = null
@@ -41,16 +47,42 @@ const { target = '.p-prose' } = Astro.props
     ticks: HTMLButtonElement[] = []
 
     stops: Cleanup[] = []
-    observer: IntersectionObserver | null = null
-    lit: IntersectionObserver | null = null
+    retry = 0
+    tries = 0
     lastPct = -1
 
     connectedCallback() {
-      this.body = document.querySelector(this.dataset.target || '.p-prose')
+      this.attach()
+    }
+
+    disconnectedCallback() {
+      this.teardown()
+    }
+
+    teardown() {
+      cancelAnimationFrame(this.retry)
+      this.retry = 0
+      this.tries = 0
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.heads = []
+      this.ticks = []
+      this.lastPct = -1
+      if (this.list) this.list.replaceChildren()
+      this.body = null
+    }
+
+    attach() {
+      this.body = findArticleBody(this, this.dataset.target || '.p-prose')
       this.list = this.querySelector('.p-artrail__list')
       this.pct = this.querySelector('.js-artrail-pct')
 
-      if (!this.body || !this.list) return
+      if (!this.body || !this.list) {
+        if (this.tries++ < 12) {
+          this.retry = requestAnimationFrame(() => this.attach())
+        }
+        return
+      }
 
       this.heads = Array.from(this.body.querySelectorAll<HTMLElement>('h2'))
       if (!this.heads.length) return
@@ -59,54 +91,16 @@ const { target = '.p-prose' } = Astro.props
       this.classList.add('is-live')
 
       this.stops.push(onScroll(() => this.paint()))
+      this.stops.push(onResize(() => this.paint()))
       this.paint()
-
-      // 追章：以视口中带为准，读到哪一章哪一枚落朱砂
-      this.observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return
-            const index = this.heads.indexOf(entry.target as HTMLElement)
-            if (index < 0) return
-            this.ticks.forEach((tick, i) =>
-              tick.classList.toggle('is-current', i === index)
-            )
-          })
-        },
-        { rootMargin: '-24% 0px -58% 0px', threshold: 0 }
-      )
-
-      // 描章题压脚：门槛放得比追章宽，短文的末章也一定描得到
-      this.lit = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return
-            entry.target.classList.add('is-read')
-            this.lit?.unobserve(entry.target)
-          })
-        },
-        { rootMargin: '0px 0px -8% 0px', threshold: 0 }
-      )
-
-      this.heads.forEach((head) => {
-        this.observer!.observe(head)
-        this.lit!.observe(head)
-      })
-      this.ticks[0]?.classList.add('is-current')
-    }
-
-    disconnectedCallback() {
-      this.observer?.disconnect()
-      this.observer = null
-      this.lit?.disconnect()
-      this.lit = null
-      this.stops.forEach((stop) => stop())
-      this.stops = []
-      this.heads = []
-      this.ticks = []
     }
 
     build() {
+      if (!this.list) return
+
+      this.list.replaceChildren()
+      this.ticks = []
+
       const reduced = prefersReducedMotion()
       const numerals = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
 
@@ -142,16 +136,11 @@ const { target = '.p-prose' } = Astro.props
       })
     }
 
-    /** 阅读进度：正文顶端触到视口中线算起点，正文末端离开视口中线算读完 */
     paint() {
       const body = this.body
       if (!body) return
 
-      const rect = body.getBoundingClientRect()
-      const mid = window.innerHeight * 0.5
-      const span = Math.max(1, rect.height)
-      const progress = Math.min(Math.max((mid - rect.top) / span, 0), 1)
-
+      const progress = articleReadProgress(body)
       this.style.setProperty('--rail-progress', progress.toFixed(4))
 
       const pct = Math.round(progress * 100)
@@ -159,6 +148,8 @@ const { target = '.p-prose' } = Astro.props
         this.lastPct = pct
         this.pct.textContent = String(pct)
       }
+
+      syncArticleHeads(this.heads, this.ticks)
     }
   }
 

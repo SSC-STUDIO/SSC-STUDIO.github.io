@@ -19,46 +19,66 @@ import ArticleRail from './ArticleRail.astro'
 </article-progress>
 
 <script>
-  import { onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+  import { onResize, onScroll, prefersReducedMotion, type Cleanup } from '../../motion/core'
+  import {
+    articleReadProgress,
+    findArticleBody,
+    syncArticleHeads,
+  } from '../../motion/article-read'
 
   /**
    * 顶栏朱丝：正文顶端触到视口中线算起点，正文末端离开视口中线算读完。
-   * 与左栏章次导轨同一套量法，窄屏没有导轨时仍能看见读到哪。
+   * 整页一屏内或已到页底也算读完。与左栏导轨同一套量法。
    */
   class ArticleProgress extends HTMLElement {
     body: HTMLElement | null = null
     stops: Cleanup[] = []
+    retry = 0
+    tries = 0
 
     connectedCallback() {
-      const attach = () => {
-        this.body = document.querySelector(this.dataset.target || '.p-prose')
-        if (!this.body) return false
-        this.stops.push(onScroll(() => this.paint()))
-        this.paint()
-        return true
-      }
-
-      if (attach()) return
-      requestAnimationFrame(() => attach())
+      this.attach()
     }
 
     disconnectedCallback() {
+      this.teardown()
+    }
+
+    teardown() {
+      cancelAnimationFrame(this.retry)
+      this.retry = 0
+      this.tries = 0
       this.stops.forEach((stop) => stop())
       this.stops = []
       this.body = null
+    }
+
+    attach() {
+      this.body = findArticleBody(this, this.dataset.target || '.p-prose')
+      if (!this.body) {
+        if (this.tries++ < 12) {
+          this.retry = requestAnimationFrame(() => this.attach())
+        }
+        return
+      }
+
+      this.stops.push(onScroll(() => this.paint()))
+      this.stops.push(onResize(() => this.paint()))
+      this.paint()
     }
 
     paint() {
       const body = this.body
       if (!body) return
 
-      const rect = body.getBoundingClientRect()
-      const mid = window.innerHeight * 0.5
-      const span = Math.max(1, rect.height)
-      const progress = Math.min(Math.max((mid - rect.top) / span, 0), 1)
-
+      const progress = articleReadProgress(body)
       this.style.setProperty('--read-progress', progress.toFixed(4))
       this.classList.toggle('is-done', progress >= 0.98)
+
+      syncArticleHeads(
+        Array.from(body.querySelectorAll<HTMLElement>('h2')),
+        Array.from(document.querySelectorAll('.p-artrail__tick'))
+      )
     }
   }
 
@@ -66,21 +86,57 @@ import ArticleRail from './ArticleRail.astro'
     customElements.define('article-progress', ArticleProgress)
   }
 
-  /** 结章印：再点一记，重新钤下。装饰性，不改阅读位置。 */
-  function bindEndSeal(root: ParentNode = document) {
-    root.querySelectorAll<HTMLElement>('.p-article-end__seal').forEach((seal) => {
-      if (seal.dataset.bound === '1') return
-      seal.dataset.bound = '1'
+  const sealStops: Cleanup[] = []
 
-      seal.addEventListener('click', () => {
-        if (prefersReducedMotion()) return
-        seal.classList.remove('is-restamp')
-        void seal.offsetWidth
-        seal.classList.add('is-restamp')
-      })
+  function destroySeals() {
+    sealStops.forEach((stop) => stop())
+    sealStops.length = 0
+  }
+
+  function restamp(seal: HTMLElement) {
+    if (prefersReducedMotion()) return
+    seal.classList.remove('is-restamp')
+    seal.style.animation = 'none'
+    void seal.offsetWidth
+    seal.style.animation = ''
+    seal.classList.add('is-restamp')
+  }
+
+  /** 结章印：入屏钤一次，再点一记重新钤下。装饰性，不改阅读位置。 */
+  function bindEndSeal(root: ParentNode = document) {
+    destroySeals()
+
+    root.querySelectorAll<HTMLElement>('.p-article-end').forEach((end) => {
+      const stamp = () => {
+        end.classList.add('is-stamped')
+      }
+
+      const rect = end.getBoundingClientRect()
+      // 已进过视口或跳过它（滚到更底下）都算钤过，避免只靠入屏观察漏掉
+      if (rect.top < window.innerHeight) {
+        stamp()
+      } else if (typeof IntersectionObserver === 'function') {
+        const io = new IntersectionObserver(
+          (entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return
+            stamp()
+            io.disconnect()
+          },
+          { threshold: 0.15, rootMargin: '0px 0px -4% 0px' }
+        )
+        io.observe(end)
+        sealStops.push(() => io.disconnect())
+      }
+    })
+
+    root.querySelectorAll<HTMLElement>('.p-article-end__seal').forEach((seal) => {
+      const onClick = () => restamp(seal)
+      seal.addEventListener('click', onClick)
+      sealStops.push(() => seal.removeEventListener('click', onClick))
     })
   }
 
+  document.addEventListener('astro:before-swap', destroySeals)
   document.addEventListener('astro:page-load', () => bindEndSeal())
   bindEndSeal()
 </script>
@@ -267,16 +323,17 @@ import ArticleRail from './ArticleRail.astro'
     }
   }
 
-  .p-article .p-article-end[data-intersect].is-in-view .p-article-end__seal {
+  .p-article .p-article-end.is-stamped .p-article-end__seal {
     animation: p-article-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1) backwards;
   }
 
-  .p-article .p-article-end__seal.is-restamp {
+  .p-article .p-article-end.is-stamped .p-article-end__seal.is-restamp,
+  .p-article .p-article-end .p-article-end__seal.is-restamp {
     animation: p-article-stamp 720ms cubic-bezier(0.2, 1.35, 0.32, 1);
   }
 
-  .p-article .p-article-end[data-intersect].is-in-view::before,
-  .p-article .p-article-end[data-intersect].is-in-view::after {
+  .p-article .p-article-end.is-stamped::before,
+  .p-article .p-article-end.is-stamped::after {
     animation: p-article-rule 700ms 120ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
@@ -319,7 +376,14 @@ import ArticleRail from './ArticleRail.astro'
   /* ── 去向牌：册页轻翻 + 指针受光 + 按下如落印 ── */
 
   .p-article .p-article-nav {
+    display: grid;
+    gap: 0.75rem;
+
     margin-top: 1.75rem;
+
+    @media (min-width: 720px) {
+      grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    }
   }
 
   .p-article .p-article-nav__link {
@@ -479,6 +543,9 @@ import ArticleRail from './ArticleRail.astro'
     }
 
     .p-article .p-detail-meta.is-inked .p-detail-meta__badge,
+    .p-article .p-article-end.is-stamped .p-article-end__seal,
+    .p-article .p-article-end.is-stamped::before,
+    .p-article .p-article-end.is-stamped::after,
     .p-article .p-article-end.is-in-view .p-article-end__seal,
     .p-article .p-article-end.is-in-view::before,
     .p-article .p-article-end.is-in-view::after,

@@ -3,23 +3,22 @@ import BaseLayout from '@/layouts/BaseLayout.astro'
 import PageHero from '@/components/pages/PageHero.astro'
 import PageFoot from '@/components/pages/PageFoot.astro'
 import ArticleMotion from '@/components/pages/ArticleMotion.astro'
+import { articlePage } from './_view'
+
+const { article, newer, minutes } = articlePage('ai-prototype-loop')
 ---
 
 <BaseLayout
-  title="AI 原型的快速迭代循环 · 陈润森"
+  title={`${article.title} · 陈润森`}
   description="从想法到可点击 demo 的四步循环：定义小问题、做最小交互、记录 tradeoff、复盘归档，速度优先但不牺牲可读性。"
 >
-  <PageHero
-    kicker="article"
-    title="AI 原型的快速迭代循环"
-    summary="从想法到可点击 demo，我使用的四步循环。"
-  />
+  <PageHero kicker="article" title={article.title} summary={article.summary} />
 
   <main class="p-page p-article">
     <ArticleMotion />
     <div class="p-detail-meta" data-reveal>
-      <span>发布于 2026年2月15日</span>
-      <span>全文约 200 字 · 1 分钟读完</span>
+      <span>发布于 {article.date}</span>
+      <span>全文约 {article.words} 字 · {minutes} 分钟读完</span>
     </div>
     <div class="p-prose" data-reveal>
       <h2>循环</h2>
@@ -46,20 +45,18 @@ import ArticleMotion from '@/components/pages/ArticleMotion.astro'
       </button>
     </div>
     <div class="p-chips" data-flow data-intersect>
-      <span class="p-chip">ai</span>
-      <span class="p-chip">engineering</span>
+      {article.tags.map((tag) => <span class="p-chip">{tag}</span>)}
     </div>
-    <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
-      <a
-        class="p-article-nav__link"
-        href="/articles/why-build-personal-site"
-        data-seal
-        data-leaf
-      >
-        <span class="p-article-nav__label">上一篇 · 更新</span>
-        <span class="p-article-nav__title">← 为什么还在做个人网站</span>
-      </a>
-    </nav>
+    {
+      newer && (
+        <nav class="p-article-nav" data-reveal aria-label="前后篇导航">
+          <a class="p-article-nav__link" href={newer.href} data-seal data-leaf>
+            <span class="p-article-nav__label">上一篇 · 更新</span>
+            <span class="p-article-nav__title">← {newer.title}</span>
+          </a>
+        </nav>
+      )
+    }
     <p class="p-back" data-reveal>
       <a class="p-card__link p-card__link--ghost" href="/articles" data-seal
         >← 全部文章</a

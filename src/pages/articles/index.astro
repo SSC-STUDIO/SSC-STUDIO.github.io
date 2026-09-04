@@ -5,10 +5,10 @@ import PageFoot from '@/components/pages/PageFoot.astro'
 import PageCard from '@/components/pages/PageCard.astro'
 import PageAura from '@/components/pages/PageAura.astro'
 import { articles } from '@/data/articles'
+import { readingGauge, readingMinutes } from './_view'
 
 const total = articles.length
 const pad = (n: number) => String(n).padStart(2, '0')
-const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 ---
 
 <BaseLayout
@@ -50,7 +50,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
             <span
               class="p-articles__gauge"
               aria-hidden="true"
-              style={`--gauge:${Math.min(readingMinutes(article.words) / 8, 1)}`}
+              style={`--gauge:${readingGauge(article.words)}`}
             />
             <div class="p-card__tags">
               {article.tags.map((tag) => (
@@ -79,16 +79,31 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 
     connectedCallback() {
       const to = Number(this.dataset.to || this.textContent || 0)
-      if (!to || prefersReducedMotion()) return
+      if (!to) return
+
+      if (prefersReducedMotion()) {
+        this.textContent = String(to)
+        return
+      }
+
+      const start = () => {
+        this.observer?.disconnect()
+        this.observer = null
+        this.run(to)
+      }
+
+      const rect = this.getBoundingClientRect()
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        start()
+        return
+      }
 
       this.observer = new IntersectionObserver(
         (entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return
-          this.observer?.disconnect()
-          this.observer = null
-          this.run(to)
+          start()
         },
-        { threshold: 0.4 }
+        { threshold: 0.2 }
       )
 
       this.observer.observe(this)
@@ -102,7 +117,7 @@ const readingMinutes = (words: number) => Math.max(1, Math.round(words / 400))
 
     run(to: number) {
       const start = performance.now()
-      const span = 520 + to * 60
+      const span = 360 + to * 40
 
       const step = (now: number) => {
         const t = Math.min((now - start) / span, 1)
