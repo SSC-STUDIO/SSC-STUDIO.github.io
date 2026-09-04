@@ -28,6 +28,11 @@ import ClassGallery from '@/islands/ClassGallery'
 <style lang="scss" is:global>
   /* ── 画廊打磨:缩略图骨架占位与灯箱加载态(仅本页) ── */
 
+  /* 离线卡中的重试按钮与相邻链接基线对齐 */
+  .p-lock .p-class__retry {
+    margin-top: 0;
+  }
+
   /* 未加载完成的格子:宣纸底上浮一层墨色轻纱,缓慢呼吸 */
   .p-class-gallery__item::after {
     position: absolute;

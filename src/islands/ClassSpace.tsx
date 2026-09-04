@@ -13,8 +13,8 @@ import { formatTime } from "../utils/format-time";
  *   the dual message boards (from-owner read-only + to-owner
  *   interactive), the member profile grid and the class comment wall.
  *
- * Data: `GET /api/class/summary` + `GET /api/class/profiles` (both answer
- * 401 without a session). Comments hang off `/api/comments` with
+ * Data: `GET /api/class/summary` + `GET /api/class/profiles` (401 → lock,
+ * 403 → roster notice). Comments hang off `/api/comments` with
  * targetKind `class-space` and target ids `from-owner` / `to-owner` /
  * `wall`, mirroring the guestbook interaction model (list, post, reply
  * threads, optimistic likes).
@@ -24,7 +24,29 @@ import { formatTime } from "../utils/format-time";
  */
 
 type SessionState = "loading" | "out" | "student" | "in" | "unavailable";
-type LoadState = "loading" | "error" | "unavailable" | "ready";
+type LoadState =
+  | "loading"
+  | "error"
+  | "unavailable"
+  | "ready"
+  | "out"
+  | "forbidden";
+
+/** Shared HTTP gate for the three class islands. */
+export type ClassHttpGate =
+  | "ok"
+  | "out"
+  | "forbidden"
+  | "unavailable"
+  | "error";
+
+export function classHttpGate(status: number): ClassHttpGate {
+  if (status === 401) return "out";
+  if (status === 403) return "forbidden";
+  if (status === 503) return "unavailable";
+  if (status >= 200 && status < 300) return "ok";
+  return "error";
+}
 
 type ClassSummary = {
   media: { total: number; images: number; videos: number; bytes: number };
@@ -68,6 +90,16 @@ type CommentsResponse = {
 
 const MAX_LENGTH = 2000;
 const LOGIN_PATH = "/account";
+
+/** Login URL that brings the visitor back to the class page they were on. */
+export function classLoginHref(returnTo?: string): string {
+  const path =
+    returnTo ??
+    (typeof window === "undefined"
+      ? "/class"
+      : `${window.location.pathname}${window.location.search}`);
+  return `${LOGIN_PATH}?returnTo=${encodeURIComponent(path)}`;
+}
 
 /** One-line excerpt for the profile cards in the grid. */
 function bioExcerpt(bio: string): string {
@@ -157,7 +189,16 @@ export function ClassComments({
           cache: "no-store",
         });
         if (signal?.cancelled) return;
-        if (!response.ok) throw new Error("failed");
+        const gate = classHttpGate(response.status);
+        if (gate === "out") {
+          setFeed("out");
+          return;
+        }
+        if (gate === "forbidden") {
+          setFeed("forbidden");
+          return;
+        }
+        if (gate !== "ok") throw new Error("failed");
         const data = (await response.json()) as CommentsResponse;
         if (signal?.cancelled) return;
         setComments(Array.isArray(data.items) ? data.items : []);
@@ -198,6 +239,10 @@ export function ClassComments({
       });
       if (response.status === 401) {
         setNotice("会话已失效，请重新登录后再发布。");
+        return;
+      }
+      if (response.status === 403) {
+        setNotice("当前账号没有在这里留言的权限。");
         return;
       }
       if (response.status === 429) {
@@ -243,6 +288,10 @@ export function ClassComments({
       );
       if (response.status === 401) {
         setNotice("会话已失效，请重新登录后再回复。");
+        return;
+      }
+      if (response.status === 403) {
+        setNotice("当前账号没有在这里回复的权限。");
         return;
       }
       if (response.status === 503) {
@@ -304,6 +353,17 @@ export function ClassComments({
         setNotice("会话已失效，请重新登录后再点赞。");
         return;
       }
+      if (response.status === 403) {
+        setComments((current) =>
+          updateComment(current, comment.id, (item) => ({
+            ...item,
+            liked: previousLiked,
+            likesCount: previousCount,
+          })),
+        );
+        setNotice("当前账号没有点赞的权限。");
+        return;
+      }
       if (!response.ok) throw new Error("failed");
       const data = (await response.json()) as {
         liked: boolean;
@@ -332,7 +392,7 @@ export function ClassComments({
 
   return (
     <div className="p-class-comments">
-      {readOnly ? null : (
+      {readOnly || feed === "out" || feed === "forbidden" ? null : (
         <form
           className="p-form p-class-comments__form"
           noValidate
@@ -362,10 +422,32 @@ export function ClassComments({
 
       <p className="p-class-comments__notice" role="alert" hidden={!notice}>
         {notice}
+        {notice.startsWith("会话已失效") ? (
+          <>
+            {" "}
+            <a className="p-card__link" href={classLoginHref()}>
+              重新登录
+            </a>
+          </>
+        ) : null}
       </p>
 
       {feed === "loading" ? (
         <p className="p-class-comments__state">正在载入留言…</p>
+      ) : feed === "out" ? (
+        <p className="p-class-comments__notice" role="alert">
+          会话已失效，请
+          <a className="p-card__link" href={classLoginHref()}>
+            重新登录
+          </a>
+          后再看留言。
+        </p>
+      ) : feed === "forbidden" ? (
+        <ClassEmpty
+          mark="禁"
+          title="还不能看这面墙"
+          message="当前账号没有查看这些留言的权限。"
+        />
       ) : feed === "error" ? (
         <div className="p-class-comments__state">
           <p>留言暂时没有载入。</p>
@@ -522,7 +604,7 @@ export function ClassLoginLock({ message }: { message: string }) {
       <p className="p-lock__badge">members only</p>
       <p className="p-lock__message">{message}</p>
       <div className="p-card__actions">
-        <a className="p-card__link" href={LOGIN_PATH}>
+        <a className="p-card__link" href={classLoginHref()}>
           登录账号
         </a>
       </div>
@@ -535,15 +617,18 @@ export function ClassEmpty({
   mark = "空",
   title,
   message,
+  children,
 }: {
   mark?: string;
   title: string;
   message: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="p-empty p-class-empty" data-mark={mark}>
       <p className="p-empty__title">{title}</p>
       <p className="p-empty__message">{message}</p>
+      {children}
     </div>
   );
 }
@@ -578,7 +663,7 @@ export function ClassOfflineNotice({
  * registered real name has not matched the class roster, so the space
  * stays locked until it does (or the owner is asked to check the roster).
  */
-function ClassStudentNotice() {
+export function ClassStudentNotice() {
   return (
     <div className="p-class__student">
       <p className="p-class__student-badge">class roster</p>
@@ -624,15 +709,23 @@ export default function ClassSpace() {
         }),
       ]);
       if (signal?.cancelled) return;
-      if (summaryResponse.status === 401 || profilesResponse.status === 401) {
+      const gates = [
+        classHttpGate(summaryResponse.status),
+        classHttpGate(profilesResponse.status),
+      ];
+      if (gates.includes("out")) {
         setSession("out");
         return;
       }
-      if (summaryResponse.status === 503 || profilesResponse.status === 503) {
+      if (gates.includes("forbidden")) {
+        setSession("student");
+        return;
+      }
+      if (gates.includes("unavailable")) {
         setLoad("unavailable");
         return;
       }
-      if (!summaryResponse.ok || !profilesResponse.ok) throw new Error("failed");
+      if (gates.some((gate) => gate !== "ok")) throw new Error("failed");
       const summaryData = (await summaryResponse.json()) as ClassSummary;
       const profilesData = (await profilesResponse.json()) as ProfilesResponse;
       if (signal?.cancelled) return;
@@ -655,7 +748,16 @@ export default function ClassSpace() {
           ...AUTH_FETCH_OPTIONS,
           cache: "no-store",
         });
-        if (!response.ok) {
+        const gate = classHttpGate(response.status);
+        if (gate === "out") {
+          if (!cancelled) setSession("out");
+          return;
+        }
+        if (gate === "forbidden") {
+          if (!cancelled) setSession("student");
+          return;
+        }
+        if (gate !== "ok") {
           // Backend down (dev proxy answers 503) — an honest offline card
           // beats a login lock that a login could never satisfy.
           if (!cancelled) setSession("unavailable");

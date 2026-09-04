@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUTH_FETCH_OPTIONS } from "./api";
-import { ClassEmpty, ClassLoginLock } from "./ClassSpace";
+import {
+  ClassEmpty,
+  ClassLoginLock,
+  ClassOfflineNotice,
+  ClassStudentNotice,
+  classHttpGate,
+} from "./ClassSpace";
 
 /**
  * Class gallery island — protected media grid with a self-drawn lightbox.
@@ -8,8 +14,8 @@ import { ClassEmpty, ClassLoginLock } from "./ClassSpace";
  * Data strategy:
  * 1. Try `GET /api/class/media?limit=120` (session required). Media URLs
  *    then point at the protected `/api/class/media/:fileName/file` route.
- * 2. Unauthenticated or unreachable API: show the login lock only.
- *    Do not fall back to a public static classmate-photo list.
+ * 2. 401 → login lock only. 403 → roster notice. 503 → offline card.
+ *    Never fall back to `/legacy-assets/my_classmate/` or any public list.
  *
  * Grid: native lazy loading, uniform aspect ratio, cover crop, video
  * badge, ink-wash skeleton that fades out once each thumb decodes.
@@ -40,7 +46,13 @@ type ClassMediaResponse = {
   }[];
 };
 
-type LoadState = "loading" | "ready" | "error";
+type LoadState =
+  | "loading"
+  | "ready"
+  | "out"
+  | "forbidden"
+  | "unavailable"
+  | "error";
 
 /**
  * Grid thumbnail with its own loaded flag so the ink-wash skeleton on the
@@ -105,7 +117,6 @@ function GalleryThumb({
 export default function ClassGallery() {
   const [load, setLoad] = useState<LoadState>("loading");
   const [items, setItems] = useState<GalleryItem[]>([]);
-  const [unauthorized, setUnauthorized] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   // URL of the lightbox media that finished loading — comparing against
   // the current item avoids reset races with cached images.
@@ -118,26 +129,27 @@ export default function ClassGallery() {
   const [closing, setClosing] = useState(false);
   const dragRef = useRef<{ id: number; x: number } | null>(null);
   const closingRef = useRef(false);
+  const selectedRef = useRef<number | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  selectedRef.current = selected;
 
   const loadMedia = useCallback(async (signal?: { cancelled: boolean }) => {
     setLoad("loading");
-    setUnauthorized(false);
     try {
       const response = await fetch("/api/class/media?limit=120", {
         ...AUTH_FETCH_OPTIONS,
         cache: "no-store",
       });
       if (signal?.cancelled) return;
-      if (response.status === 401) {
-        setUnauthorized(true);
+      const gate = classHttpGate(response.status);
+      if (gate === "out" || gate === "forbidden" || gate === "unavailable") {
         setItems([]);
-        setLoad("ready");
+        setLoad(gate);
         return;
       }
-      if (!response.ok) throw new Error("failed");
+      if (gate !== "ok") throw new Error("failed");
       const data = (await response.json()) as ClassMediaResponse;
       if (signal?.cancelled) return;
       const apiItems = Array.isArray(data.items) ? data.items : [];
@@ -197,7 +209,9 @@ export default function ClassGallery() {
 
   const step = useCallback(
     (direction: -1 | 1) => {
+      if (closingRef.current || items.length < 2) return;
       setDir(direction);
+      setDrag(0);
       setSelected((current) =>
         current === null || items.length === 0
           ? current
@@ -253,18 +267,25 @@ export default function ClassGallery() {
         step(1);
       } else if (event.key === "Home") {
         event.preventDefault();
-        setSelected((current) => (current === null ? current : 0));
+        const current = selectedRef.current;
+        if (current === null || current === 0) return;
+        setDir(-1);
+        setDrag(0);
+        setSelected(0);
       } else if (event.key === "End") {
         event.preventDefault();
-        setSelected((current) =>
-          current === null ? current : Math.max(0, items.length - 1),
-        );
+        const last = Math.max(0, items.length - 1);
+        const current = selectedRef.current;
+        if (current === null || current === last) return;
+        setDir(1);
+        setDrag(0);
+        setSelected(last);
       } else if (event.key === "Tab") {
         const root = dialogRef.current;
         if (!root) return;
         const focusables = Array.from(
           root.querySelectorAll<HTMLElement>(
-            'button:not([disabled]), [href], video[controls]',
+            'button:not([disabled]):not(.p-class-lightbox__backdrop), [href], video[controls]',
           ),
         );
         if (focusables.length === 0) return;
@@ -321,8 +342,15 @@ export default function ClassGallery() {
 
   return (
     <div className="p-class-gallery">
-      {unauthorized ? (
+      {load === "out" ? (
         <ClassLoginLock message="相册需要登录后通过受保护接口加载。未登录不会展示班级照片。" />
+      ) : load === "forbidden" ? (
+        <ClassStudentNotice />
+      ) : load === "unavailable" ? (
+        <ClassOfflineNotice
+          message="相册服务暂时不可用——不是你的问题，稍后再回来。登录也不会打开公开预览。"
+          onRetry={() => void loadMedia()}
+        />
       ) : load === "loading" ? (
         <p className="p-class-gallery__state">正在载入相册…</p>
       ) : load === "error" ? (
@@ -341,7 +369,13 @@ export default function ClassGallery() {
           mark="影"
           title="相册还是空的"
           message="还没有照片或视频写进这本册子。"
-        />
+        >
+          <div className="p-card__actions">
+            <a className="p-card__link" href="/class">
+              返回班级空间
+            </a>
+          </div>
+        </ClassEmpty>
       ) : (
         <>
           <p className="p-class-gallery__count">
@@ -375,6 +409,7 @@ export default function ClassGallery() {
             type="button"
             className="p-class-lightbox__backdrop"
             aria-label="关闭灯箱"
+            tabIndex={-1}
             onClick={close}
           />
           <div className="p-class-lightbox__panel">
@@ -399,6 +434,7 @@ export default function ClassGallery() {
                 mediaReady ? "" : " is-loading"
               }${drag !== 0 ? " is-dragging" : ""}`}
               data-dir={dir > 0 ? "next" : "prev"}
+              aria-busy={!mediaReady}
               style={{ "--drag-x": `${drag}px` } as React.CSSProperties}
               onPointerDown={onDragStart}
               onPointerMove={onDragMove}
@@ -437,24 +473,28 @@ export default function ClassGallery() {
                 {current.title}
               </figcaption>
             </figure>
-            <button
-              type="button"
-              className="p-class-lightbox__nav p-class-lightbox__nav--prev"
-              aria-label="上一张"
-              disabled={closing}
-              onClick={() => step(-1)}
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              className="p-class-lightbox__nav p-class-lightbox__nav--next"
-              aria-label="下一张"
-              disabled={closing}
-              onClick={() => step(1)}
-            >
-              →
-            </button>
+            {items.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="p-class-lightbox__nav p-class-lightbox__nav--prev"
+                  aria-label="上一张"
+                  disabled={closing}
+                  onClick={() => step(-1)}
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  className="p-class-lightbox__nav p-class-lightbox__nav--next"
+                  aria-label="下一张"
+                  disabled={closing}
+                  onClick={() => step(1)}
+                >
+                  →
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}

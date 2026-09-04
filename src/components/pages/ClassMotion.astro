@@ -203,7 +203,8 @@ import PageAura from './PageAura.astro'
 
   .p-class .p-lock::before,
   .p-class-gallery .p-lock::before,
-  .p-class-profile .p-lock::before {
+  .p-class-profile .p-lock::before,
+  .p-class__student::before {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -218,6 +219,10 @@ import PageAura from './PageAura.astro'
     user-select: none;
 
     animation: class-empty-breathe 8s ease-in-out infinite;
+  }
+
+  .p-class__student::before {
+    content: '禁';
   }
 
   .p-class .p-lock > *,
@@ -245,6 +250,11 @@ import PageAura from './PageAura.astro'
 
   .p-class-empty .p-empty__message {
     margin-bottom: 0;
+  }
+
+  .p-class-empty .p-card__actions {
+    justify-content: center;
+    margin-top: 1rem;
   }
 
   .p-class-profile__head {
@@ -312,6 +322,7 @@ import PageAura from './PageAura.astro'
     .p-class .p-lock::before,
     .p-class-gallery .p-lock::before,
     .p-class-profile .p-lock::before,
+    .p-class__student::before,
     .p-class-profile__head,
     .p-class-profile__name,
     .p-class-gallery__count {

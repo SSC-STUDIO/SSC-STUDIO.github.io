@@ -5,6 +5,8 @@ import {
   ClassEmpty,
   ClassLoginLock,
   ClassOfflineNotice,
+  ClassStudentNotice,
+  classHttpGate,
   roleLabel,
 } from "./ClassSpace";
 import { formatTime } from "../utils/format-time";
@@ -13,8 +15,9 @@ import { formatTime } from "../utils/format-time";
  * Class profile island — one member's file inside the class space.
  *
  * The Astro route hands over the raw `slug` param; everything else is
- * client-side: `GET /api/class/profiles/:slug` (401 → login lock, 404 →
- * not-found card), then a single `POST /api/profile-visits/:slug` to
+ * client-side: `GET /api/class/profiles/:slug` (401 → login lock, 403 →
+ * roster notice, 404 → not-found card), then a single
+ * `POST /api/profile-visits/:slug` to
  * count the visit. The comment wall reuses `ClassComments` from the
  * class space island with targetKind `profile`.
  */
@@ -23,6 +26,7 @@ type LoadState =
   | "loading"
   | "ready"
   | "out"
+  | "forbidden"
   | "notfound"
   | "unavailable"
   | "error";
@@ -70,19 +74,16 @@ export default function ClassProfile({ slug }: { slug: string }) {
           { ...AUTH_FETCH_OPTIONS, cache: "no-store" },
         );
         if (signal?.cancelled) return;
-        if (response.status === 401) {
-          setLoad("out");
-          return;
-        }
         if (response.status === 404) {
           setLoad("notfound");
           return;
         }
-        if (response.status === 503) {
-          setLoad("unavailable");
+        const gate = classHttpGate(response.status);
+        if (gate === "out" || gate === "forbidden" || gate === "unavailable") {
+          setLoad(gate);
           return;
         }
-        if (!response.ok) throw new Error("failed");
+        if (gate !== "ok") throw new Error("failed");
         const data = (await response.json()) as ClassProfileDto;
         if (signal?.cancelled) return;
         setProfile(data);
@@ -152,6 +153,14 @@ export default function ClassProfile({ slug }: { slug: string }) {
     return (
       <div className="p-class-profile">
         <ClassLoginLock message="同学档案为成员专属内容，登录后即可查看。" />
+      </div>
+    );
+  }
+
+  if (load === "forbidden") {
+    return (
+      <div className="p-class-profile">
+        <ClassStudentNotice />
       </div>
     );
   }
