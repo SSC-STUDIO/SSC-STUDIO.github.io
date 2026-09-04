@@ -182,6 +182,10 @@ const glyph = KIND_GLYPH[kind] ?? '测'
   /* ── 靶子：候点、落指、结算 ── */
 
   .benchmark-target {
+    /* 全局 islandFade 会在换态重挂时再吃 260ms，
+       记忆类出题和反应测试变绿都不该被它拖住。 */
+    animation: none;
+
     transition:
       background 0.2s ease,
       border-color 0.2s ease,
@@ -230,8 +234,8 @@ const glyph = KIND_GLYPH[kind] ?? '测'
     transform: translate3d(0, -2px, 0);
   }
 
-  /* 落指如钤印：整块贴回纸面。ready 被显式排除。 */
-  .benchmark-target:active:not([data-state='ready']) {
+  /* 落指如钤印：整块贴回纸面。ready / 静态提问面不压。 */
+  .benchmark-target:active:not([data-state='ready']):not(.benchmark-target--static) {
     transform: translate3d(0, 1.5px, 0);
   }
 
@@ -626,7 +630,7 @@ const glyph = KIND_GLYPH[kind] ?? '测'
     .p-bench-play__glyph,
     .benchmark-target,
     .benchmark-target[data-state='idle']:hover,
-    .benchmark-target:active:not([data-state='ready']),
+    .benchmark-target:active:not([data-state='ready']):not(.benchmark-target--static),
     .benchmark-grid-cell:active:not(:disabled),
     .benchmark-sequence-tile:active:not(:disabled),
     .schulte-cell:active:not(:disabled),

@@ -4,6 +4,25 @@ import SubmitSection from "./SubmitSection";
 
 type ReactionState = "idle" | "waiting" | "ready" | "result";
 
+function isReservedKeyTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest(
+      "input, textarea, select, button, a, [contenteditable='true']",
+    ),
+  );
+}
+
+function eatMatchingKeyup(key: string) {
+  const eat = (e: KeyboardEvent) => {
+    if (e.key !== key) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.removeEventListener("keyup", eat, true);
+  };
+  window.addEventListener("keyup", eat, true);
+}
+
 type Attempt = {
   time: number;
   date: number;
@@ -50,10 +69,14 @@ export function ReactionGame({
       setState("ready");
       // 先立即起表兜底，再在两帧 rAF 后校准到绿色真正绘制出来的时刻，
       // 避免把 React 渲染 + 浏览器绘制的耗时算进玩家的反应时间。
-      startTimeRef.current = performance.now();
+      // 若玩家已经在两帧内点过，不要把起表时刻改到点击之后。
+      const mark = performance.now();
+      startTimeRef.current = mark;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          startTimeRef.current = performance.now();
+          if (startTimeRef.current === mark) {
+            startTimeRef.current = performance.now();
+          }
         });
       });
     }, delay);
@@ -76,6 +99,7 @@ export function ReactionGame({
 
     if (state === "ready") {
       const time = Math.round(performance.now() - startTimeRef.current);
+      startTimeRef.current = -1;
       resultAtRef.current = performance.now();
       setResult(time);
       setAttempts((prev) => [...prev, { time, date: Date.now() }]);
@@ -89,6 +113,25 @@ export function ReactionGame({
       startTest();
     }
   }, [state, startTest]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key !== " " && e.key !== "Enter") return;
+      if (isReservedKeyTarget(e.target)) return;
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.closest("[data-bench-hotkey]")
+      ) {
+        return;
+      }
+      e.preventDefault();
+      eatMatchingKeyup(e.key);
+      handleClick();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleClick]);
 
   useEffect(() => {
     return () => {
@@ -110,7 +153,9 @@ export function ReactionGame({
 
   const label =
     state === "idle"
-      ? "点击开始测试"
+      ? tooEarly
+        ? "太早了"
+        : "点击开始测试"
       : state === "waiting"
         ? "等待绿色..."
         : state === "ready"
@@ -119,20 +164,21 @@ export function ReactionGame({
 
   const sublabel =
     state === "idle"
-      ? "测试你的反应时间"
+      ? tooEarly
+        ? "等变绿再点 · 空格或回车也可"
+        : "空格或回车也可开始"
       : state === "waiting"
         ? "太早点击会失败"
         : state === "ready"
           ? "越快越好"
-          : tooEarly
-            ? "太早了！"
-            : "点击再次挑战";
+          : "点击或按空格再次挑战";
 
   return (
     <div className="benchmark-game">
       <div
-        className="benchmark-target"
+        className={`benchmark-target${tooEarly && state === "idle" ? " benchmark-target--fail" : ""}`}
         data-state={state}
+        data-bench-hotkey=""
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -140,6 +186,7 @@ export function ReactionGame({
           if (e.repeat) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            eatMatchingKeyup(e.key);
             handleClick();
           }
         }}

@@ -26,7 +26,7 @@ const drafts: BenchmarkDraft[] = [
     sort: 'asc',
     ref: '250',
     refUnit: 'avg ms',
-    tags: ['视觉', '毫秒级', '5 次取平均'],
+    tags: ['视觉', '毫秒级', '空格也可'],
   },
   {
     id: 'number-memory',
@@ -44,7 +44,7 @@ const drafts: BenchmarkDraft[] = [
     label: '视觉记忆',
     title: '视觉记忆',
     kicker: 'memory',
-    summary: '记住同时闪烁的方块位置，按出现顺序逐一复现。',
+    summary: '记住同时闪烁的方块位置，再把它们全部点选出来。',
     unit: 'level',
     ref: '7',
     refUnit: 'tiles',
@@ -59,7 +59,7 @@ const drafts: BenchmarkDraft[] = [
     unit: 'level',
     ref: '11',
     refUnit: 'steps',
-    tags: ['序列', '顺序复现', '可听'],
+    tags: ['序列', '顺序复现', '按键 1/2/3'],
   },
   {
     id: 'chimp-test',
@@ -70,7 +70,7 @@ const drafts: BenchmarkDraft[] = [
     unit: 'level',
     ref: '8',
     refUnit: 'digits',
-    tags: ['工作记忆', '数字', '5×5'],
+    tags: ['工作记忆', '数字', '递增网格'],
   },
   {
     id: 'word-memory',

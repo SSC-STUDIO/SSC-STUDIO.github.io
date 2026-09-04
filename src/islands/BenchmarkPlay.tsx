@@ -4,7 +4,7 @@ import SubmitSection from "./SubmitSection";
 import { ReactionGame } from "./ReactionTest";
 
 /**
- * Benchmark playground — one island hosting all six benchmark games.
+ * Benchmark playground — one island hosting all seven benchmark games.
  * The `game` prop selects which one to render.
  *
  * Game logic (state machines, difficulty curves, scoring) is ported from
@@ -49,6 +49,75 @@ function useSingleTimer() {
   }, []);
 
   return later;
+}
+
+/** Inputs / buttons / links keep their own Enter · Space meaning. */
+function isReservedKeyTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest(
+      "input, textarea, select, button, a, [contenteditable='true']",
+    ),
+  );
+}
+
+/** 正在打字时才让出按键；棋盘格子本身是 button，数字键仍要能点格。 */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true']"),
+  );
+}
+
+/**
+ * Space 在 keydown 起手后会卸掉靶子，keyup 可能落到链接上把人带走。
+ * 在捕获阶段把这一记 keyup 吃掉。
+ */
+function eatMatchingKeyup(key: string) {
+  const eat = (e: KeyboardEvent) => {
+    if (e.key !== key) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.removeEventListener("keyup", eat, true);
+  };
+  window.addEventListener("keyup", eat, true);
+}
+
+function handleStartKey(
+  e: React.KeyboardEvent | KeyboardEvent,
+  onStart: () => void,
+) {
+  if (e.repeat) return;
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  eatMatchingKeyup(e.key);
+  onStart();
+}
+
+/**
+ * Space / Enter 在页面空白处也可起手，不必先点中靶子。
+ * 靶子自己带 `[data-bench-hotkey]` 时交给它的 onKeyDown，避免连发两次。
+ */
+function useStartHotkey(enabled: boolean, onStart: () => void) {
+  useEffect(() => {
+    if (!enabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (isReservedKeyTarget(e.target)) return;
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.closest("[data-bench-hotkey]")
+      ) {
+        return;
+      }
+      e.preventDefault();
+      eatMatchingKeyup(e.key);
+      onStart();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enabled, onStart]);
 }
 
 /** Number memory: random number with `digits` digits, no leading zero. */
@@ -176,25 +245,26 @@ function StartTarget({
   subtitle: string;
   onStart: () => void;
 }) {
+  useStartHotkey(true, onStart);
+
   return (
     <div
       className={`benchmark-target ${gameover ? "benchmark-target--fail" : ""}`}
       data-state="idle"
+      data-bench-hotkey=""
       onClick={onStart}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.repeat) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onStart();
-        }
-      }}
+      onKeyDown={(e) => handleStartKey(e, onStart)}
     >
       <div className="benchmark-target__inner">
         <span>{title}</span>
         <small>{subtitle}</small>
-        {gameover ? <small>点击重新开始</small> : null}
+        {gameover ? (
+          <small>点击或按空格重新开始</small>
+        ) : (
+          <small>空格或回车开始</small>
+        )}
       </div>
     </div>
   );
@@ -251,6 +321,7 @@ function NumberMemoryGame() {
       if (inputValue === currentNumber) {
         const nextLevel = level + 1;
         setLevel(nextLevel);
+        setBestLevel((prev) => Math.max(prev, level));
         setPhase("correct");
         later(() => startRound(nextLevel), 800);
       } else {
@@ -262,6 +333,7 @@ function NumberMemoryGame() {
   );
 
   const score = bestLevel || (phase === "gameover" ? level - 1 : 0);
+  useStartHotkey(phase === "idle" || phase === "gameover", startGame);
 
   async function submitScore() {
     if (score === 0 || submitState === "submitting" || submitState === "submitted")
@@ -281,29 +353,25 @@ function NumberMemoryGame() {
         <div
           className={`benchmark-target ${phase === "gameover" ? "benchmark-target--fail" : ""}`}
           data-state="idle"
+          data-bench-hotkey=""
           onClick={startGame}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.repeat) return;
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              startGame();
-            }
-          }}
+          onKeyDown={(e) => handleStartKey(e, startGame)}
         >
           <div className="benchmark-target__inner">
             {phase === "gameover" ? (
               <>
-                <span>第 {level - 1} 位</span>
+                <span>记住了 {level - 1} 位</span>
                 <small>正确数字: {currentNumber}</small>
                 <small>你的输入: {inputValue}</small>
-                <small>点击重新开始</small>
+                <small>点击或按空格重新开始</small>
               </>
             ) : (
               <>
                 <span>数字记忆</span>
                 <small>记住不断变长的数字</small>
+                <small>空格或回车开始</small>
               </>
             )}
           </div>
@@ -311,7 +379,10 @@ function NumberMemoryGame() {
       ) : null}
 
       {phase === "showing" ? (
-        <div className="benchmark-target benchmark-target--pop" data-state="ready">
+        <div
+          className="benchmark-target benchmark-target--pop benchmark-target--static"
+          data-state="ready"
+        >
           <div className="benchmark-target__inner">
             <span className="benchmark-number">{currentNumber}</span>
             <small>第 {level} 位 — 记住这个数字</small>
@@ -326,7 +397,7 @@ function NumberMemoryGame() {
       ) : null}
 
       {phase === "input" ? (
-        <div className="benchmark-target" data-state="waiting">
+        <div className="benchmark-target benchmark-target--static" data-state="prompt">
           <div className="benchmark-target__inner">
             <small>输入你记住的数字</small>
             <form onSubmit={handleSubmit} className="benchmark-form">
@@ -349,7 +420,10 @@ function NumberMemoryGame() {
       ) : null}
 
       {phase === "correct" ? (
-        <div className="benchmark-target benchmark-target--pop" data-state="ready">
+        <div
+          className="benchmark-target benchmark-target--pop benchmark-target--static"
+          data-state="ready"
+        >
           <div className="benchmark-target__inner">
             <span>正确！</span>
             <small>进入第 {level} 位...</small>
@@ -357,7 +431,7 @@ function NumberMemoryGame() {
         </div>
       ) : null}
 
-      {phase === "gameover" ? (
+      {phase === "gameover" && score > 0 ? (
         <SubmitSection state={submitState} onSubmit={submitScore} />
       ) : null}
 
@@ -425,8 +499,8 @@ function VisualMemoryGame() {
 
   const handleConfirm = useCallback(() => {
     if (phase !== "input") return;
-    // 一个都没选就确认多半是误触，不判负。
-    if (selected.length === 0) return;
+    // 选不满或一个都没选：多半是误触确认，不判负。
+    if (selected.length === 0 || selected.length !== pattern.length) return;
     const patternSet = new Set(pattern.map((c) => `${c.row},${c.col}`));
     const allCorrect =
       selected.length === pattern.length &&
@@ -443,12 +517,17 @@ function VisualMemoryGame() {
     }
   }, [phase, pattern, selected, level, startRound, later]);
 
-  // 键盘可玩：输入阶段按回车确认。
+  // 键盘可玩：回车确认。格子上的回车不切换选中（空格才切换），避免「选中即交卷」。
   useEffect(() => {
     if (phase !== "input") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (e.key === "Enter") handleConfirm();
+      if (e.key !== "Enter") return;
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) {
+        return;
+      }
+      e.preventDefault();
+      handleConfirm();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -507,8 +586,14 @@ function VisualMemoryGame() {
                   key={`${row}-${col}`}
                   className={`benchmark-grid-cell ${active ? "active" : ""}`}
                   onClick={() => toggleCell(row, col)}
+                  onKeyDown={(e) => {
+                    // 回车留给「确认」；空格仍走按钮默认，用来点选。
+                    if (e.key === "Enter") e.preventDefault();
+                  }}
                   disabled={phase !== "input"}
                   type="button"
+                  aria-pressed={phase === "input" ? active : undefined}
+                  aria-label={`第 ${row + 1} 行第 ${col + 1} 列`}
                 />
               );
             })}
@@ -516,16 +601,20 @@ function VisualMemoryGame() {
           {phase === "input" ? (
             <div className="benchmark-grid-actions">
               <small>
-                选中 {selected.length} / {pattern.length} 个方块
+                选中 {selected.length} / {pattern.length} 个方块 · 回车确认
               </small>
               <button
                 type="button"
                 className="p-card__link"
                 onClick={handleConfirm}
+                disabled={selected.length !== pattern.length}
               >
                 确认
               </button>
             </div>
+          ) : null}
+          {phase === "correct" ? (
+            <small className="benchmark-grid-hint">正确！进入第 {level} 级...</small>
           ) : null}
           {phase === "showing" ? (
             <>
@@ -543,7 +632,7 @@ function VisualMemoryGame() {
         </div>
       ) : null}
 
-      {phase === "gameover" ? (
+      {phase === "gameover" && score > 0 ? (
         <SubmitSection state={submitState} onSubmit={submitScore} />
       ) : null}
 
@@ -714,12 +803,14 @@ function SequenceMemoryGame() {
               ? `第 ${level} 级 — 观察顺序`
               : phase === "input"
                 ? `第 ${level} 级 — 重复顺序 (${playerInput.length}/${sequence.length})，可按键 1/2/3`
-                : null}
+                : phase === "correct"
+                  ? `正确！进入第 ${level} 级...`
+                  : null}
           </small>
         </div>
       ) : null}
 
-      {phase === "gameover" ? (
+      {phase === "gameover" && score > 0 ? (
         <SubmitSection state={submitState} onSubmit={submitScore} />
       ) : null}
 
@@ -813,6 +904,23 @@ function ChimpTestGame() {
     [phase, wrongCell, cells, nextExpected, revealed, level, startRound, later],
   );
 
+  // 键盘可玩：数字键点对应格子（1–9）。
+  useEffect(() => {
+    if (phase !== "input" || wrongCell) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      if (isTypingTarget(e.target)) return;
+      const value = Number(e.key);
+      if (!Number.isInteger(value) || value < 1 || value > cells.length) return;
+      const cell = cells.find((c) => c.value === value);
+      if (!cell) return;
+      e.preventDefault();
+      handleCellClick(cell.row, cell.col);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, wrongCell, cells, handleCellClick]);
+
   const score = bestLevel || (phase === "gameover" ? level - 1 : 0);
 
   async function submitScore() {
@@ -861,6 +969,7 @@ function ChimpTestGame() {
                   onClick={() => handleCellClick(row, col)}
                   disabled={phase !== "input" || !cell}
                   type="button"
+                  aria-label={cell ? `数字 ${cell.value}` : undefined}
                 >
                   {isVisible && cell ? String(cell.value) : ""}
                 </button>
@@ -873,8 +982,10 @@ function ChimpTestGame() {
               : phase === "showing"
                 ? `第 ${level} 级 — 记住数字位置`
                 : phase === "input"
-                  ? `按 1-${cells.length} 顺序点击 (下一个: ${nextExpected})`
-                  : null}
+                  ? `按 1-${cells.length} 顺序点击 (下一个: ${nextExpected})，可按数字键`
+                  : phase === "correct"
+                    ? `正确！进入第 ${level} 级...`
+                    : null}
           </small>
           {phase === "showing" ? (
             <span
@@ -887,7 +998,7 @@ function ChimpTestGame() {
         </div>
       ) : null}
 
-      {phase === "gameover" ? (
+      {phase === "gameover" && score > 0 ? (
         <SubmitSection state={submitState} onSubmit={submitScore} />
       ) : null}
 
@@ -975,13 +1086,23 @@ function WordMemoryGame() {
     [phase, isNewWord, level, seenWords, testWord, startRound, later],
   );
 
-  // 键盘可玩：← 没见过（左按钮） / → 见过（右按钮），与屏幕位置对应。
+  // 键盘可玩：← / F / 1 没见过；→ / J / 2 见过。与左右按钮位置对应。
   useEffect(() => {
     if (phase !== "input") return;
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (e.key === "ArrowLeft") handleAnswer(true);
-      else if (e.key === "ArrowRight") handleAnswer(false);
+      if (isReservedKeyTarget(e.target) && !(e.target instanceof HTMLButtonElement)) {
+        return;
+      }
+      const newKeys = ["ArrowLeft", "f", "F", "1"];
+      const oldKeys = ["ArrowRight", "j", "J", "2"];
+      if (newKeys.includes(e.key)) {
+        e.preventDefault();
+        handleAnswer(true);
+      } else if (oldKeys.includes(e.key)) {
+        e.preventDefault();
+        handleAnswer(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1017,7 +1138,10 @@ function WordMemoryGame() {
       ) : null}
 
       {phase === "showing" ? (
-        <div className="benchmark-target benchmark-target--pop" data-state="ready">
+        <div
+          className="benchmark-target benchmark-target--pop benchmark-target--static"
+          data-state="ready"
+        >
           <div className="benchmark-target__inner">
             <div className="benchmark-word-list">
               {currentWords.map((w) => (
@@ -1039,10 +1163,13 @@ function WordMemoryGame() {
 
       {phase === "input" ? (
         <div>
-          <div className="benchmark-target benchmark-target--pop" data-state="waiting">
+          <div
+            className="benchmark-target benchmark-target--pop benchmark-target--static"
+            data-state="prompt"
+          >
             <div className="benchmark-target__inner">
               <span className="benchmark-word-display">{testWord}</span>
-              <small>这个词出现过吗？</small>
+              <small>这个词出现过吗？←/F 没见过 · →/J 见过</small>
             </div>
           </div>
           <div className="p-card__actions">
@@ -1065,7 +1192,10 @@ function WordMemoryGame() {
       ) : null}
 
       {phase === "correct" ? (
-        <div className="benchmark-target benchmark-target--pop" data-state="ready">
+        <div
+          className="benchmark-target benchmark-target--pop benchmark-target--static"
+          data-state="ready"
+        >
           <div className="benchmark-target__inner">
             <span>正确！</span>
             <small>进入第 {level} 级...</small>
@@ -1073,7 +1203,7 @@ function WordMemoryGame() {
         </div>
       ) : null}
 
-      {phase === "gameover" ? (
+      {phase === "gameover" && score > 0 ? (
         <SubmitSection state={submitState} onSubmit={submitScore} />
       ) : null}
 
@@ -1116,20 +1246,23 @@ function SchulteGridGame() {
   const [attempts, setAttempts] = useState(0);
   const [submitState, setSubmitState] = useState<ScoreSubmitState>("idle");
   const startTimeRef = useRef<number | null>(null);
-  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clockRef = useRef<number | null>(null);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const digitBufRef = useRef("");
+  const digitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopClock = useCallback(() => {
-    if (clockRef.current) {
-      clearInterval(clockRef.current);
+    if (clockRef.current !== null) {
+      cancelAnimationFrame(clockRef.current);
       clockRef.current = null;
     }
   }, []);
 
   useEffect(() => {
     return () => {
-      if (clockRef.current) clearInterval(clockRef.current);
+      if (clockRef.current !== null) cancelAnimationFrame(clockRef.current);
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      if (digitTimerRef.current) clearTimeout(digitTimerRef.current);
     };
   }, []);
 
@@ -1146,16 +1279,20 @@ function SchulteGridGame() {
     setAttempts((prev) => prev + 1);
     setCountdown(3);
     setPhase("countdown");
+    digitBufRef.current = "";
+    if (digitTimerRef.current) clearTimeout(digitTimerRef.current);
   }, [stopClock]);
 
-  // 3-2-1 countdown before the grid becomes clickable.
+  // 3-2-1 后直接开局，不再闪一帧 「0」。
   useEffect(() => {
     if (phase !== "countdown") return;
-    if (countdown <= 0) {
-      setPhase("playing");
-      return;
-    }
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 800);
+    const timer = setTimeout(() => {
+      if (countdown <= 1) {
+        setPhase("playing");
+        return;
+      }
+      setCountdown((c) => c - 1);
+    }, 800);
     return () => clearTimeout(timer);
   }, [phase, countdown]);
 
@@ -1176,11 +1313,12 @@ function SchulteGridGame() {
       // The clock starts on hitting 1, not when the grid appears.
       if (value === 1) {
         startTimeRef.current = performance.now();
-        clockRef.current = setInterval(() => {
-          if (startTimeRef.current !== null) {
-            setElapsedMs(performance.now() - startTimeRef.current);
-          }
-        }, 31);
+        const tick = () => {
+          if (startTimeRef.current === null) return;
+          setElapsedMs(performance.now() - startTimeRef.current);
+          clockRef.current = requestAnimationFrame(tick);
+        };
+        clockRef.current = requestAnimationFrame(tick);
       }
 
       if (value === SCHULTE_CELL_COUNT) {
@@ -1201,6 +1339,46 @@ function SchulteGridGame() {
     },
     [phase, numbers, nextExpected, stopClock],
   );
+
+  // 键盘可玩：1–9 一位直达；10–25 连续两位。错号当作点错那一格。
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!/^[0-9]$/.test(e.key)) return;
+      if (isTypingTarget(e.target)) return;
+      e.preventDefault();
+
+      const commit = (typed: number) => {
+        digitBufRef.current = "";
+        if (digitTimerRef.current) {
+          clearTimeout(digitTimerRef.current);
+          digitTimerRef.current = null;
+        }
+        const idx = numbers.indexOf(typed);
+        if (idx >= 0) handleCellClick(idx);
+      };
+
+      if (nextExpected <= 9) {
+        commit(Number(e.key));
+        return;
+      }
+
+      digitBufRef.current += e.key;
+      if (digitTimerRef.current) clearTimeout(digitTimerRef.current);
+      if (digitBufRef.current.length >= 2) {
+        commit(Number(digitBufRef.current.slice(0, 2)));
+        return;
+      }
+      digitTimerRef.current = setTimeout(() => {
+        digitBufRef.current = "";
+        digitTimerRef.current = null;
+      }, 700);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, numbers, nextExpected, handleCellClick]);
+
+  useStartHotkey(phase === "done", startGame);
 
   async function submitScore() {
     if (
@@ -1233,7 +1411,10 @@ function SchulteGridGame() {
       ) : null}
 
       {phase === "countdown" ? (
-        <div className="benchmark-target" data-state="ready">
+        <div
+          className="benchmark-target benchmark-target--static"
+          data-state="ready"
+        >
           <div className="benchmark-target__inner">
             {/* key 随读数变化：每记数字都是新节点，落数动画自然重播 */}
             <span
@@ -1266,6 +1447,7 @@ function SchulteGridGame() {
                   className={className}
                   onClick={() => handleCellClick(index)}
                   disabled={cleared}
+                  aria-label={`数字 ${value}${cleared ? "，已点亮" : ""}`}
                 >
                   {value}
                 </button>
@@ -1284,16 +1466,26 @@ function SchulteGridGame() {
             <span>下一个: {nextExpected}</span>
             <span>用时: {(elapsedMs / 1000).toFixed(2)} s</span>
             <span>失误: {mistakes}</span>
+            <span>可键入数字</span>
           </div>
         </div>
       ) : null}
 
       {phase === "done" && finalMs !== null ? (
         <>
-          <div className="benchmark-target benchmark-target--pop" data-state="result">
+          <div
+            className="benchmark-target benchmark-target--pop"
+            data-state="result"
+            data-bench-hotkey=""
+            onClick={startGame}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => handleStartKey(e, startGame)}
+          >
             <div className="benchmark-target__inner">
               <span>{(finalMs / 1000).toFixed(2)} s</span>
               <small>点亮了全部 25 格，失误 {mistakes} 次</small>
+              <small>点击或按空格再来一局</small>
             </div>
           </div>
           <div className="p-card__actions">

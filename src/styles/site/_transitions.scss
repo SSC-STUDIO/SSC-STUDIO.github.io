@@ -320,10 +320,8 @@ html.theme-animating :where(
   animation: islandFade 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* benchmark 游戏状态块（React 每次换态重新挂载，动画自然重播） */
-.benchmark-target {
-  animation: islandFade 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
+/* benchmark 靶子不再走 islandFade：换态重挂会吃掉观察时间，
+   反应测试变绿也不该淡入。过场交给游戏页自己的 --pop / --beat。 */
 
 @keyframes islandFade {
   from {

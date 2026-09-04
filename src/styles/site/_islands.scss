@@ -342,6 +342,18 @@
     }
   }
 
+  /* 记忆类的提问 / 输入：宣纸底，不要套反应测试的「禁止点击」红。 */
+  &[data-state="prompt"] {
+    cursor: default;
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-primary));
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-secondary));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
   &[data-state="ready"] {
     background: var(--color-accent);
     border-color: var(--color-secondary);
@@ -356,6 +368,10 @@
     background: color-mix(in srgb, var(--color-accent) 25%, var(--color-primary));
     border-color: var(--color-accent);
   }
+}
+
+.benchmark-target--static {
+  cursor: default;
 }
 
 .benchmark-target__inner {
@@ -461,6 +477,11 @@
   &:disabled {
     cursor: default;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
 .benchmark-grid-actions {
@@ -473,6 +494,11 @@
   small {
     color: color-mix(in srgb, var(--color-secondary) 70%, transparent);
     font: 400 0.9rem/1.4 var(--font-family-editorial);
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
 }
 
@@ -512,6 +538,11 @@
 
   &:disabled {
     cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 }
 
@@ -710,6 +741,11 @@
 
   &:disabled {
     cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 }
 
