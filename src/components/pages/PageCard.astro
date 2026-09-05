@@ -8,9 +8,11 @@ interface Props {
   id?: string
   title: string
   class?: string
+  /** 目录卡真 3D 倾斜 + 折角 */
+  fold?: boolean
 }
 
-const { href, external, kicker, id, title, class: className } = Astro.props
+const { href, external, kicker, id, title, class: className, fold = false } = Astro.props
 
 const Tag = href ? 'a' : 'article'
 ---
@@ -19,11 +21,13 @@ const Tag = href ? 'a' : 'article'
   class:list={['p-card', className]}
   data-reveal="true"
   data-seal
+  {...(fold ? { 'data-fold': true } : {})}
   {...(href ? { href } : {})}
   {...(href && external
     ? { target: '_blank', rel: 'noopener noreferrer' }
     : {})}
 >
+  {fold && <span class="p-card__ear" aria-hidden="true" />}
   <div class="p-card__head">
     {kicker && <span class="p-card__kicker">{kicker}</span>}
     {id && <span class="p-card__id">{id}</span>}

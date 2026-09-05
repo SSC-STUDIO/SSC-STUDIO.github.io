@@ -269,6 +269,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
     import { initInkReveal } from '../motion/ink-reveal'
     import { initSealPress } from '../motion/seal-press'
     import { initLeafFlip } from '../motion/leaf-flip'
+    import { initCardFold } from '../motion/card-fold'
     import { initHandscroll } from '../motion/handscroll'
     import { markReady, nextFrame, prefersReducedMotion } from '../motion/core'
     import {
@@ -622,7 +623,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
       }
 
       /**
-       * 原创动效：洇墨显影 / 印章钤印 / 册页翻页 / 长卷平移
+       * 原创动效：洇墨显影 / 印章钤印 / 册页翻页 / 目录折角 / 长卷平移
        * 每次换页重建（旧元素随 swap 销毁）
        */
       initMotion() {
@@ -640,6 +641,7 @@ const ogUrl = Astro.url.pathname.replace(/\/$/, '') || '/'
           initInkReveal(),
           initSealPress(),
           initLeafFlip(),
+          initCardFold(),
           initHandscroll(),
         ]
       }

@@ -174,7 +174,7 @@
           'scroll-leaf, .p-card, [data-lift], .p-class__metric'
         )
       ).filter(function (el) {
-        return !el.hasAttribute('data-leaf')
+        return !el.hasAttribute('data-leaf') && !el.hasAttribute('data-fold')
       })
       tilts.forEach(function (el) {
         function onMove(e) {

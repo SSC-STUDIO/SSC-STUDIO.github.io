@@ -292,6 +292,69 @@ html.theme-animating :where(
   }
 }
 
+.p-projects .p-grid,
+.p-articles .p-stack--cards {
+  perspective: 1400px;
+  perspective-origin: 50% 20%;
+}
+
+/* 目录卡真 3D：整张册页侧转，右上折角随指针掀起。
+   --fold-* 由 card-fold.ts 写入；无 JS 时只抬起、不转。 */
+.p-card[data-fold] {
+  --fold-rx: 0deg;
+  --fold-ry: 0deg;
+  --fold-ear: 0;
+  --fold-sheen: 0.5;
+
+  overflow: visible;
+  transform-style: preserve-3d;
+  transform: perspective(1100px) translate3d(0, var(--card-lift), 10px)
+    rotateX(var(--fold-rx)) rotateY(var(--fold-ry));
+
+  &.is-fold-live {
+    transition: transform 120ms linear, box-shadow 260ms ease;
+  }
+
+  .p-card__ear {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    z-index: 4;
+
+    width: 2.35rem;
+    height: 2.35rem;
+
+    background:
+      linear-gradient(
+        225deg,
+        color-mix(in srgb, #{color(paper-warm)} 88%, #{color(secondary)}) 0 46%,
+        color-mix(in srgb, #{color(secondary)} 18%, transparent) 50%,
+        transparent 52%
+      );
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    transform-origin: 100% 0;
+    transform: rotateY(calc(var(--fold-ear) * -48deg));
+    pointer-events: none;
+
+    &::after {
+      position: absolute;
+      inset: 0;
+
+      background: linear-gradient(
+        225deg,
+        color-mix(in srgb, #{color(primary)} 70%, transparent),
+        transparent 62%
+      );
+      content: '';
+    }
+  }
+
+  &:hover .p-card__ear,
+  &.is-fold-live .p-card__ear {
+    filter: drop-shadow(-2px 3px 4px color-mix(in srgb, #{color(secondary)} 16%, transparent));
+  }
+}
+
 /* p-card__link：下划线扫入 */
 .p-card__link {
   position: relative;
@@ -342,7 +405,12 @@ html.theme-animating :where(
     animation: none;
   }
 
-  .p-card {
+  .p-card,
+  .p-card[data-fold] {
+    transform: none;
+  }
+
+  .p-card[data-fold] .p-card__ear {
     transform: none;
   }
 

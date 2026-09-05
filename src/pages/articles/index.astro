@@ -37,6 +37,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
             id={`#ART-${pad(index + 1)}/${pad(total)}`}
             title={article.title}
             class={article.kicker === 'featured' ? 'p-articles__lead' : undefined}
+            fold
           >
             {article.kicker === 'featured' && (
               <span class="p-articles__first" aria-hidden="true">
@@ -343,8 +344,6 @@ const pad = (n: number) => String(n).padStart(2, '0')
   /* 卡面受光：默认一道浅扫，指针精细时改跟 --leaf-sheen */
   .p-articles .p-card {
     --leaf-sheen: 0.5;
-
-    overflow: hidden;
   }
 
   .p-articles .p-card::after {
@@ -392,8 +391,9 @@ const pad = (n: number) => String(n).padStart(2, '0')
   }
 
   .p-articles .p-card:active {
+    --card-lift: 1px;
+
     box-shadow: 0 0.2rem 0 color-mix(in srgb, #{color(accent)} 50%, transparent);
-    transform: translateY(1px);
   }
 
   /* 卷号签：悬停时像被指尖掀了一下 */
