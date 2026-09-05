@@ -71,9 +71,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
               <div class="s__cta__text">
                 {line.map((char) => (
                   <span class="s__cta__char">
-                    {['', '', '', ''].map(() => (
-                      <span class="s__cta__char__slice" set:html={char} />
-                    ))}
+                    {char}
                   </span>
                 ))}
               </div>
@@ -624,7 +622,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       this.grid.bounding = this.grid.el.getBoundingClientRect()
       this.bounding = this.container.getBoundingClientRect()
 
-      this.ctaMaxSize = Math.min(this.bounding.width, this.bounding.height) - 32
+      this.ctaMaxSize = Math.max(240, Math.min(this.bounding.width, this.bounding.height) - 32)
+      this.container.style.setProperty('--cta-size', this.ctaMaxSize + 'px')
       this.cta.style.setProperty('--size', this.ctaMaxSize + 'px')
     }
 
@@ -1213,10 +1212,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       position: relative;
       z-index: 3;
 
-      height: calc(100vh - 8rem - 2px);
+      height: max(20rem, calc(100svh - 8rem - 2px));
 
       @include mq(phone) {
-        height: calc(100vh - 4.375rem);
+        height: max(20rem, calc(100svh - 4.375rem));
       }
     }
 
@@ -1381,17 +1380,19 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
     }
 
     .s__button {
+      --button-size: min(6rem, calc(var(--cta-size, 32rem) * 0.18));
+
       position: relative;
       z-index: 5;
 
       display: block;
-      width: 6rem;
-      height: 6rem;
+      width: var(--button-size);
+      height: var(--button-size);
 
       cursor: pointer;
 
       color: #fff6ea;
-      font: 700 2.4rem / 6rem font-family(bigger);
+      font: 700 calc(var(--button-size) * 0.4) / var(--button-size) font-family(bigger);
       letter-spacing: 0.08em;
       text-align: center;
       text-decoration: none;
@@ -1538,7 +1539,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
     .s__hover.is-active .s__button {
       .s__button__inner {
-        scale: 1.5;
+        scale: 1.2;
 
         transition: scale 0.6s ease(in-quint) 0s;
       }
@@ -1551,49 +1552,8 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       }
 
       .s__button__hint {
+        color: color(primary);
         opacity: 1;
-      }
-    }
-
-    @keyframes s-cta-char-up-down {
-      0% {
-        transform: translate3d(0, 0, 0);
-
-        animation-timing-function: ease(out-cubic);
-      }
-
-      25% {
-        transform: translate3d(0, -52%, 0);
-
-        animation-timing-function: ease(in-out-cubic);
-      }
-
-      75% {
-        transform: translate3d(0, 52%, 0);
-
-        animation-timing-function: ease(in-cubic);
-      }
-
-      100% {
-        transform: translate3d(0, 0, 0);
-      }
-    }
-
-    @keyframes s-cta-char-toggle {
-      0% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 1;
-      }
-
-      50.01% {
-        opacity: 0;
-      }
-
-      100% {
-        opacity: 0;
       }
     }
 
@@ -1614,7 +1574,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       overflow: hidden;
 
       color: color(primary);
-      font: 700 calc(var(--size) * 0.42) / 1 font-family(bigger);
+      font: 700 calc(var(--size) * 0.09) / 1.25 font-family(bigger);
       text-align: center;
       text-transform: none;
 
@@ -1652,20 +1612,21 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
       &__link {
         position: absolute;
-        top: calc(50% + var(--size) * 0.36);
+        top: 68%;
         left: 50%;
         z-index: 3;
 
         display: block;
-        padding: 1em 1em 1em 2em;
+        padding: 0.25em 0.5em;
 
         background: color(secondary);
         opacity: 0;
         transform: translate3d(-50%, 1em, 0);
 
         color: color(primary);
-        font: 700 14px / 1 font-family(editorial);
-        letter-spacing: 0.12em;
+        font: 700 clamp(10px, calc(var(--size) * 0.033), 14px) / 1 font-family(editorial);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
         text-decoration: none;
         text-transform: none;
 
@@ -1675,18 +1636,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
         will-change: transform, opacity;
 
-        @include mq(phone) {
-          top: calc(50% + var(--size) * 0.28);
-
-          padding: 1em;
-
-          font-size: 13px;
-        }
-
         &:before {
           position: absolute;
           top: calc(50% - 3px);
-          left: 0.6em;
+          left: -0.25em;
 
           border-top: 3px solid transparent;
           border-left: 6px solid currentcolor;
@@ -1702,15 +1655,12 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         /* 旧版用超大 :after 把整圆当成一条链，两枚名刺叠在一起会误点 GitHub */
 
         &--github {
-          top: calc(50% + var(--size) * 0.52);
+          top: 80%;
 
           background: color(accent);
 
           color: color(secondary);
 
-          @include mq(phone) {
-            top: calc(50% + var(--size) * 0.44);
-          }
         }
       }
 
@@ -1748,99 +1698,33 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
       &__line {
         position: absolute;
-        top: 50%;
         left: 50%;
         z-index: 2;
 
         translate: -50% -50%;
-        scale: 0.5;
+        scale: 0.94;
 
         transition: scale 0.6s ease(in-cubic);
         will-change: scale;
 
-        @include mq(phone) {
-          top: 45%;
-        }
-
         &--top {
-          // display: none;
-          clip-path: inset(-100% 0 calc(50% + 0.01em) 0);
-
-          .s__cta__char__slice {
-            --toggle-delay: calc(var(--delay) + var(--offset) + 0.45s);
-
-            @for $i from 1 through 3 {
-              &:nth-child(#{$i + 1}) {
-                clip-path: inset(0 0 calc(100% - (0.03em * $i)) 0);
-              }
-            }
-          }
+          top: 17.5%;
         }
 
         &--bottom {
-          // display: none;
-          clip-path: inset(calc(50% + 0.01em) 0 -100% 0);
-
-          letter-spacing: 0.014em;
-
-          .s__cta__char__slice {
-            --toggle-delay: calc(var(--delay) + var(--offset) + 1.45s);
-
-            @for $i from 1 through 3 {
-              &:nth-child(#{$i + 1}) {
-                clip-path: inset(calc(100% - (0.03em * $i)) 0 0 0);
-              }
-            }
-          }
+          top: 31.5%;
         }
       }
 
       &__text {
         @include flex(row, flex-start, center);
 
-        height: 0.8em;
+        gap: 0.12em;
+        white-space: nowrap;
       }
 
       &__char {
-        position: relative;
-
-        height: 100%;
-
-        @for $i from 1 through 4 {
-          &:nth-child(#{$i}) {
-            --delay: #{$i * 0.1 + 's'};
-          }
-        }
-
-        &__slice {
-          --offset: 0s;
-          --move-delay: calc(var(--delay) + var(--offset));
-
-          position: relative;
-
-          display: block;
-          height: 100%;
-
-          animation: s-cta-char-up-down 2s infinite var(--move-delay);
-
-          will-change: transform;
-
-          &:not(:first-child) {
-            position: absolute;
-            top: 0;
-            left: 0;
-
-            animation:
-              s-cta-char-up-down 2s infinite var(--move-delay),
-              s-cta-char-toggle 2s linear infinite var(--toggle-delay);
-          }
-
-          @for $i from 1 through 3 {
-            &:nth-child(#{$i + 1}) {
-              --offset: 0.02s + #{(4 - $i) * 0.04 + 's'};
-            }
-          }
-        }
+        display: block;
       }
 
       :global(.sup) {
