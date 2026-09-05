@@ -191,23 +191,13 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   <div class="s__catcher">
     <div class="s__catcher__distorted-wrapper">
       <div class="s__catcher__distorted">
-        <div class="s__catcher__text s__catcher__text--distorted">
-          我的路 <br />
-          My <br />
-          Way <br />
-          ·
-        </div>
+        <div class="s__catcher__text s__catcher__text--distorted"><span class="s__catcher__line s__catcher__line--cn">我的路</span><br /><span class="s__catcher__line s__catcher__line--my">My</span><br /><span class="s__catcher__line s__catcher__line--way">Way</span><br /><span class="s__catcher__line">·</span></div>
       </div><!-- .s__catcher__distorted -->
     </div><!-- .s__catcher__distorted-wrapper -->
 
     <div class="s__catcher__normal-wrapper">
       <div class="s__catcher__normal">
-        <div class="s__catcher__text s__catcher__text--normal">
-          我的路 <br />
-          My <br />
-          Way <br />
-          ·
-        </div>
+        <div class="s__catcher__text s__catcher__text--normal"><span class="s__catcher__line s__catcher__line--cn">我的路</span><br /><span class="s__catcher__line s__catcher__line--my">My</span><br /><span class="s__catcher__line s__catcher__line--way">Way</span><br /><span class="s__catcher__line">·</span></div>
       </div><!-- .s__catcher__normal -->
     </div><!-- .s__catcher__normal-wrapper -->
   </div><!-- .s__catcher -->
@@ -1638,9 +1628,9 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     position: relative;
     z-index: 3;
 
-    /* 模型、罗盘各占一段空间；宽屏仍沿用原来的罗盘落点。 */
+    /* 宽屏把立体「森」字放到左侧留白，罗盘与标题保持中轴。 */
     padding:
-      max(3rem, calc(var(--padding) * 0.75 - var(--sen-size) - var(--waymark-gap)))
+      max(3rem, calc(var(--padding) * 0.75))
       0 calc(var(--padding) * 1.5);
 
     clip-path: inset(-100vh 0 calc(var(--padding) * -1.375));
@@ -1687,6 +1677,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     @include mq(tablet) {
       --padding: 30rem;
 
+      padding-top: max(
+        3rem,
+        calc(var(--padding) * 0.75 - var(--sen-size) - var(--waymark-gap))
+      );
       padding-bottom: calc(var(--padding) * 1.25);
 
       clip-path: inset(-100vh 0 calc(var(--padding) * -1.2));
@@ -1729,11 +1723,20 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     .s__sen3d {
-      position: relative;
+      position: absolute;
+      top: clamp(5rem, 12vw, 10rem);
+      left: clamp(2rem, 10vw, 12rem);
       z-index: 5;
 
       flex-shrink: 0;
-      margin-bottom: var(--waymark-gap);
+      margin: 0;
+
+      @include mq(tablet) {
+        position: relative;
+        top: auto;
+        left: auto;
+        margin-bottom: var(--waymark-gap);
+      }
     }
 
     .s__smiley {
@@ -2726,6 +2729,50 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
         /* 点空白：大字微微洇朱，像碑帖被按了一下 */
         filter: contrast(calc(1 + var(--catcher-pulse, 0) * 0.14));
+
+        .s__catcher__line {
+          display: inline-block;
+
+          &--cn {
+            transform: translateX(-0.25em);
+          }
+
+          &--way {
+            transform: none;
+          }
+        }
+
+        @include mq(tablet) {
+          .s__catcher__line {
+            &--cn {
+              transform: translateX(-0.6em);
+            }
+
+            &--way {
+              transform: translateX(-0.19em);
+            }
+
+            &--my {
+              transform: none;
+            }
+          }
+        }
+
+        @include mq(phone) {
+          .s__catcher__line {
+            &--cn {
+              transform: translateX(-1.35em);
+            }
+
+            &--my {
+              transform: translateX(-0.6em);
+            }
+
+            &--way {
+              transform: translateX(-0.8em);
+            }
+          }
+        }
 
         &--distorted {
           bottom: 0;
