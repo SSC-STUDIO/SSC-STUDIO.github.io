@@ -1,0 +1,326 @@
+---
+/**
+ * InkSen3D — 可把玩的立体「森」字（three.js，程序化挤出）
+ *
+ * 三木十二笔推出墨体，指针端详、拖转；无 WebGL / 低性能 / 触屏
+ * 静默落到现有 SenMark。three 动态 import，进视口才初始化，
+ * 离屏停帧；SPA 换页 dispose 几何、材质、纹理与 renderer。
+ */
+import SenMark from './SenMark.astro'
+
+const { class: className } = Astro.props
+---
+
+<ink-sen3d class:list={['ink-sen3d', className]} role="img" aria-label="立体森字">
+  <div class="scene">
+    <div class="fallback" aria-hidden="true">
+      <SenMark size={168} />
+    </div>
+    <canvas class="js-canvas" aria-hidden="true"></canvas>
+    <span class="hint" aria-hidden="true">摩挲 · 三木成森</span>
+  </div>
+</ink-sen3d>
+
+<script>
+  import {
+    onResize,
+    onThemeFlip,
+    prefersReducedMotion,
+    type Cleanup,
+  } from '../motion/core'
+
+  type SenHandle = {
+    setPointer: (nx: number, ny: number) => void
+    dragBy: (dx: number, dy: number) => void
+    setTheme: (contrasted: boolean) => void
+    resize: () => void
+    wake: () => void
+    pause: () => void
+    renderOnce: () => void
+    dispose: () => void
+  }
+
+  class InkSen3D extends HTMLElement {
+    canvas: HTMLCanvasElement | null = null
+    handle: SenHandle | null = null
+    observer: IntersectionObserver | null = null
+    stops: Cleanup[] = []
+    bootTimer = 0
+    booting = false
+    inView = false
+    dragging = false
+    lastX = 0
+    lastY = 0
+    reduced = false
+
+    connectedCallback() {
+      this.teardown()
+      this.canvas = this.querySelector('.js-canvas')
+      if (!this.canvas) return
+
+      this.reduced = prefersReducedMotion()
+      this.classList.add('is-ready')
+
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          this.inView = !!entry?.isIntersecting
+          if (this.inView) this.ensure()
+          else this.sleep()
+        },
+        { rootMargin: '120px 0px', threshold: 0.05 }
+      )
+      this.observer.observe(this)
+
+      const onSwap = () => this.teardown()
+      document.addEventListener('astro:before-swap', onSwap)
+      this.stops.push(() => document.removeEventListener('astro:before-swap', onSwap))
+    }
+
+    disconnectedCallback() {
+      this.teardown()
+    }
+
+    async ensure() {
+      if (this.handle || this.booting) {
+        this.handle?.wake()
+        this.handle?.renderOnce()
+        return
+      }
+
+      this.booting = true
+      try {
+        const mod = await import('../motion/sen-3d')
+        if (!this.isConnected || !this.canvas) return
+        if (mod.isLowPower() || !mod.canUseWebGL()) return
+
+        const handle = mod.mountSen3D(this.canvas, { reduced: this.reduced })
+        if (!handle) return
+
+        this.handle = handle
+        this.classList.add('is-live')
+        this.bindScene()
+        handle.resize()
+        handle.renderOnce()
+        if (this.reduced) handle.pause()
+        else if (this.inView) handle.wake()
+        else handle.pause()
+      } catch {
+        /* 静默降级：森标仍在 */
+      } finally {
+        this.booting = false
+      }
+    }
+
+    bindScene() {
+      const canvas = this.canvas
+      const handle = this.handle
+      if (!canvas || !handle) return
+
+      this.stops.push(
+        onResize(() => {
+          if (this.inView) handle.resize()
+        })
+      )
+      this.stops.push(
+        onThemeFlip(() => {
+          handle.setTheme(
+            document.documentElement.classList.contains('theme-contrasted')
+          )
+          handle.renderOnce()
+        })
+      )
+
+      if (this.reduced) return
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+      const onMove = (e: PointerEvent) => {
+        if (this.dragging) {
+          handle.dragBy(e.clientX - this.lastX, e.clientY - this.lastY)
+          this.lastX = e.clientX
+          this.lastY = e.clientY
+          return
+        }
+        const rect = this.getBoundingClientRect()
+        const nx = (e.clientX - rect.left) / Math.max(1, rect.width) - 0.5
+        const ny = (e.clientY - rect.top) / Math.max(1, rect.height) - 0.5
+        handle.setPointer(nx, ny)
+      }
+      const onLeave = () => {
+        if (this.dragging) return
+        handle.setPointer(0, 0)
+      }
+      const onDown = (e: PointerEvent) => {
+        if (e.button !== 0) return
+        this.dragging = true
+        this.lastX = e.clientX
+        this.lastY = e.clientY
+        this.classList.add('is-dragging')
+        canvas.setPointerCapture(e.pointerId)
+      }
+      const onUp = (e: PointerEvent) => {
+        this.dragging = false
+        this.classList.remove('is-dragging')
+        try {
+          canvas.releasePointerCapture(e.pointerId)
+        } catch {
+          /* 已释放 */
+        }
+      }
+
+      canvas.addEventListener('pointermove', onMove)
+      canvas.addEventListener('pointerleave', onLeave)
+      canvas.addEventListener('pointerdown', onDown)
+      canvas.addEventListener('pointerup', onUp)
+      canvas.addEventListener('pointercancel', onUp)
+      this.stops.push(() => {
+        canvas.removeEventListener('pointermove', onMove)
+        canvas.removeEventListener('pointerleave', onLeave)
+        canvas.removeEventListener('pointerdown', onDown)
+        canvas.removeEventListener('pointerup', onUp)
+        canvas.removeEventListener('pointercancel', onUp)
+      })
+    }
+
+    sleep() {
+      this.handle?.pause()
+    }
+
+    teardown() {
+      window.clearTimeout(this.bootTimer)
+      this.bootTimer = 0
+      this.observer?.disconnect()
+      this.observer = null
+      this.stops.forEach((stop) => stop())
+      this.stops = []
+      this.handle?.dispose()
+      this.handle = null
+      this.booting = false
+      this.dragging = false
+      this.classList.remove('is-live', 'is-dragging')
+    }
+  }
+
+  if (!customElements.get('ink-sen3d')) {
+    customElements.define('ink-sen3d', InkSen3D)
+  }
+</script>
+
+<style lang="scss">
+  .ink-sen3d {
+    position: relative;
+
+    display: block;
+    width: min(18rem, 72vw);
+
+    user-select: none;
+
+    .scene {
+      position: relative;
+
+      height: min(18rem, 72vw);
+    }
+
+    .fallback,
+    .js-canvas {
+      position: absolute;
+      inset: 0;
+
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: color(secondary);
+
+      :global(svg) {
+        width: 62%;
+        height: 62%;
+      }
+    }
+
+    .js-canvas {
+      opacity: 0;
+      cursor: grab;
+      touch-action: none;
+      pointer-events: none;
+    }
+
+    &.is-live .js-canvas {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &.is-live .fallback {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &.is-dragging .js-canvas {
+      cursor: grabbing;
+    }
+
+    .scene::after {
+      position: absolute;
+      bottom: 8%;
+      left: 50%;
+
+      width: 58%;
+      height: 0.7rem;
+
+      background: radial-gradient(
+        ellipse,
+        color-mix(in srgb, color(secondary) 22%, transparent),
+        transparent 70%
+      );
+
+      transform: translateX(-50%);
+
+      content: '';
+      pointer-events: none;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+
+      color: color(secondary);
+      font: 600 10.5px / 1 font-family(editorial);
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      white-space: nowrap;
+
+      opacity: 0;
+      transform: translateX(-50%);
+      transition: opacity 0.3s ease;
+
+      pointer-events: none;
+    }
+
+    &.is-live:hover .hint,
+    &.is-dragging .hint {
+      opacity: 0.9;
+    }
+
+    &:not(.is-ready) .hint {
+      display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .js-canvas {
+        cursor: default;
+        pointer-events: none;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+  }
+</style>
