@@ -12,7 +12,7 @@
     "sync:repos": "node scripts/sync-github.mjs"
   },
   "dependencies": {
-    "@astrojs/react": "^6.0.1",
+    "@astrojs/react": "^4.4.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.7.13",
