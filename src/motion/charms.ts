@@ -21,6 +21,9 @@ export type CharmBody = {
   vy: number
   vr: number
   spin: number
+  /** 绕纵轴翻面（假 3D），铜钱 / 印章用 */
+  flip: number
+  vf: number
   life: number
   maxLife: number
   bounce: number
@@ -106,6 +109,8 @@ export function spawnCharmBurst(
       vy: Math.random() * -10 - 5,
       vr: (Math.random() * 2 - 1) * 10,
       spin: Math.random() * 360,
+      flip: Math.random() * 360,
+      vf: (Math.random() * 2 - 1) * 16,
       life: 0,
       maxLife: 75 + Math.random() * 45,
       bounce: 0,
@@ -123,6 +128,8 @@ export function stepCharm(charm: CharmBody): boolean {
   charm.x += charm.vx
   charm.y += charm.vy
   charm.spin += charm.vr
+  charm.flip += charm.vf
+  charm.vf *= 0.994
   charm.vx *= 0.992
 
   const bouncy = charm.kind === 'coin' || charm.kind === 'seal'
@@ -240,6 +247,7 @@ export function drawCharm(
       rotation: charm.spin,
       alpha,
       contrasted,
+      flip: charm.flip,
     })
     return
   }
@@ -247,6 +255,10 @@ export function drawCharm(
   ctx.save()
   ctx.translate(charm.x, charm.y)
   ctx.rotate((charm.spin * Math.PI) / 180)
+  if (charm.kind === 'seal') {
+    const sx = Math.cos((charm.flip * Math.PI) / 180)
+    ctx.scale(Math.max(0.16, Math.abs(sx)), 1)
+  }
   ctx.globalAlpha = alpha
 
   if (charm.kind === 'smiley') {
@@ -258,7 +270,18 @@ export function drawCharm(
   } else if (charm.kind === 'plum') {
     drawPlum(ctx, charm.r, contrasted)
   } else if (charm.kind === 'seal') {
-    drawSeal(ctx, charm.r, charm.char ?? '佳', contrasted)
+    if (Math.cos((charm.flip * Math.PI) / 180) < 0) {
+      const half = charm.r * 0.92
+      ctx.beginPath()
+      ctx.roundRect(-half, -half, half * 2, half * 2, charm.r * 0.22)
+      ctx.fillStyle = rgba({ r: 148, g: 38, b: 26 }, contrasted ? 0.95 : 0.9)
+      ctx.fill()
+      ctx.strokeStyle = rgba({ r: 110, g: 28, b: 20 }, 0.85)
+      ctx.lineWidth = Math.max(1, charm.r * 0.08)
+      ctx.stroke()
+    } else {
+      drawSeal(ctx, charm.r, charm.char ?? '佳', contrasted)
+    }
   } else {
     drawStar(ctx, charm.r, contrasted)
   }

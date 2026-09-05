@@ -10,6 +10,8 @@ export type CoinStyle = {
   rotation: number
   alpha: number
   contrasted?: boolean
+  /** 绕纵轴翻转角（度），cos 为负时画钱背 */
+  flip?: number
 }
 
 export type CoinBody = {
@@ -45,20 +47,33 @@ export function drawGoldCoin(
   ctx: CanvasRenderingContext2D,
   style: CoinStyle
 ): void {
-  const { x, y, r, rotation, alpha, contrasted } = style
+  const { x, y, r, rotation, alpha, contrasted, flip = 0 } = style
   const radius = Math.max(6, r)
   const a = Math.max(0, Math.min(1, alpha))
   const lift = contrasted ? 0.18 : 0
   const hole = radius * 0.28
+  const sx = Math.cos((flip * Math.PI) / 180)
+  const edge = Math.abs(sx)
+  const back = sx < 0
 
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate((rotation * Math.PI) / 180)
+  ctx.scale(Math.max(0.14, edge), 1)
   ctx.globalAlpha = a
+
+  if (edge < 0.28) {
+    ctx.beginPath()
+    ctx.rect(-radius * 0.08, -radius, radius * 0.16, radius * 2)
+    ctx.fillStyle = rgba(GOLD_EDGE, 0.95, lift)
+    ctx.fill()
+    ctx.restore()
+    return
+  }
 
   ctx.beginPath()
   ctx.arc(0, 0, radius, 0, Math.PI * 2)
-  ctx.fillStyle = rgba(GOLD_MID, 1, lift)
+  ctx.fillStyle = rgba(back ? GOLD_DARK : GOLD_MID, 1, lift)
   ctx.fill()
 
   ctx.beginPath()
