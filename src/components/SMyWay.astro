@@ -1624,6 +1624,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
   .s-my-way {
     --padding: 40rem;
     --smiley-size: 5.625rem;
+    --sen-size: clamp(10rem, 24vw, 16rem);
+    --waymark-gap: 4rem;
     --paper-press: 0;
     --catcher-pulse: 0;
     --catcher-rx: 0deg;
@@ -1636,7 +1638,10 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     position: relative;
     z-index: 3;
 
-    padding: calc(var(--padding) * 0.75) 0 calc(var(--padding) * 1.5);
+    /* 模型、罗盘各占一段空间；宽屏仍沿用原来的罗盘落点。 */
+    padding:
+      max(3rem, calc(var(--padding) * 0.75 - var(--sen-size) - var(--waymark-gap)))
+      0 calc(var(--padding) * 1.5);
 
     clip-path: inset(-100vh 0 calc(var(--padding) * -1.375));
 
@@ -1682,7 +1687,7 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     @include mq(tablet) {
       --padding: 30rem;
 
-      padding: calc(var(--padding) * 0.75) 0 calc(var(--padding) * 1.25);
+      padding-bottom: calc(var(--padding) * 1.25);
 
       clip-path: inset(-100vh 0 calc(var(--padding) * -1.2));
     }
@@ -1724,16 +1729,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
     }
 
     .s__sen3d {
-      position: absolute;
-      top: clamp(5.5rem, 10vw, 9rem);
-      left: 50%;
+      position: relative;
       z-index: 5;
 
-      transform: translateX(-50%);
-
-      @include mq(phone) {
-        top: 4.2rem;
-      }
+      flex-shrink: 0;
+      margin-bottom: var(--waymark-gap);
     }
 
     .s__smiley {
@@ -1746,6 +1746,8 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖']
 
       width: var(--smiley-size);
       height: var(--smiley-size);
+      /* 透视标题会向上延伸，再为方位字和倾侧留两行余量。 */
+      margin-bottom: calc(var(--waymark-gap) + 2rem);
 
       background: color(primary);
       border: 1.5px solid color-mix(in srgb, #{color(accent)} 70%, transparent);
