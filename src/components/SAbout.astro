@@ -196,6 +196,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     awardTimers: number[] = []
     heightObserver: ResizeObserver | null = null
     revealRaf = 0
+    axisTravel = 0
 
     /**
      * Constructor
@@ -237,7 +238,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     }
 
     axisRange() {
-      return this.viewWidth() > 767 ? 400 : 200
+      return this.axisTravel
     }
 
     isSectionVisible() {
@@ -630,6 +631,19 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
       if (!this.el || !this.inner) return
 
       const bounding = this.el.getBoundingClientRect()
+      const style = getComputedStyle(this.el)
+      const cordHeight = this.el.querySelector<HTMLElement>('.s__cord')?.offsetHeight || 0
+
+      // 立轴始终留在区块内：为吊绳、轴杆和轻摆保留余量。
+      // 在尺寸更新时测量，避免逐帧读取布局。
+      this.axisTravel = Math.max(
+        0,
+        Math.min(
+          this.viewWidth() > 767 ? 400 : 200,
+          (parseFloat(style.paddingTop) || 0) - cordHeight - 16,
+          (parseFloat(style.paddingBottom) || 0) - 16
+        )
+      )
 
       this.bounding = {
         left: bounding.left,
@@ -976,7 +990,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     position: relative;
     z-index: 3;
 
-    padding: 15rem 0;
+    padding: clamp(5rem, 10svh, 8rem) 0;
 
     overflow: hidden;
 
@@ -987,7 +1001,7 @@ const skills = ['AI', 'TypeScript', 'Games', 'Python', 'Web']
     @include mq(tablet-sm) {
       --width: 70vw;
 
-      padding: 7.5rem 0;
+      padding: clamp(4rem, 9svh, 6rem) 0;
     }
 
     @include mq(phone) {

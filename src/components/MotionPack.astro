@@ -32,6 +32,7 @@
       raf: 0,
       parallaxRaf: 0,
       parallaxTick: false,
+      parallaxWaves: null,
       running: false,
       lastX: 0,
       lastY: 0,
@@ -55,6 +56,8 @@
       S.raf = 0
       S.parallaxRaf = 0
       S.parallaxTick = false
+      S.parallaxWaves?.style.removeProperty('translate')
+      S.parallaxWaves = null
       S.running = false
       S.particles = []
       S.canvas = null
@@ -193,10 +196,12 @@
       })
     }
 
-    /* ── 滚动视差：hero 内容与波浪分层 ─────────────────── */
+    /* ── 滚动视差：题名留在正常文档流，背景波浪轻移 ─────── */
     function bindParallax() {
-      var heroContent = document.querySelector('.s-hero .s__content')
-      var heroWaves = document.querySelector('.s-hero .s__waves')
+      var hero = document.querySelector('.s-hero')
+      var heroWaves = hero?.querySelector('.s__waves')
+      if (!hero || !heroWaves) return
+      S.parallaxWaves = heroWaves
 
       function onScroll() {
         if (S.parallaxTick) return
@@ -205,15 +210,15 @@
           S.parallaxTick = false
           S.parallaxRaf = 0
           if (!S.alive) return
-          var y = window.scrollY
-          if (y < window.innerHeight) {
-            if (heroWaves) heroWaves.style.transform = 'translate3d(0,' + (y * 0.12).toFixed(1) + 'px,0)'
-            if (heroContent) heroContent.style.transform = 'translate3d(0,' + (y * 0.28).toFixed(1) + 'px,0)'
-          }
+          var rect = hero.getBoundingClientRect()
+          var y = Math.min(Math.max(0, -rect.top), rect.height)
+          heroWaves.style.translate = '0 ' + (y * 0.12).toFixed(1) + 'px'
         })
       }
 
       on(window, 'scroll', onScroll, { passive: true })
+      on(window, 'resize', onScroll, { passive: true })
+      onScroll()
     }
 
     /* ── 挂载：首屏立刻 + 换页后重绑 ──── */
