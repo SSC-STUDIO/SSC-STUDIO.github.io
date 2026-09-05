@@ -44,7 +44,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
   <div id="contact" class="s__inner js-container">
     <div class="s__hover js-hover">
       <div class="s__envelope" aria-hidden="true">
+        <i class="s__envelope__pocket"></i>
         <i class="s__envelope__sheet"></i>
+        <i class="s__envelope__wing s__envelope__wing--left"></i>
+        <i class="s__envelope__wing s__envelope__wing--right"></i>
         <i class="s__envelope__flap"></i>
       </div>
       <a href="/contact" class="s__button js-button" aria-label="写信给我 — 联系陈润森">
@@ -1225,7 +1228,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       margin: -3.2rem;
     }
 
-    /* 火漆下的信笺：静息合拢，展开大圆前先启封 */
+    /* 火漆下的信笺：折纸合拢，展开大圆前先启封 */
     .s__envelope {
       position: absolute;
       top: 50%;
@@ -1237,15 +1240,27 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
 
       perspective: 28rem;
       pointer-events: none;
-      transform: translate(-50%, -44%);
+      transform: translate(-50%, -44%) rotateX(12deg);
+      transform-style: preserve-3d;
       transition:
         opacity 0.45s ease 0.12s,
         transform 0.55s ease(out-quint);
 
       &__sheet,
-      &__flap {
+      &__flap,
+      &__pocket,
+      &__wing {
         display: block;
         position: absolute;
+        backface-visibility: hidden;
+      }
+
+      &__pocket {
+        inset: 0.85rem 0 0;
+
+        background: color-mix(in srgb, color(paper-warm) 70%, color(secondary));
+        border: 1px solid color-mix(in srgb, color(secondary) 28%, transparent);
+        transform: translateZ(-3px);
       }
 
       &__sheet {
@@ -1268,6 +1283,35 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         box-shadow:
           inset 0 0 0 3px color(paper-warm),
           0 3px 10px rgba(12, 10, 8, 0.12);
+        transform: translateZ(1px);
+      }
+
+      &__wing {
+        top: 0.85rem;
+        width: 52%;
+        bottom: 0;
+
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, color(paper-warm) 86%, #fff),
+          color-mix(in srgb, color(paper-warm) 74%, color(secondary))
+        );
+        border: 1px solid
+          color-mix(in srgb, color(secondary) 30%, transparent);
+        transform-style: preserve-3d;
+        transition: transform 0.7s ease(out-quint);
+
+        &--left {
+          left: 0;
+          clip-path: polygon(0 0, 100% 18%, 100% 82%, 0 100%);
+          transform-origin: 0 50%;
+        }
+
+        &--right {
+          right: 0;
+          clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 82%);
+          transform-origin: 100% 50%;
+        }
       }
 
       &__flap {
@@ -1286,6 +1330,7 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
           color-mix(in srgb, color(secondary) 32%, transparent);
         clip-path: polygon(0 0, 100% 0, 50% 100%);
         transform-origin: 50% 0;
+        transform-style: preserve-3d;
         transition: transform 0.62s ease(out-quint);
         animation: s-cta-flap-idle 5.2s ease-in-out infinite alternate;
       }
@@ -1310,16 +1355,28 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
       z-index: 1;
 
       opacity: 0;
-      transform: translate(-50%, -44%) scale(1.12);
+      transform: translate(-50%, -44%) rotateX(6deg) scale(1.12);
 
-      /* 先掀封舌，大圆再盖上来，启封能被看见 */
+      /* 先掀封舌与两翼，大圆再盖上来，启封能被看见 */
       transition:
         opacity 0.42s ease 0.58s,
         transform 0.55s ease(in-quad) 0.38s;
 
       .s__envelope__flap {
         animation: none;
-        transform: rotateX(155deg);
+        transform: rotateX(168deg);
+      }
+
+      .s__envelope__wing--left {
+        transform: rotateY(-118deg);
+      }
+
+      .s__envelope__wing--right {
+        transform: rotateY(118deg);
+      }
+
+      .s__envelope__sheet {
+        transform: translateZ(8px) translateY(-6px);
       }
     }
 
@@ -2135,7 +2192,10 @@ const lines = [['一', '起', '做'], ['点', '东', '西']]
         transition: none;
       }
 
-      .s__envelope__flap {
+      .s__envelope__flap,
+      .s__envelope__wing--left,
+      .s__envelope__wing--right,
+      .s__envelope__sheet {
         animation: none;
         transform: none;
         transition: none;
