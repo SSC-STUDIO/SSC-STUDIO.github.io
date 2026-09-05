@@ -21,6 +21,10 @@
   z-index: 2;
   overflow: hidden;
 
+  perspective: 1200px;
+  perspective-origin: 50% 38%;
+  transform-style: preserve-3d;
+
   padding: 8rem 1.5rem 3.5rem;
 
   @include ink-rule(bottom);
@@ -89,12 +93,76 @@
     pointer-events: none;
 
     transform: translate3d(
-      calc(var(--hero-px) * -0.9rem),
-      calc(var(--hero-out) * 3.2rem),
-      0
+      calc(var(--hero-px) * -1.35rem),
+      calc(var(--hero-out) * 3.2rem + var(--hero-py) * 0.45rem),
+      -72px
     );
 
     will-change: transform;
+  }
+
+  /* 雾在山后：退得更深，指针反向游得更远 */
+  &__mist {
+    position: absolute;
+    right: -4%;
+    bottom: 0;
+    left: -4%;
+    z-index: 1;
+
+    pointer-events: none;
+
+    transform: translate3d(
+      calc(var(--hero-px) * -2.2rem),
+      calc(var(--hero-py) * 0.55rem + var(--hero-out) * 2.4rem),
+      -110px
+    );
+
+    will-change: transform;
+  }
+
+  /* 近处竹影：比山靠前一寸 */
+  &__bamboo {
+    position: absolute;
+    right: clamp(0.2rem, 2.6vw, 2.2rem);
+    bottom: clamp(1.8rem, 6vh, 4.4rem);
+    z-index: 2;
+
+    opacity: 0.78;
+    pointer-events: none;
+
+    transform: translate3d(
+      calc(var(--hero-px) * 1.75rem),
+      calc(var(--hero-py) * 0.95rem + var(--hero-out) * -0.85rem),
+      36px
+    );
+
+    will-change: transform;
+
+    @include mq(phone) {
+      display: none;
+    }
+  }
+
+  /* 朱砂印提到近景，随指尖比题字多走一步 */
+  &__chop {
+    position: absolute;
+    right: clamp(16px, 4vw, 48px);
+    bottom: 18px;
+    z-index: 3;
+
+    transform: translate3d(
+      calc(var(--hero-px) * 2.35rem),
+      calc(var(--hero-py) * 1.2rem + var(--hero-out) * 0.55rem),
+      58px
+    );
+
+    will-change: transform;
+
+    .seal-mark--watermark {
+      position: static;
+      right: auto;
+      bottom: auto;
+    }
   }
 
   &__kicker,
@@ -143,6 +211,12 @@
       display: inline-block;
       white-space: nowrap;
     }
+
+    transform: translate3d(
+      calc(var(--hero-px) * 0.4rem),
+      calc(var(--hero-out) * -0.35rem),
+      22px
+    );
 
     /* 落墨与墨光的编排在 site/_transitions.scss，这里只管排布与悬停 */
     .char {
@@ -209,9 +283,9 @@
     pointer-events: none;
 
     transform: translate3d(
-        calc(var(--hero-px) * -0.7rem),
-        calc(var(--hero-out) * -2.4rem),
-        0
+        calc(var(--hero-px) * -1.15rem),
+        calc(var(--hero-out) * -2.4rem + var(--hero-py) * -0.35rem),
+        28px
       )
       translateY(-50%);
 
@@ -260,10 +334,14 @@
     }
 
     &__range,
+    &__mist,
+    &__bamboo,
+    &__chop,
     &__side,
     &__summary,
     &__gentlemen,
     &__ripple,
+    &__title,
     .char:hover {
       transform: none;
       will-change: auto;

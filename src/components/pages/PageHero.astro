@@ -3,7 +3,7 @@
  * PageHero — 内页卷首
  *
  * 与首页同一套动效语言：纸面墨圈自卷底上浮（InkBubbles）、
- * 时辰灯色随指针游移、远山与题识随滚动分层后退、
+ * 时辰灯色随指针游移、远山 / 雾 / 竹 / 印章按深度做指针视差、
  * 标题逐字落墨并周期性走一道墨光。
  * 所有动效交给 <hero-drift> 自定义元素驱动（SPA 与离屏自理），
  * 脚本缺席时标题与正文照常可读。
@@ -16,6 +16,8 @@ import InkBrush from '../InkBrush.astro'
 import InkGentlemen from '../InkGentlemen.astro'
 import InkRipple from '../InkRipple.astro'
 import InkBubbles from '../InkBubbles.astro'
+import InkMist from '../InkMist.astro'
+import InkBamboo from '../InkBamboo.astro'
 
 interface Props {
   kicker: string
@@ -34,8 +36,14 @@ const words = title.split(' ').map((word) =>
 
 <header class="p-hero" data-intersect>
   <InkBubbles class="p-hero__bubbles" />
+  <div class="p-hero__mist" aria-hidden="true" data-hero-layer="mist">
+    <InkMist />
+  </div>
   <div class="p-hero__range" data-hero-layer="far">
     <InkMountains compact dimensional />
+  </div>
+  <div class="p-hero__bamboo" aria-hidden="true" data-hero-layer="grove">
+    <InkBamboo size={220} flip />
   </div>
   <div class="p-hero__side" aria-hidden="true" data-hero-layer="side">
     <span class="p-hero__motto">格物 · 致知 · 日新</span>
@@ -67,7 +75,9 @@ const words = title.split(' ').map((word) =>
     <InkGentlemen height={20} width="min(15rem, 52vw)" />
   </p>
   <InkRipple size={110} class="p-hero__ripple" />
-  <SealMark variant="watermark" />
+  <div class="p-hero__chop" data-hero-layer="chop">
+    <SealMark variant="watermark" />
+  </div>
   <InkMeander height={8} width="46%" class="p-hero__meander" />
   <hero-drift aria-hidden="true"></hero-drift>
 </header>
