@@ -3,7 +3,7 @@
 <!--
 Envelope component adapted from https://github.com/luo-5/love-letter-site-template
 Source: index.html at 576779f5f85f5f4f9c6c58e3a375f9ed13cee944
-Changes: responsive paper envelope, accessible anchor, simplified opening sequence.
+Changes: responsive paper envelope, accessible anchor, choreographed opening sequence.
 Original letter copy, block illustration, and remaining layout by Chen Runsen.
 
 MIT License
@@ -58,12 +58,22 @@ SOFTWARE.
     .envelope-line { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:max(26px,env(safe-area-inset-top)); padding-bottom:18px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:1.7px; }
     .envelope-line span:last-child { letter-spacing:1px; }
     .tiny-heart { width:12px; height:12px; display:inline-block; vertical-align:-1px; fill:var(--rose); margin:0 5px; }
-    .cover { text-align:center; padding-top:31px; }
+    .cover { text-align:center; padding-top:27px; }
+    .cover-mark { display:block; width:43px; height:37px; margin:0 auto 13px; }
     .dedication { font-size:12px; color:var(--muted); letter-spacing:4px; margin:0 0 16px; }
-    h1 { margin:0; font-family:var(--serif); font-size:clamp(32px,8.7vw,45px); font-weight:500; line-height:1.6; letter-spacing:2px; }
-    h1 span { color:var(--rose); }
+    h1 { margin:0; font-family:var(--serif); font-size:38px; font-weight:500; line-height:1.6; letter-spacing:2px; }
+    h1 .title-last { color:var(--rose); }
+    .cover-mark .music-notes { transform-box:fill-box; transform-origin:center; animation:noteAnswer 4.8s ease-in-out 1.4s infinite; }
+    .cover-mark,.dedication,h1 .title-first,h1 .title-last,.cover-verse,.school-line { display:block; animation:coverEnter 760ms cubic-bezier(.16,1,.3,1) both; }
+    .cover-mark { animation-delay:40ms; }
+    .dedication { animation-delay:140ms; }
+    h1 .title-first { animation-delay:240ms; }
+    h1 .title-last { animation-delay:330ms; }
+    .cover-verse { animation-delay:460ms; }
+    .school-line { animation-delay:550ms; }
+    .cover-object { animation:coverEnter 820ms cubic-bezier(.16,1,.3,1) 470ms both; }
     .cover-verse { font-family:var(--serif); font-size:15px; line-height:2; letter-spacing:1px; margin:19px -4px 0; }
-    .world-scene { position:relative; margin:-33px -15px -6px; }
+    .world-scene { position:relative; margin:-33px -15px -6px; transform:translate3d(var(--scene-x,0px),var(--scene-y,0px),0); transition:transform 500ms cubic-bezier(.16,1,.3,1); }
     .world-scene::before { content:""; position:absolute; width:75%; height:58%; top:27%; left:13%; border-radius:50%; background:#efd3ad24; filter:blur(20px); z-index:-1; }
     .world-art { display:block; width:100%; height:auto; max-width:430px; margin:auto; }
     .floating-heart { animation:breathe 5s ease-in-out infinite; }
@@ -71,10 +81,12 @@ SOFTWARE.
     .cloud-two { animation-delay:-5s; }
     .read-link { display:inline-flex; min-height:48px; align-items:center; gap:10px; color:var(--muted); font-size:11px; letter-spacing:2px; text-decoration:none; margin:0 0 11px; }
     .read-link svg { width:12px; height:18px; }
-    .school-line { font-size:10px; letter-spacing:1.7px; color:var(--muted); margin:20px 0 8px; }
+    .school-line { font-size:12px; letter-spacing:1px; color:var(--muted); margin:20px 0 8px; }
     .envelope-stage { position:relative; padding:72px 4px 4px; perspective:1200px; }
     /* Envelope layers and flap/rise animation adapted from luo-5/love-letter-site-template (MIT). */
-    .envelope-wrapper { display:block; position:relative; width:100%; max-width:330px; aspect-ratio:380/240; margin:auto; cursor:pointer; transform-style:preserve-3d; transform-origin:center; filter:drop-shadow(0 16px 16px #6f584d22); text-decoration:none; color:var(--ink); transition:transform .4s cubic-bezier(.175,.885,.32,1.275); touch-action:manipulation; }
+    .envelope-wrapper { display:block; position:relative; width:100%; max-width:330px; aspect-ratio:380/240; margin:auto; cursor:pointer; transform-style:preserve-3d; transform-origin:center; filter:drop-shadow(0 16px 16px #6f584d22); text-decoration:none; color:var(--ink); transition:transform .4s cubic-bezier(.16,1,.3,1),filter .4s ease; touch-action:manipulation; }
+    @media (hover:hover) { .envelope-wrapper:not(.open):hover { transform:translateY(-5px) rotate(-.6deg); filter:drop-shadow(0 23px 21px #6f584d25); } }
+    .envelope-wrapper:not(.open):active { transform:translateY(1px) scale(.992); }
     .envelope-back { position:absolute; inset:0; background:linear-gradient(180deg,#d3c7af,#cbb9a0); border-radius:3px; z-index:1; box-shadow:inset 0 1px 0 #fff6df80; }
     .letter-inside { position:absolute; top:6%; left:4%; width:92%; height:88%; background:repeating-linear-gradient(transparent 0 27px,#b7c6ca30 27px 28px),#fffaf0; border:1px solid #dac9b1; z-index:2; padding:14px 18px; color:#61584c; font-family:var(--serif); box-shadow:0 -5px 15px #4a372522; transition:transform 1s cubic-bezier(.25,1,.5,1); overflow:hidden; }
     .letter-inside::before { content:""; position:absolute; inset:7px; border:1px solid #bd9f7833; pointer-events:none; }
@@ -85,25 +97,34 @@ SOFTWARE.
     .envelope-flap { position:absolute; top:0; left:0; width:100%; height:69%; clip-path:polygon(0 0,100% 0,50% 100%); z-index:4; transform-origin:top; transform-style:preserve-3d; backface-visibility:hidden; transition:transform .7s cubic-bezier(.4,0,.2,1); background:linear-gradient(180deg,#efe3ce,#ddc5a2); }
     .envelope-flap::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg,#fff6d544,transparent 36%,#35190718); pointer-events:none; }
     .envelope-title { position:absolute; bottom:13%; left:0; right:0; text-align:center; font:500 18px/1.4 var(--serif); letter-spacing:4px; }
-    .wax-seal { position:absolute; top:53%; left:50%; transform:translate(-50%,-50%) rotate(-7deg); width:44px; height:39px; z-index:5; display:flex; align-items:center; justify-content:center; color:#fff8ee; background:#aa6070; clip-path:polygon(4% 0,44% 0,50% 8%,56% 0,96% 0,100% 12%,95% 94%,54% 100%,47% 94%,2% 100%,0 12%); font:19px var(--serif); transition:opacity .3s,transform .3s; }
-    .envelope-wrapper.open .envelope-flap { transform:rotateX(180deg); z-index:1; }
-    .envelope-wrapper.open .wax-seal { opacity:0; transform:translate(-50%,-50%) scale(1.35) rotate(8deg); }
-    .envelope-wrapper.open .letter-inside { animation:letterRise .8s cubic-bezier(.22,1,.36,1) .25s forwards; }
-    @keyframes letterRise { 0% { transform:translateY(0) rotate(0); } 72% { transform:translateY(-55%) rotate(-2deg); } 100% { transform:translateY(-52%) rotate(-1.2deg); } }
-    .envelope-hint { min-height:44px; margin:16px 0 0; font-size:12px; color:var(--muted); letter-spacing:2px; }
+    .wax-seal { position:absolute; top:53%; left:50%; transform:translate(-50%,-50%) rotate(-7deg); width:44px; height:39px; z-index:5; display:flex; align-items:center; justify-content:center; color:#fff8ee; background:#aa6070; clip-path:polygon(4% 0,44% 0,50% 8%,56% 0,96% 0,100% 12%,95% 94%,54% 100%,47% 94%,2% 100%,0 12%); font:19px var(--serif); transition:opacity .28s,transform .28s; animation:sealArrive 360ms cubic-bezier(.34,1.4,.64,1) 1.06s backwards; }
+    .envelope-wrapper:not(.open):active .wax-seal { transform:translate(-50%,-47%) scale(.94) rotate(-7deg); }
+    .envelope-wrapper.open .envelope-flap { transform:rotateX(180deg); z-index:1; transition-duration:.55s; }
+    .envelope-wrapper.open .wax-seal { animation:none; opacity:0; transform:translate(-50%,-50%) scale(1.22) rotate(5deg); }
+    .envelope-wrapper.open .letter-inside { animation:letterRise .68s cubic-bezier(.22,1,.36,1) .19s forwards; }
+    @keyframes letterRise { 0% { transform:translateY(0) rotate(0); } 72% { transform:translateY(-58%) rotate(-1.8deg); } 100% { transform:translateY(-55%) rotate(-1deg); } }
+    .envelope-hint { min-height:40px; margin:16px 0 0; font-size:13px; color:var(--muted); letter-spacing:1px; }
     .cassette-note { margin:35px 0 37px; padding:18px 18px 16px; background:#eee9db; border:1px solid #d4d0bb; border-radius:3px; transform:rotate(-1deg); position:relative; }
     .cassette-note::before { content:""; position:absolute; width:66px; height:18px; left:calc(50% - 33px); top:-10px; background:#d7bc8966; transform:rotate(4deg); }
     .cassette { display:grid; grid-template-columns:42px 1fr 42px; gap:10px; align-items:center; border:1px solid #c6bc9f; padding:11px; background:#e1decc; border-radius:25px; }
     .reel { width:34px; height:34px; border:5px solid #6d786c; border-radius:50%; background:repeating-conic-gradient(#e0dece 0 20deg,#899080 20deg 40deg); position:relative; }
     .reel::after { content:""; position:absolute; inset:8px; background:#ede7d9; border-radius:50%; }
-    .tape-label { text-align:center; font:11px/1.8 monospace; letter-spacing:1px; color:#526552; }
+    .cassette-note.is-in-view .reel:first-child { animation:reelSettle 1.15s cubic-bezier(.16,1,.3,1) both; }
+    .cassette-note.is-in-view .reel:last-child { animation:reelSettleRight 1.15s cubic-bezier(.16,1,.3,1) .1s both; }
+    .tape-label { text-align:center; font:11px/1.8 monospace; letter-spacing:.4px; color:#526552; }
     .cassette-caption { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; color:#5c6755; }
     .cassette-caption strong { font:500 16px/1.7 var(--serif); letter-spacing:.5px; }
-    .cassette-caption small { font-size:10px; line-height:1.9; text-align:right; }
+    .cassette-caption small { font-size:12px; line-height:1.8; text-align:right; }
     .world-interlude { margin:36px 0 30px; }
+    .world-sticky { position:relative; }
     .world-interlude h2 { font:500 21px/1.8 var(--serif); color:#718167; letter-spacing:2px; margin:0; text-align:center; }
     .world-interlude figcaption { margin:0; font:14px/1.9 var(--serif); text-align:center; color:var(--muted); }
-    .letter { padding-top:32px; padding-bottom:8px; border-top:1px solid var(--line); scroll-margin-top:15px; }
+    .world-side-note { display:none; }
+    .letter { position:relative; padding-top:32px; padding-bottom:8px; border-top:1px solid var(--line); scroll-margin-top:15px; }
+    .letter::before { content:""; position:absolute; top:-1px; left:0; width:100%; height:1px; background:var(--rose); opacity:0; transform:scaleX(0); transform-origin:left; pointer-events:none; }
+    .letter.is-unsealed::before { animation:ruleDraw 820ms cubic-bezier(.16,1,.3,1) both; }
+    .letter:focus { outline:none; }
+    .letter:focus-visible .salutation { text-decoration:underline; text-decoration-color:var(--rose); text-decoration-thickness:1px; text-underline-offset:9px; }
     .salutation { margin:0 0 24px; font-family:var(--serif); font-size:24px; font-weight:500; letter-spacing:4px; color:var(--rose); }
     .prose { font-family:var(--serif); font-size:17px; line-height:2.05; letter-spacing:.55px; overflow-wrap:break-word; text-align:justify; }
     .prose p { margin:0 0 25px; }
@@ -114,11 +135,13 @@ SOFTWARE.
     .poem { margin:30px 0 36px; padding:8px 0 8px 18px; border-left:2px solid #c69093; font-family:var(--serif); font-size:19px; line-height:1.95; letter-spacing:.4px; color:#96556a; text-align:left; }
     .poem p { margin:0; }
     .confession { margin:36px 0 37px; text-align:center; font-family:var(--serif); }
-    .confession h2 { font-size:clamp(23px,6.5vw,29px); font-weight:500; color:var(--rose); margin:0 0 19px; letter-spacing:2px; }
+    .confession h2 { font-size:27px; font-weight:500; color:var(--rose); margin:0 0 19px; letter-spacing:2px; }
     .confession p { font-size:16px; line-height:2.15; margin:0; letter-spacing:.5px; }
     .ending { font-family:var(--serif); font-size:18px; line-height:2.1; margin:29px 0 33px; }
     .signature { text-align:right; font-size:12px; line-height:1.9; color:var(--muted); margin:0 0 42px; letter-spacing:1px; }
     .signature strong { display:block; font:500 25px/1.8 var(--serif); letter-spacing:5px; color:var(--ink); margin-top:5px; }
+    .signature-seal { display:inline-flex; align-items:center; justify-content:center; width:39px; height:39px; margin-top:9px; border:1px solid var(--rose); color:var(--rose); font:20px/1 var(--serif); transform:rotate(-8deg); }
+    .signature.is-in-view .signature-seal { animation:sealSign 360ms cubic-bezier(.34,1.4,.64,1) both; }
     .postscript { position:relative; text-align:center; padding:37px 0 29px; border-top:1px solid var(--line); }
     .postscript::before { content:""; position:absolute; inset:15px -20px; z-index:-1; background:radial-gradient(ellipse,#f3dabc00 0%,transparent 65%); transition:background 1s; }
     .postscript.is-lit::before { background:radial-gradient(ellipse,#f3dabc60 0%,transparent 65%); }
@@ -127,24 +150,62 @@ SOFTWARE.
     .window .window-glow { opacity:0; transition:opacity 1.1s; }
     .is-lit .window .light { fill:#f4ca78; }
     .is-lit .window .window-glow { opacity:1; }
+    .postscript.is-lit .window { animation:lampWake 650ms cubic-bezier(.16,1,.3,1) both; }
+    .postscript.is-lit .afterglow { animation:afterglowEnter 680ms cubic-bezier(.16,1,.3,1) both; }
     .light-button { min-height:48px; border:1px solid #bc858a; color:var(--rose); background:#fffaf440; padding:11px 24px; border-radius:3px; font-size:14px; letter-spacing:1px; }
     .light-button:disabled { color:#80664f; border-color:#c9ad82; background:#f6e5c85c; }
     .afterglow { min-height:76px; margin:18px 0 0; font:15px/1.9 var(--serif); color:var(--muted); letter-spacing:.7px; }
     .share-area { padding:19px 0 max(31px,env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .colophon { font-size:10px; line-height:1.9; color:var(--muted); letter-spacing:.4px; }
+    .colophon { font-size:12px; line-height:1.8; color:var(--muted); letter-spacing:.2px; }
     .share { display:flex; align-items:center; gap:7px; min-height:44px; background:transparent; border:0; padding:8px 0 8px 12px; color:#786153; font-size:12px; white-space:nowrap; }
     .share svg { width:15px; height:15px; }
-    .toast { position:fixed; bottom:max(25px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#493d37; color:#fff9ef; font-size:13px; line-height:1.7; padding:13px 18px; border-radius:5px; width:max-content; max-width:calc(100vw - 32px); z-index:20; }
+    .toast { position:fixed; bottom:max(25px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#493d37; color:#fff9ef; font-size:13px; line-height:1.7; padding:13px 18px; border-radius:5px; width:max-content; max-width:calc(100vw - 32px); z-index:20; pointer-events:none; }
     dialog { width:min(440px,calc(100% - 36px)); padding:27px; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:6px; }
     dialog::backdrop { background:#43332770; }
     dialog h2 { margin:0 0 14px; font-size:19px; }
     dialog p { font-size:14px; line-height:1.8; }
     dialog input { width:100%; min-height:48px; border:1px solid var(--line); border-radius:3px; padding:10px; color:var(--ink); background:#fffaf4; font-size:16px; }
     dialog button { width:100%; min-height:48px; background:var(--rose); color:white; border:0; border-radius:3px; margin-top:20px; }
+    @keyframes coverEnter { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes noteAnswer { 0%,10%,100% { transform:translateY(0) rotate(0); } 4% { transform:translateY(-3px) rotate(-7deg); } 7% { transform:translateY(-1px) rotate(2deg); } }
+    @keyframes sealArrive { from { opacity:.2; transform:translate(-50%,-50%) scale(1.28) rotate(7deg); } to { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(-7deg); } }
+    @keyframes reelSettle { from { transform:rotate(-32deg); } to { transform:rotate(0); } }
+    @keyframes reelSettleRight { from { transform:rotate(32deg); } to { transform:rotate(0); } }
+    @keyframes islandBuild { from { opacity:.35; transform:translateY(15px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes sealSign { from { opacity:.2; transform:scale(1.28) rotate(7deg); } to { opacity:1; transform:scale(1) rotate(-8deg); } }
+    @keyframes lampWake { 0% { transform:scale(.97); } 45% { transform:scale(1.05); } 100% { transform:scale(1); } }
+    @keyframes afterglowEnter { from { opacity:.2; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes ruleDraw { from { opacity:1; transform:scaleX(0); } to { opacity:1; transform:scaleX(1); } }
     @keyframes breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
     @keyframes drift { from { transform:translateX(-4px); } to { transform:translateX(6px); } }
+    .world-interlude.is-in-view .world-art { animation:islandBuild 850ms cubic-bezier(.16,1,.3,1) both; }
     @media (min-width:600px) { .page { padding:0 42px; } .envelope-line { padding-top:35px; } .cover { padding-top:44px; } .prose { font-size:18px; line-height:2.15; } .world-scene { margin-top:1px; } .letter { padding-top:40px; } }
-    @media (max-width:350px) { .page { padding-left:22px; padding-right:22px; } .envelope-line { font-size:10px; letter-spacing:.3px; } h1 { font-size:31px; letter-spacing:1px; } .cover-verse { font-size:14px; letter-spacing:.3px; } .prose { font-size:16.5px; letter-spacing:.1px; } .poem { font-size:17px; padding-left:13px; } .confession p { font-size:14.5px; } .cassette-note { padding:15px 12px; } }
+    @media (min-width:960px) {
+      .page { width:min(100%,1200px); padding:0 48px; }
+      .envelope-line { padding-top:27px; font-size:12px; }
+      .cover { display:grid; grid-template-columns:minmax(0,1fr) minmax(350px,.94fr); column-gap:clamp(48px,6vw,98px); align-items:center; min-height:625px; padding:34px 0 62px; text-align:left; }
+      .cover-copy { align-self:center; }
+      .cover-object { align-self:center; text-align:center; }
+      .cover-mark { margin:0 0 22px; width:50px; height:43px; }
+      .dedication { margin-bottom:19px; }
+      h1 { font-size:52px; line-height:1.5; }
+      .cover-verse { font-size:18px; margin-top:28px; }
+      .school-line { margin-top:29px; font-size:13px; }
+      .envelope-stage { padding-top:98px; }
+      .envelope-wrapper { max-width:370px; }
+      .letter { display:grid; grid-template-columns:minmax(0,615px) minmax(0,385px); grid-template-areas:"before art" "after art"; column-gap:clamp(45px,6vw,88px); align-items:start; padding-top:55px; }
+      .letter-before { grid-area:before; min-width:0; }
+      .letter-after { grid-area:after; min-width:0; }
+      .world-interlude { grid-area:art; margin:0; align-self:stretch; }
+      .world-sticky { position:sticky; top:28px; padding:21px 0; }
+      .world-scene { margin:0 -20px -11px; }
+      .world-art { max-width:none; }
+      .world-side-note { display:block; margin:32px 0 0; padding:18px 0 0; border-top:1px solid var(--line); color:#677661; font-size:13px; line-height:2; letter-spacing:.4px; }
+      .world-side-note span { display:block; margin-bottom:9px; color:var(--muted); font:12px/1.7 Consolas,"Courier New",monospace; letter-spacing:1px; }
+      .postscript { width:min(100%,615px); padding-top:48px; }
+      .share-area { margin-top:22px; }
+    }
+    @media (max-width:350px) { .page { padding-left:22px; padding-right:22px; } .envelope-line { font-size:10px; letter-spacing:.3px; } h1 { font-size:31px; letter-spacing:1px; } .cover-verse { font-size:14px; letter-spacing:.3px; } .prose { font-size:16.5px; letter-spacing:.1px; } .poem { font-size:17px; padding-left:13px; } .confession h2 { font-size:23px; } .confession p { font-size:14.5px; } .cassette-note { padding:15px 12px; } }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation:none !important; transition:none !important; } }
     @media print { .progress,.read-link,.postscript,.share-area,.toast,dialog { display:none !important; } body { background:white; } .page { max-width:100%; } .cover { padding-top:15px; } .world-scene { display:none; } .cover-verse { margin-bottom:30px; } .prose { font-size:12pt; } }
   </style>
@@ -155,42 +216,49 @@ SOFTWARE.
     <header class="envelope-line"><span>写在青春的这一页</span><span>陈润森 <svg class="tiny-heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h5v2h4V3h5v6h-2v2h-2v2H9v2H7v-2H5v-2H3V9H1z"/></svg> 潘诗菡</span></header>
     <main>
       <section class="cover" aria-labelledby="main-title">
-        <p class="dedication">潘诗菡 · 亲启</p>
-        <h1 id="main-title">那次合唱，<br /><span>后来有了回声。</span></h1>
-        <p class="cover-verse">军训有最后一天。<br />认识你，却是一个开始。</p>
+        <div class="cover-copy">
+          <svg class="cover-mark" viewBox="0 0 60 50" aria-hidden="true"><path d="M3 16 27 4l24 12-24 12z" fill="#a9bf8e"/><path d="M3 16 27 28v16L3 32z" fill="#a18b72"/><path d="M27 28 51 16v16L27 44z" fill="#806e59"/><path d="M3 16 27 28v5L3 21z" fill="#7f9a69"/><path d="M27 28 51 16v5L27 33z" fill="#6b865b"/><path class="music-notes" d="M34 2v14a5 5 0 1 1-2-4V5l15-3v11a5 5 0 1 1-2-4V0z" fill="#a95166"/></svg>
+          <p class="dedication">潘诗菡 · 亲启</p>
+          <h1 id="main-title"><span class="title-first">那次合唱，</span><span class="title-last">后来有了回声。</span></h1>
+          <p class="cover-verse">军训有最后一天。<br />认识你，却是一个开始。</p>
+          <p class="school-line">上海 · 杨思高级中学 · 军训最后一天</p>
+        </div>
+        <div class="cover-object">
         <div class="envelope-stage">
-          <a class="envelope-wrapper" id="open-envelope" href="#letter" aria-label="拆开陈润森写给潘诗菡的信">
+          <a class="envelope-wrapper" id="open-envelope" href="#letter" aria-label="拆开陈润森写给潘诗菡的信" aria-controls="letter">
             <span class="envelope-back" aria-hidden="true"></span>
-            <span class="letter-inside" aria-hidden="true"><span class="letter-preview">诗菡：<small>那首歌有唱完的时候，<br />关于你的心事，才刚刚起头。</small></span></span>
+            <span class="letter-inside" aria-hidden="true"><span class="letter-preview">诗菡：<small>那天合唱之后，<br />有些话我一直想对你说。</small></span></span>
             <span class="envelope-front" aria-hidden="true"><span class="envelope-title">潘诗菡 · 亲启</span></span>
             <span class="envelope-flap" aria-hidden="true"></span><span class="wax-seal" aria-hidden="true">菡</span>
           </a>
         </div>
-        <p class="school-line">上海 · 杨思高级中学 · 军训最后一天</p>
         <p class="envelope-hint" id="envelope-hint">轻触信封，读一读我的心事</p>
         <a class="read-link" href="#letter">也可以直接往下读<svg viewBox="0 0 12 18" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 1v14m-4-4 4 4 4-4"/></svg></a>
+        </div>
       </section>
       <article class="letter" id="letter" aria-labelledby="letter-title">
+        <div class="letter-before">
         <h2 class="salutation" id="letter-title">诗菡：</h2>
         <div class="prose">
           <p class="opening">如果要给我们的故事找一个开头，我会翻回杨思高级中学，军训结束的那一天。</p>
           <p>那天，我们因为合唱认识。现在想来，我很喜欢这个开始：在还不熟悉彼此的时候，我们先一起唱过歌。</p>
-          <p>军训有最后一天，合唱有最后一个音，可认识你这件事，悄悄越过了散场。写下这封信的时候，它还在往后延伸。</p>
+          <p>合唱结束，人群散开了。那天本可以像很多日子一样过去；认识你，却让它在我心里多留了一会儿。</p>
         </div>
         <div class="breath" aria-hidden="true"><i></i><i></i><i></i></div>
         <div class="prose">
-          <p>知道你喜欢周杰伦，我便想，如果有一天能和你一起听歌，会是怎样。</p>
-          <p>下课铃响过，作业暂时合上，耳机里放着你选的那一首。你告诉我，你最喜欢哪里；我就从那里，慢慢认识你。</p>
-          <p>歌可以从头再听。我们认识的那一天，却只有一次。大概正因为这样，我才不想把“喜欢你”，一直留在没敢说出口的那一页。</p>
+          <p>知道你喜欢周杰伦，我想留一首歌给你选。我还不知道你最喜欢哪一首，也不想擅自替你决定。</p>
+          <p>如果有一天放学后，你愿意告诉我，我会记下来。等下一次听见它，也许就会想起你告诉我歌名时的样子。</p>
+          <p>歌可以从头再听；认识你的那一天，却只有一次。我不想把想说的话，一直留在没敢翻开的那一页。</p>
         </div>
         <aside class="cassette-note" aria-label="想和你一起听的周杰伦"><div class="cassette" aria-hidden="true"><i class="reel"></i><span class="tape-label">JAY CHOU<br />SIDE A · OUR SCHOOL DAYS</span><i class="reel"></i></div><div class="cassette-caption"><strong>留一首周杰伦，<br />等你来选。</strong><small>一首歌的时间<br />想坐在你身边</small></div></aside>
-        <blockquote class="poem"><p>那首歌有唱完的时候。<br />而关于你的心事，<br />才刚刚起头。</p></blockquote>
+        <blockquote class="poem"><p>我不知道一首歌，<br />能把两个人带到哪里。<br />但军训结束的那天，<br />它先把我带到了你面前。</p></blockquote>
         <div class="prose">
           <p>关于以后，我想到的，都是很近的小事。</p>
           <p>某次课间，能和你多说两句话；放学后，能问一句要不要一起走；在忙着考试、忙着长大的日子里，还能把遇到的好笑的事讲给你听。</p>
-          <p>也想听听你。听你说开心，说烦恼，说今天其实没有发生什么。认识一个人，大概就像听一首很喜欢的歌，连那些安静的间奏，也舍不得跳过。</p>
+          <p>也想知道你的一天怎样过：哪门课让你费了心思，什么事让你突然笑起来，今天是否其实很平常。连没有故事可讲的日子，也值得好好听见。</p>
         </div>
-        <figure class="world-interlude"><h2>给你留了一格晴天</h2><div class="world-scene"><svg class="world-art" id="world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 510" role="img" aria-labelledby="world-title world-description"><title id="world-title">属于陈润森和潘诗菡的方块小岛</title><desc id="world-description">漂浮的草地方块上有粉色树、小木屋、两位并肩的小人，还有一颗像素爱心。</desc><defs><filter id="shadow" x="-40%" y="-100%" width="180%" height="300%"><feGaussianBlur stdDeviation="13" />
+        </div>
+        <figure class="world-interlude"><div class="world-sticky"><h2>给你留了一格晴天</h2><div class="world-scene"><svg class="world-art" id="world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 510" role="img" aria-labelledby="world-title world-description"><title id="world-title">属于陈润森和潘诗菡的方块小岛</title><desc id="world-description">漂浮的草地方块上有粉色树、小木屋、两位并肩的小人，还有一颗像素爱心。</desc><defs><filter id="shadow" x="-40%" y="-100%" width="180%" height="300%"><feGaussianBlur stdDeviation="13" />
 </filter></defs><ellipse cx="316" cy="448" rx="164" ry="20" fill="#a99a81" opacity=".17" filter="url(#shadow)" />
 <g transform="translate(84 146)"><g class="cloud"><path transform="scale(0.7)" d="M0 15h18V5h25v-5h21v11h26v11h15v13H0z" fill="#fffdf8"/>
 <path transform="scale(0.7)" d="M0 35h105v5H0z" fill="#efe8dc"/>
@@ -1065,7 +1133,8 @@ SOFTWARE.
 <polygon points="293.60,134.11 296.48,135.55 293.60,136.99 290.72,135.55" fill="#f3b0b1"/>
 <g fill="#cfb990"><path d="M456 202h3v6h6v3h-6v6h-3v-6h-6v-3h6z"/>
 <path d="M122 270h2v4h4v2h-4v4h-2v-4h-4v-2h4z"/>
-</g></svg></div><figcaption>一块草地，一间小屋。<br />还有一个，留在身旁的位置。</figcaption></figure>
+</g></svg></div><figcaption>一块草地，一间小屋。<br />还有一个，留在身旁的位置。</figcaption><p class="world-side-note"><span>YANGSI · THE LAST DAY OF TRAINING</span>合唱结束时，我们才刚刚认识。<br />这一格晴天，留给还没写完的以后。</p></div></figure>
+        <div class="letter-after">
         <div class="prose">
           <p>所以，我还在这里搭了一个小小的迷你世界。它装不下整个未来，倒刚好装得下一个愿望：下次遇见好看的风景，我想先问你，要不要一起看。</p>
           <p>课表会换，试卷会翻过去，很多现在熟悉的声音，有一天也会变成回忆。我希望到那时候，想起杨思的校园，除了铃声和合唱，还能想起我们后来一起走过的路。</p>
@@ -1076,7 +1145,8 @@ SOFTWARE.
         </section>
         <div class="prose"><p>这一次，换我先开口。至于下一句怎么唱，我想留一点空白，听你的心意。</p></div>
         <p class="ending">如果你也愿意，<br />下次，我们再一起唱首歌。</p>
-        <div class="signature">从那次合唱，写到此刻<strong>陈润森</strong></div>
+        <div class="signature">从那次合唱，写到此刻<strong>陈润森</strong><span class="signature-seal" aria-hidden="true">森</span></div>
+        </div>
       </article>
       <section class="postscript" id="postscript" aria-label="信末的一盏灯">
         <svg class="window" viewBox="0 0 70 84" aria-hidden="true"><defs><radialGradient id="window-light"><stop stop-color="#edb553" stop-opacity=".5"/><stop offset="1" stop-color="#edb553" stop-opacity="0"/></radialGradient></defs><ellipse class="window-glow" fill="url(#window-light)" cx="35" cy="42" rx="35" ry="42"/><path d="M15 13h40v52H15z" fill="#a18b72"/><path class="light" d="M19 17h32v44H19z"/><path d="M33 15h4v49h-4zM17 37h36v4H17z" fill="#a18b72"/><path d="M11 65h48v5H11z" fill="#c2ab8b"/><path d="M15 70h40v3H15z" fill="#e2d5be"/></svg>
@@ -1091,8 +1161,11 @@ SOFTWARE.
   <script>
     (() => {
       const envelope = document.getElementById('open-envelope');
+      const paper = envelope.querySelector('.letter-inside');
+      const letter = document.getElementById('letter');
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       let opening = false;
-      envelope.addEventListener('click', (event) => {
+      const openLetter = (event) => {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         if (opening) return;
@@ -1100,15 +1173,56 @@ SOFTWARE.
         const wasOpen = envelope.classList.contains('open');
         envelope.classList.add('open');
         document.getElementById('envelope-hint').textContent = '诗菡，这封信是写给你的。';
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        setTimeout(() => {
-          const letter = document.getElementById('letter');
-          letter.setAttribute('tabindex', '-1');
+        let fallback;
+        const finishOpening = () => {
+          if (!opening) return;
+          clearTimeout(fallback);
+          paper.removeEventListener('animationend', onPaperRise);
+          letter.classList.add('is-unsealed');
+          letter.tabIndex = -1;
           letter.focus({ preventScroll:true });
-          letter.scrollIntoView({ behavior:reduceMotion ? 'instant' : 'smooth', block:'start' });
+          letter.scrollIntoView({ behavior:motionQuery.matches ? 'instant' : 'smooth', block:'start' });
           opening = false;
-        }, wasOpen || reduceMotion ? 0 : 1100);
+        };
+        const onPaperRise = (animationEvent) => {
+          if (animationEvent.target === paper && animationEvent.animationName === 'letterRise') finishOpening();
+        };
+        if (wasOpen || motionQuery.matches) { finishOpening(); return; }
+        paper.addEventListener('animationend', onPaperRise);
+        fallback = setTimeout(finishOpening, 1100);
+      };
+      envelope.addEventListener('click', openLetter);
+      envelope.addEventListener('keydown', (event) => {
+        if (event.key === ' ' || event.key === 'Spacebar') openLetter(event);
       });
+      if (!motionQuery.matches && 'IntersectionObserver' in window) {
+        const reveal = new IntersectionObserver((entries, observer) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            observer.unobserve(entry.target);
+            if (entry.target.matches('.cassette-note,.world-interlude,.signature')) entry.target.classList.add('is-in-view');
+            if (entry.target.matches('.letter .prose p,.poem,.confession,.ending,.signature')) {
+              entry.target.animate([
+                { opacity:.35, transform:'translateY(12px)' },
+                { opacity:1, transform:'translateY(0)' },
+              ], { duration:700, easing:'cubic-bezier(.16,1,.3,1)' });
+            }
+          }
+        }, { threshold:.12, rootMargin:'0px 0px -6% 0px' });
+        document.querySelectorAll('.letter .prose p,.poem,.confession,.ending,.signature,.cassette-note,.world-interlude').forEach(element => reveal.observe(element));
+      }
+      if (!motionQuery.matches && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        const worldScene = document.querySelector('.world-scene');
+        worldScene.addEventListener('pointermove', (event) => {
+          const rect = worldScene.getBoundingClientRect();
+          worldScene.style.setProperty('--scene-x', `${(((event.clientX - rect.left) / rect.width - .5) * 9).toFixed(1)}px`);
+          worldScene.style.setProperty('--scene-y', `${(((event.clientY - rect.top) / rect.height - .5) * 6).toFixed(1)}px`);
+        }, { passive:true });
+        worldScene.addEventListener('pointerleave', () => {
+          worldScene.style.removeProperty('--scene-x');
+          worldScene.style.removeProperty('--scene-y');
+        });
+      }
       const progress = document.getElementById('reading-progress');
       let frame = 0;
       const updateProgress = () => {
