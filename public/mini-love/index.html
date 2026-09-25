@@ -4,7 +4,7 @@
 Envelope component adapted from https://github.com/luo-5/love-letter-site-template
 Source: index.html at 576779f5f85f5f4f9c6c58e3a375f9ed13cee944
 Changes: responsive paper envelope, accessible anchor, choreographed opening sequence.
-Original letter copy, block illustration, and remaining layout by Chen Runsen.
+Original letter copy, five-movement structure, choir canvas, cassette, fermata, music box and block illustration by Chen Runsen.
 
 MIT License
 
@@ -27,134 +27,198 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 -->
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#fbf6ed" />
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="description" content="杨思高级中学，军训的最后一天，我们因为合唱认识。陈润森写给潘诗菡的一封校园情书。" />
+  <meta name="description" content="杨思高级中学，军训的最后一天，我们因为合唱认识。陈润森写给潘诗菡的一封信，分五个乐章。" />
   <meta property="og:title" content="那次合唱，后来有了回声 · 潘诗菡亲启" />
-  <meta property="og:description" content="从军训最后一天的合唱，写到想和你一起听的下一首歌。" />
+  <meta property="og:description" content="一封分五个乐章的信：从军训最后一天的合唱，写到想和你一起唱的下一首歌。" />
   <title>那次合唱，后来有了回声 · 陈润森致潘诗菡</title>
+  <script>document.documentElement.classList.add('js');</script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23b65f70' d='M4 6h8v4h8V6h8v14h-4v4h-4v4h-8v-4H8v-4H4z'/%3E%3C/svg%3E" />
   <style>
-    :root { color-scheme:light; --paper:#fbf6ed; --ink:#493d37; --muted:#7d6e62; --rose:#a95166; --line:#dfd1bd; --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",SimSun,serif; }
+    :root { color-scheme:light; --paper:#fbf6ed; --ink:#493d37; --muted:#7d6e62; --rose:#a95166; --rose-soft:#c98a96; --sage:#6f7f64; --line:#dfd1bd; --staff:#b9a58c; --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",SimSun,serif; --mono:Consolas,"Courier New",monospace; }
     * { box-sizing:border-box; }
-    html { scroll-behavior:smooth; scroll-padding-top:30px; }
+    html { scroll-behavior:smooth; scroll-padding-top:44px; }
+    html,body { overflow-x:clip; }
     body { margin:0; color:var(--ink); background:var(--paper); font-family:"PingFang SC","Microsoft YaHei",sans-serif; -webkit-text-size-adjust:100%; }
     body::before { content:""; position:absolute; inset:0 0 auto; height:900px; z-index:-1; background:radial-gradient(ellipse at 72% 37%,#f0c3a127,transparent 55%),linear-gradient(#f8ecdf55,transparent); pointer-events:none; }
-    button,input { font:inherit; }
+    button,input { font:inherit; color:inherit; }
     button,a { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
     button { cursor:pointer; }
     button:disabled { cursor:default; }
-    button:focus-visible,a:focus-visible,input:focus-visible { outline:2px solid var(--rose); outline-offset:5px; }
+    button:focus-visible,a:focus-visible { outline:2px solid var(--rose); outline-offset:5px; }
     [hidden] { display:none !important; }
     ::selection { background:#ead0cd; color:#493d37; }
-    .progress { position:fixed; top:0; left:0; height:2px; width:100%; z-index:10; pointer-events:none; }
-    .progress span { display:block; width:100%; height:100%; background:#b96c78; transform:scaleX(0); transform-origin:left; }
-    .page { width:min(100%,560px); margin:auto; padding:0 max(27px,env(safe-area-inset-left)) 0 max(27px,env(safe-area-inset-right)); }
+    .u-sr { position:absolute; width:1px; height:1px; margin:-1px; clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
+
+    /* ── 顶部乐谱进度 + 八音盒开关 ── */
+    .score { position:fixed; top:0; left:0; right:0; z-index:12; display:flex; align-items:center; gap:10px; padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left)); background:#fbf6edea; border-bottom:1px solid #dfd1bd99; backdrop-filter:blur(6px); transform:translateY(-110%); transition:transform .45s cubic-bezier(.16,1,.3,1); }
+    .score.is-shown { transform:none; }
+    .score ol { display:flex; flex:1; gap:6px; margin:0; padding:0; list-style:none; }
+    .score li { flex:1; }
+    .score a { display:grid; gap:4px; padding:4px 0; color:var(--muted); font:11px/1 var(--serif); letter-spacing:1px; text-decoration:none; }
+    .score .bar { display:block; height:3px; background:#e6d9c6; border-radius:2px; overflow:hidden; }
+    .score .bar i { display:block; height:100%; background:var(--rose); transform:scaleX(var(--p,0)); transform-origin:left; }
+    .score li.is-now a { color:var(--rose); }
+    .score-now { min-width:4.2em; color:var(--rose); font:12px/1 var(--serif); letter-spacing:2px; text-align:right; }
+    .sound { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 10px; border:1px solid var(--line); border-radius:17px; background:#fffaf2; color:var(--muted); font-size:12px; letter-spacing:1px; }
+    .sound[aria-pressed="true"] { border-color:var(--rose-soft); color:var(--rose); background:#fbeef0; }
+    .sound svg { width:14px; height:14px; }
+
+    .page { width:min(100%,680px); margin:auto; padding:0 max(27px,env(safe-area-inset-right)) 0 max(27px,env(safe-area-inset-left)); }
     .envelope-line { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:max(26px,env(safe-area-inset-top)); padding-bottom:18px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:1.7px; }
-    .envelope-line span:last-child { letter-spacing:1px; }
     .tiny-heart { width:12px; height:12px; display:inline-block; vertical-align:-1px; fill:var(--rose); margin:0 5px; }
+
+    /* ── 卷首与信封（信封层叠与起落改编自 luo-5/love-letter-site-template，MIT） ── */
     .cover { text-align:center; padding-top:27px; }
     .cover-mark { display:block; width:43px; height:37px; margin:0 auto 13px; }
-    .dedication { font-size:12px; color:var(--muted); letter-spacing:4px; margin:0 0 16px; }
-    h1 { margin:0; font-family:var(--serif); font-size:38px; font-weight:500; line-height:1.6; letter-spacing:2px; }
-    h1 .title-last { color:var(--rose); }
     .cover-mark .music-notes { transform-box:fill-box; transform-origin:center; animation:noteAnswer 4.8s ease-in-out 1.4s infinite; }
+    .dedication { font-size:12px; color:var(--muted); letter-spacing:4px; margin:0 0 16px; }
+    h1 { margin:0; font:500 38px/1.6 var(--serif); letter-spacing:2px; }
+    h1 .title-last { color:var(--rose); }
     .cover-mark,.dedication,h1 .title-first,h1 .title-last,.cover-verse,.school-line { display:block; animation:coverEnter 760ms cubic-bezier(.16,1,.3,1) both; }
-    .cover-mark { animation-delay:40ms; }
-    .dedication { animation-delay:140ms; }
-    h1 .title-first { animation-delay:240ms; }
-    h1 .title-last { animation-delay:330ms; }
-    .cover-verse { animation-delay:460ms; }
-    .school-line { animation-delay:550ms; }
+    .dedication { animation-delay:140ms; } h1 .title-first { animation-delay:240ms; } h1 .title-last { animation-delay:330ms; } .cover-verse { animation-delay:460ms; } .school-line { animation-delay:550ms; }
     .cover-object { animation:coverEnter 820ms cubic-bezier(.16,1,.3,1) 470ms both; }
-    .cover-verse { font-family:var(--serif); font-size:15px; line-height:2; letter-spacing:1px; margin:19px -4px 0; }
-    .world-scene { position:relative; margin:-33px -15px -6px; transform:translate3d(var(--scene-x,0px),var(--scene-y,0px),0); transition:transform 500ms cubic-bezier(.16,1,.3,1); }
-    .world-scene::before { content:""; position:absolute; width:75%; height:58%; top:27%; left:13%; border-radius:50%; background:#efd3ad24; filter:blur(20px); z-index:-1; }
-    .world-art { display:block; width:100%; height:auto; max-width:430px; margin:auto; }
-    .floating-heart { animation:breathe 5s ease-in-out infinite; }
-    .cloud { animation:drift 9s ease-in-out infinite alternate; }
-    .cloud-two { animation-delay:-5s; }
-    .read-link { display:inline-flex; min-height:48px; align-items:center; gap:10px; color:var(--muted); font-size:11px; letter-spacing:2px; text-decoration:none; margin:0 0 11px; }
-    .read-link svg { width:12px; height:18px; }
+    .cover-verse { font:15px/2 var(--serif); letter-spacing:1px; margin:19px -4px 0; }
     .school-line { font-size:12px; letter-spacing:1px; color:var(--muted); margin:20px 0 8px; }
     .envelope-stage { position:relative; padding:72px 4px 4px; perspective:1200px; }
-    /* Envelope layers and flap/rise animation adapted from luo-5/love-letter-site-template (MIT). */
-    .envelope-wrapper { display:block; position:relative; width:100%; max-width:330px; aspect-ratio:380/240; margin:auto; cursor:pointer; transform-style:preserve-3d; transform-origin:center; filter:drop-shadow(0 16px 16px #6f584d22); text-decoration:none; color:var(--ink); transition:transform .4s cubic-bezier(.16,1,.3,1),filter .4s ease; touch-action:manipulation; }
+    .envelope-wrapper { display:block; position:relative; width:100%; max-width:330px; aspect-ratio:380/240; margin:auto; cursor:pointer; transform-style:preserve-3d; filter:drop-shadow(0 16px 16px #6f584d22); text-decoration:none; color:var(--ink); transition:transform .4s cubic-bezier(.16,1,.3,1),filter .4s ease; }
     @media (hover:hover) { .envelope-wrapper:not(.open):hover { transform:translateY(-5px) rotate(-.6deg); filter:drop-shadow(0 23px 21px #6f584d25); } }
     .envelope-wrapper:not(.open):active { transform:translateY(1px) scale(.992); }
-    .envelope-back { position:absolute; inset:0; background:linear-gradient(180deg,#d3c7af,#cbb9a0); border-radius:3px; z-index:1; box-shadow:inset 0 1px 0 #fff6df80; }
-    .letter-inside { position:absolute; top:6%; left:4%; width:92%; height:88%; background:repeating-linear-gradient(transparent 0 27px,#b7c6ca30 27px 28px),#fffaf0; border:1px solid #dac9b1; z-index:2; padding:14px 18px; color:#61584c; font-family:var(--serif); box-shadow:0 -5px 15px #4a372522; transition:transform 1s cubic-bezier(.25,1,.5,1); overflow:hidden; }
-    .letter-inside::before { content:""; position:absolute; inset:7px; border:1px solid #bd9f7833; pointer-events:none; }
+    .envelope-back { position:absolute; inset:0; background:linear-gradient(180deg,#d3c7af,#cbb9a0); border-radius:3px; z-index:1; }
+    .letter-inside { position:absolute; top:6%; left:4%; width:92%; height:88%; background:repeating-linear-gradient(transparent 0 27px,#b7c6ca30 27px 28px),#fffaf0; border:1px solid #dac9b1; z-index:2; padding:14px 18px; color:#61584c; font-family:var(--serif); box-shadow:0 -5px 15px #4a372522; overflow:hidden; }
     .letter-preview { display:block; font-size:14px; letter-spacing:2px; line-height:1.9; text-align:left; }
     .letter-preview small { display:block; font-size:12px; margin-top:7px; }
     .envelope-front { position:absolute; inset:0; clip-path:polygon(0 100%,100% 100%,100% 0,50% 63%,0 0); z-index:3; border-radius:0 0 3px 3px; background:linear-gradient(155deg,#e7d9bf,#e1cbaa); }
-    .envelope-front::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg,#fff8e809 0 1px,transparent 1px 8px); pointer-events:none; }
-    .envelope-flap { position:absolute; top:0; left:0; width:100%; height:69%; clip-path:polygon(0 0,100% 0,50% 100%); z-index:4; transform-origin:top; transform-style:preserve-3d; backface-visibility:hidden; transition:transform .7s cubic-bezier(.4,0,.2,1); background:linear-gradient(180deg,#efe3ce,#ddc5a2); }
-    .envelope-flap::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg,#fff6d544,transparent 36%,#35190718); pointer-events:none; }
+    .envelope-flap { position:absolute; top:0; left:0; width:100%; height:69%; clip-path:polygon(0 0,100% 0,50% 100%); z-index:4; transform-origin:top; backface-visibility:hidden; transition:transform .7s cubic-bezier(.4,0,.2,1); background:linear-gradient(180deg,#efe3ce,#ddc5a2); }
     .envelope-title { position:absolute; bottom:13%; left:0; right:0; text-align:center; font:500 18px/1.4 var(--serif); letter-spacing:4px; }
     .wax-seal { position:absolute; top:53%; left:50%; transform:translate(-50%,-50%) rotate(-7deg); width:44px; height:39px; z-index:5; display:flex; align-items:center; justify-content:center; color:#fff8ee; background:#aa6070; clip-path:polygon(4% 0,44% 0,50% 8%,56% 0,96% 0,100% 12%,95% 94%,54% 100%,47% 94%,2% 100%,0 12%); font:19px var(--serif); transition:opacity .28s,transform .28s; animation:sealArrive 360ms cubic-bezier(.34,1.4,.64,1) 1.06s backwards; }
-    .envelope-wrapper:not(.open):active .wax-seal { transform:translate(-50%,-47%) scale(.94) rotate(-7deg); }
     .envelope-wrapper.open .envelope-flap { transform:rotateX(180deg); z-index:1; transition-duration:.55s; }
     .envelope-wrapper.open .wax-seal { animation:none; opacity:0; transform:translate(-50%,-50%) scale(1.22) rotate(5deg); }
     .envelope-wrapper.open .letter-inside { animation:letterRise .68s cubic-bezier(.22,1,.36,1) .19s forwards; }
-    @keyframes letterRise { 0% { transform:translateY(0) rotate(0); } 72% { transform:translateY(-58%) rotate(-1.8deg); } 100% { transform:translateY(-55%) rotate(-1deg); } }
     .envelope-hint { min-height:40px; margin:16px 0 0; font-size:13px; color:var(--muted); letter-spacing:1px; }
-    .cassette-note { margin:35px 0 37px; padding:18px 18px 16px; background:#eee9db; border:1px solid #d4d0bb; border-radius:3px; transform:rotate(-1deg); position:relative; }
-    .cassette-note::before { content:""; position:absolute; width:66px; height:18px; left:calc(50% - 33px); top:-10px; background:#d7bc8966; transform:rotate(4deg); }
-    .cassette { display:grid; grid-template-columns:42px 1fr 42px; gap:10px; align-items:center; border:1px solid #c6bc9f; padding:11px; background:#e1decc; border-radius:25px; }
-    .reel { width:34px; height:34px; border:5px solid #6d786c; border-radius:50%; background:repeating-conic-gradient(#e0dece 0 20deg,#899080 20deg 40deg); position:relative; }
-    .reel::after { content:""; position:absolute; inset:8px; background:#ede7d9; border-radius:50%; }
-    .cassette-note.is-in-view .reel:first-child { animation:reelSettle 1.15s cubic-bezier(.16,1,.3,1) both; }
-    .cassette-note.is-in-view .reel:last-child { animation:reelSettleRight 1.15s cubic-bezier(.16,1,.3,1) .1s both; }
-    .tape-label { text-align:center; font:11px/1.8 monospace; letter-spacing:.4px; color:#526552; }
-    .cassette-caption { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; color:#5c6755; }
-    .cassette-caption strong { font:500 16px/1.7 var(--serif); letter-spacing:.5px; }
-    .cassette-caption small { font-size:12px; line-height:1.8; text-align:right; }
-    .world-interlude { margin:36px 0 30px; }
-    .world-sticky { position:relative; }
-    .world-interlude h2 { font:500 21px/1.8 var(--serif); color:#718167; letter-spacing:2px; margin:0; text-align:center; }
-    .world-interlude figcaption { margin:0; font:14px/1.9 var(--serif); text-align:center; color:var(--muted); }
-    .world-side-note { display:none; }
-    .letter { position:relative; padding-top:32px; padding-bottom:8px; border-top:1px solid var(--line); scroll-margin-top:15px; }
-    .letter::before { content:""; position:absolute; top:-1px; left:0; width:100%; height:1px; background:var(--rose); opacity:0; transform:scaleX(0); transform-origin:left; pointer-events:none; }
-    .letter.is-unsealed::before { animation:ruleDraw 820ms cubic-bezier(.16,1,.3,1) both; }
-    .letter:focus { outline:none; }
-    .letter:focus-visible .salutation { text-decoration:underline; text-decoration-color:var(--rose); text-decoration-thickness:1px; text-underline-offset:9px; }
-    .salutation { margin:0 0 24px; font-family:var(--serif); font-size:24px; font-weight:500; letter-spacing:4px; color:var(--rose); }
-    .prose { font-family:var(--serif); font-size:17px; line-height:2.05; letter-spacing:.55px; overflow-wrap:break-word; text-align:justify; }
+    .read-link { display:inline-flex; min-height:48px; align-items:center; gap:10px; color:var(--muted); font-size:11px; letter-spacing:2px; text-decoration:none; margin:0 0 11px; }
+    .read-link svg { width:12px; height:18px; }
+
+    /* ── 节目单 ── */
+    .program { position:relative; margin:40px 0 10px; padding:26px 22px 22px; border:1px solid var(--line); outline:1px solid var(--line); outline-offset:-6px; background:#fffaf2; text-align:center; scroll-margin-top:60px; }
+    .program::before { content:""; position:absolute; top:-1px; left:0; width:100%; height:1px; background:var(--rose); transform:scaleX(0); transform-origin:left; }
+    .program.is-unsealed::before { animation:ruleDraw 820ms cubic-bezier(.16,1,.3,1) both; }
+    .program:focus { outline-color:var(--line); }
+    .program-kicker { margin:0; color:var(--muted); font:11px/1.8 var(--mono); letter-spacing:4px; }
+    .program h2 { margin:4px 0 18px; font:500 22px/1.6 var(--serif); letter-spacing:6px; }
+    .program ol { margin:0 auto; padding:0; max-width:380px; list-style:none; text-align:left; }
+    .program li a { display:flex; align-items:baseline; gap:10px; padding:7px 0; color:var(--ink); text-decoration:none; font:15px/1.7 var(--serif); }
+    .program li a:hover .pg-title { color:var(--rose); }
+    .pg-num { width:1.6em; color:var(--rose); }
+    .pg-name { white-space:nowrap; }
+    .pg-dots { flex:1; border-bottom:1px dotted #c8b79f; transform:translateY(-4px); }
+    .pg-title { white-space:nowrap; transition:color .2s; }
+    .program-foot { margin:18px 0 0; color:var(--muted); font:13px/2 var(--serif); letter-spacing:1px; }
+    .program-foot small { display:block; font-size:12px; color:#9a8b7d; }
+
+    /* ── 乐章 ── */
+    .movement { position:relative; padding:74px 0 16px; scroll-margin-top:40px; }
+    .mv-head { position:relative; padding-top:44px; margin:0 0 30px; }
+    .mv-head::before { content:""; position:absolute; top:4px; left:44px; right:0; height:25px; background:repeating-linear-gradient(180deg,var(--staff) 0 1px,transparent 1px 6px); opacity:.5; }
+    .mv-num { position:absolute; top:0; left:0; width:33px; height:33px; display:grid; place-items:center; border-radius:50%; background:var(--rose); color:#fff8ee; font:15px/1 var(--serif); box-shadow:0 0 0 5px var(--paper); }
+    .movement.is-in .mv-num { animation:noteHop .9s cubic-bezier(.34,1.5,.64,1) both; }
+    .mv-kicker { margin:0; color:var(--muted); font:12px/1.8 var(--serif); letter-spacing:4px; }
+    .mv-title { margin:4px 0 6px; font:500 26px/1.6 var(--serif); letter-spacing:3px; }
+    .mv-tempo { margin:0; color:var(--sage); font:13px/1.8 var(--serif); letter-spacing:1px; }
+    .mv-tempo i { font-family:Georgia,"Times New Roman",serif; margin-right:6px; }
+    .salutation { margin:0 0 20px; font:500 24px/1.6 var(--serif); letter-spacing:4px; color:var(--rose); }
+    .prose { font:17px/2.05 var(--serif); letter-spacing:.55px; overflow-wrap:break-word; text-align:justify; }
     .prose p { margin:0 0 25px; }
     .prose .opening { font-size:18px; }
     .breath { height:42px; display:flex; align-items:center; justify-content:center; gap:9px; margin:1px 0 23px; }
     .breath i { display:block; width:4px; height:4px; background:#c99a90; }
     .breath i:nth-child(2) { width:5px; height:5px; background:#ad6e74; }
-    .poem { margin:30px 0 36px; padding:8px 0 8px 18px; border-left:2px solid #c69093; font-family:var(--serif); font-size:19px; line-height:1.95; letter-spacing:.4px; color:#96556a; text-align:left; }
+
+    /* 合唱画布：滚动推进 */
+    .choir { position:relative; height:250vh; margin:10px -27px 0; }
+    .choir-sticky { position:sticky; top:0; height:100vh; height:100svh; display:grid; grid-template-rows:1fr auto; padding:52px 0 26px; }
+    .choir canvas { display:block; width:100%; height:100%; }
+    .choir-caps { position:relative; min-height:88px; margin:0 27px; padding:0; list-style:none; text-align:center; }
+    .choir-caps li { position:absolute; inset:0; display:grid; place-items:center; opacity:0; transform:translateY(8px); transition:opacity .6s,transform .6s cubic-bezier(.16,1,.3,1); font:18px/1.9 var(--serif); letter-spacing:1px; }
+    .choir-caps li.is-on { opacity:1; transform:none; }
+    .choir-caps li:last-child { color:var(--rose); }
+    .choir-tip { position:absolute; top:60px; left:0; right:0; margin:0; text-align:center; color:#a4968a; font-size:11px; letter-spacing:2px; transition:opacity .5s; }
+    .choir.is-moving .choir-tip { opacity:0; }
+
+    /* 诗经 */
+    .poem { margin:30px 0 32px; padding:14px 0 14px 20px; border-left:2px solid #c69093; font:19px/2 var(--serif); letter-spacing:2px; color:#96556a; }
     .poem p { margin:0; }
-    .confession { margin:36px 0 37px; text-align:center; font-family:var(--serif); }
-    .confession h2 { font-size:27px; font-weight:500; color:var(--rose); margin:0 0 19px; letter-spacing:2px; }
-    .confession p { font-size:16px; line-height:2.15; margin:0; letter-spacing:.5px; }
-    .ending { font-family:var(--serif); font-size:18px; line-height:2.1; margin:29px 0 33px; }
+    .poem small { display:block; margin-top:6px; color:var(--muted); font-size:12px; letter-spacing:1px; }
+
+    /* 磁带：A 面与 B 面 */
+    .tape { margin:34px auto 34px; max-width:360px; perspective:1000px; }
+    .tape-card { position:relative; aspect-ratio:1.58; transform-style:preserve-3d; transition:transform .9s cubic-bezier(.3,1.3,.5,1); }
+    .tape.is-b .tape-card { transform:rotateY(180deg); }
+    .tape-face { position:absolute; inset:0; display:grid; grid-template-rows:1fr auto; gap:9px; padding:12px; border-radius:12px; background:linear-gradient(160deg,#55635c,#3d4843); box-shadow:0 14px 26px #3a2f2a33,inset 0 1px 0 #ffffff22; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+    .tape-face.side-b { transform:rotateY(180deg); background:linear-gradient(160deg,#7a5360,#5b3d47); }
+    .tape-label { padding:9px 12px; border-radius:6px; background:repeating-linear-gradient(transparent 0 21px,#d9ccb366 21px 22px),#f6eedb; color:#4c4038; text-align:left; }
+    .tape-side { display:block; margin-bottom:4px; color:#8b5b66; font:10px/1.6 var(--mono); letter-spacing:1.5px; }
+    .tape-label ol { margin:0; padding-left:20px; font:14px/22px var(--serif); }
+    .tape-label .blank { display:inline-block; width:7em; border-bottom:1px solid #b9a78c; }
+    .tape-label .wait { color:#9a8b7d; font-size:12px; }
+    .tape-window { display:flex; justify-content:space-between; align-items:center; height:44px; padding:0 17%; border-radius:22px; background:#20282533; box-shadow:inset 0 2px 5px #0005; }
+    .reel { width:32px; height:32px; border:5px solid #e3dcc8; border-radius:50%; background:repeating-conic-gradient(#e3dcc8 0 20deg,#6f7a6e 20deg 40deg); }
+    .tape.is-playing .reel { animation:spin 3.2s linear infinite; }
+    .tape-actions { display:flex; justify-content:center; margin-top:14px; }
+    .tape-flip { min-height:44px; padding:0 18px; border:1px solid var(--line); border-radius:22px; background:#fffaf2; color:var(--muted); font-size:13px; letter-spacing:1px; }
+    .tape-flip:hover { color:var(--rose); border-color:var(--rose-soft); }
+
+    /* 小岛 */
+    .world { margin:40px 0 34px; text-align:center; }
+    .world h3 { margin:0; font:500 21px/1.8 var(--serif); color:#718167; letter-spacing:2px; }
+    .world-scene { position:relative; margin:-26px -15px -6px; transform:translate3d(var(--scene-x,0px),var(--scene-y,0px),0); transition:transform 500ms cubic-bezier(.16,1,.3,1); }
+    .world-scene::before { content:""; position:absolute; width:75%; height:58%; top:27%; left:13%; border-radius:50%; background:#efd3ad24; filter:blur(20px); z-index:-1; }
+    .world-art { display:block; width:100%; height:auto; max-width:460px; margin:auto; }
+    .world-art .floating-heart { animation:breathe 5s ease-in-out infinite; }
+    .world-art .cloud { animation:drift 9s ease-in-out infinite alternate; }
+    .world-art .cloud-two { animation-delay:-5s; }
+    .world.is-in .world-art { animation:islandBuild 850ms cubic-bezier(.16,1,.3,1) both; }
+    .world figcaption { margin:0; font:14px/1.9 var(--serif); color:var(--muted); }
+
+    /* 副歌：告白 */
+    .confess { position:relative; margin:10px 0 40px; padding:34px 0 30px; text-align:center; }
+    .confess::before { content:""; position:absolute; inset:18px 0 auto; height:49px; background:repeating-linear-gradient(180deg,#d9b3b999 0 1px,transparent 1px 12px); }
+    .confess h3 { position:relative; margin:0; padding:0 .5em; display:inline-block; background:var(--paper); font:500 clamp(28px,8vw,40px)/1.6 var(--serif); color:var(--rose); letter-spacing:3px; }
+    .confess p { margin:22px 0 0; font:16px/2.15 var(--serif); letter-spacing:.5px; }
+    .notes-rise { position:absolute; inset:0; pointer-events:none; }
+    .notes-rise i { position:absolute; bottom:40%; color:var(--rose-soft); font-style:normal; font-size:18px; opacity:0; }
+    .confess.is-in .notes-rise i { animation:noteRise 3.4s ease-out both; }
+    .notes-rise i:nth-child(1) { left:8%; animation-delay:.2s !important; } .notes-rise i:nth-child(2) { left:24%; animation-delay:.9s !important; font-size:14px; } .notes-rise i:nth-child(3) { left:74%; animation-delay:.5s !important; } .notes-rise i:nth-child(4) { left:90%; animation-delay:1.3s !important; font-size:14px; }
+
+    /* 尾声：延长记号 */
+    .fermata { margin:12px 0 30px; text-align:center; }
+    .fermata svg { display:block; width:min(100%,360px); height:auto; margin:0 auto; overflow:visible; }
+    .fermata .staff line { stroke:var(--staff); stroke-width:1; }
+    .fermata .ring { fill:none; stroke:var(--rose-soft); stroke-width:1.2; opacity:0; transform-box:fill-box; transform-origin:center; }
+    .fermata.is-holding .ring { animation:ring 1.6s ease-out infinite; }
+    .fermata.is-holding .ring:nth-of-type(2) { animation-delay:.55s; }
+    .fermata.is-holding .ring:nth-of-type(3) { animation-delay:1.1s; }
+    .fermata .note-head { transition:fill .3s; }
+    .fermata.is-holding .note-head { fill:var(--rose); }
+    .fermata .arc { transition:transform .5s cubic-bezier(.34,1.5,.64,1); transform-box:fill-box; transform-origin:center bottom; }
+    .fermata.is-holding .arc { transform:translateY(-4px) scale(1.06); }
+    .hold { min-height:52px; margin-top:14px; padding:0 26px; border:1px solid #bc858a; border-radius:26px; background:#fffaf4; color:var(--rose); font-size:15px; letter-spacing:2px; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:none; transition:background .3s,color .3s,transform .2s; }
+    .fermata.is-holding .hold { background:var(--rose); color:#fff8ee; transform:scale(.97); }
+    .hold-readout { min-height:34px; margin:14px 0 0; color:var(--rose); font:16px/2 var(--serif); letter-spacing:1px; }
+    .fermata-text { margin:6px 0 0; font:16px/2.05 var(--serif); letter-spacing:.5px; color:var(--ink); }
+    .ending { font:18px/2.1 var(--serif); margin:34px 0 33px; text-align:center; }
     .signature { text-align:right; font-size:12px; line-height:1.9; color:var(--muted); margin:0 0 42px; letter-spacing:1px; }
     .signature strong { display:block; font:500 25px/1.8 var(--serif); letter-spacing:5px; color:var(--ink); margin-top:5px; }
     .signature-seal { display:inline-flex; align-items:center; justify-content:center; width:39px; height:39px; margin-top:9px; border:1px solid var(--rose); color:var(--rose); font:20px/1 var(--serif); transform:rotate(-8deg); }
-    .signature.is-in-view .signature-seal { animation:sealSign 360ms cubic-bezier(.34,1.4,.64,1) both; }
-    .postscript { position:relative; text-align:center; padding:37px 0 29px; border-top:1px solid var(--line); }
-    .postscript::before { content:""; position:absolute; inset:15px -20px; z-index:-1; background:radial-gradient(ellipse,#f3dabc00 0%,transparent 65%); transition:background 1s; }
-    .postscript.is-lit::before { background:radial-gradient(ellipse,#f3dabc60 0%,transparent 65%); }
-    .window { display:block; width:70px; height:84px; margin:0 auto 24px; }
-    .window .light { fill:#b7b2a0; transition:fill 1.1s; }
-    .window .window-glow { opacity:0; transition:opacity 1.1s; }
-    .is-lit .window .light { fill:#f4ca78; }
-    .is-lit .window .window-glow { opacity:1; }
-    .postscript.is-lit .window { animation:lampWake 650ms cubic-bezier(.16,1,.3,1) both; }
-    .postscript.is-lit .afterglow { animation:afterglowEnter 680ms cubic-bezier(.16,1,.3,1) both; }
-    .light-button { min-height:48px; border:1px solid #bc858a; color:var(--rose); background:#fffaf440; padding:11px 24px; border-radius:3px; font-size:14px; letter-spacing:1px; }
-    .light-button:disabled { color:#80664f; border-color:#c9ad82; background:#f6e5c85c; }
-    .afterglow { min-height:76px; margin:18px 0 0; font:15px/1.9 var(--serif); color:var(--muted); letter-spacing:.7px; }
+    .signature.is-in .signature-seal { animation:sealSign 360ms cubic-bezier(.34,1.4,.64,1) both; }
+
+    .ps { margin:0 0 30px; padding:18px 20px; border:1px dashed #cdb9a0; border-radius:4px; font:15px/2 var(--serif); color:var(--muted); }
+    .ps a { color:var(--rose); text-underline-offset:5px; }
     .share-area { padding:19px 0 max(31px,env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
     .colophon { font-size:12px; line-height:1.8; color:var(--muted); letter-spacing:.2px; }
     .share { display:flex; align-items:center; gap:7px; min-height:44px; background:transparent; border:0; padding:8px 0 8px 12px; color:#786153; font-size:12px; white-space:nowrap; }
@@ -168,52 +232,66 @@ SOFTWARE.
     dialog p { font-size:14px; line-height:1.8; }
     dialog input { width:100%; min-height:48px; border:1px solid var(--line); border-radius:3px; padding:10px; color:var(--ink); background:#fffaf4; font-size:16px; }
     dialog button { width:100%; min-height:48px; background:var(--rose); color:white; border:0; border-radius:3px; margin-top:20px; }
-    @keyframes coverEnter { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+
+    .reveal { transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1); }
+    .js .reveal:not(.is-in) { opacity:.25; transform:translateY(12px); }
+
+    @keyframes coverEnter { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:none; } }
     @keyframes noteAnswer { 0%,10%,100% { transform:translateY(0) rotate(0); } 4% { transform:translateY(-3px) rotate(-7deg); } 7% { transform:translateY(-1px) rotate(2deg); } }
     @keyframes sealArrive { from { opacity:.2; transform:translate(-50%,-50%) scale(1.28) rotate(7deg); } to { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(-7deg); } }
-    @keyframes reelSettle { from { transform:rotate(-32deg); } to { transform:rotate(0); } }
-    @keyframes reelSettleRight { from { transform:rotate(32deg); } to { transform:rotate(0); } }
-    @keyframes islandBuild { from { opacity:.35; transform:translateY(15px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
-    @keyframes sealSign { from { opacity:.2; transform:scale(1.28) rotate(7deg); } to { opacity:1; transform:scale(1) rotate(-8deg); } }
-    @keyframes lampWake { 0% { transform:scale(.97); } 45% { transform:scale(1.05); } 100% { transform:scale(1); } }
-    @keyframes afterglowEnter { from { opacity:.2; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes ruleDraw { from { opacity:1; transform:scaleX(0); } to { opacity:1; transform:scaleX(1); } }
+    @keyframes letterRise { 0% { transform:translateY(0) rotate(0); } 72% { transform:translateY(-58%) rotate(-1.8deg); } 100% { transform:translateY(-55%) rotate(-1deg); } }
+    @keyframes ruleDraw { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+    @keyframes noteHop { 0% { transform:translateY(0); } 40% { transform:translateY(-9px); } 100% { transform:translateY(0); } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes islandBuild { from { opacity:.35; transform:translateY(15px) scale(.96); } to { opacity:1; transform:none; } }
     @keyframes breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
     @keyframes drift { from { transform:translateX(-4px); } to { transform:translateX(6px); } }
-    .world-interlude.is-in-view .world-art { animation:islandBuild 850ms cubic-bezier(.16,1,.3,1) both; }
-    @media (min-width:600px) { .page { padding:0 42px; } .envelope-line { padding-top:35px; } .cover { padding-top:44px; } .prose { font-size:18px; line-height:2.15; } .world-scene { margin-top:1px; } .letter { padding-top:40px; } }
+    @keyframes noteRise { 0% { opacity:0; transform:translateY(10px) rotate(-8deg); } 20% { opacity:.9; } 100% { opacity:0; transform:translateY(-90px) rotate(10deg); } }
+    @keyframes ring { from { opacity:.8; transform:scale(.6); } to { opacity:0; transform:scale(2.4); } }
+    @keyframes sealSign { from { opacity:.2; transform:scale(1.28) rotate(7deg); } to { opacity:1; transform:scale(1) rotate(-8deg); } }
+
+    @media (min-width:600px) { .page { padding:0 42px; } .choir { margin:10px -42px 0; } .choir-caps { margin:0 42px; } .envelope-line { padding-top:35px; } .cover { padding-top:44px; } .prose { font-size:18px; line-height:2.15; } }
     @media (min-width:960px) {
-      .page { width:min(100%,1200px); padding:0 48px; }
+      .page { width:min(100%,1080px); padding:0 48px; }
       .envelope-line { padding-top:27px; font-size:12px; }
       .cover { display:grid; grid-template-columns:minmax(0,1fr) minmax(350px,.94fr); column-gap:clamp(48px,6vw,98px); align-items:center; min-height:625px; padding:34px 0 62px; text-align:left; }
-      .cover-copy { align-self:center; }
-      .cover-object { align-self:center; text-align:center; }
       .cover-mark { margin:0 0 22px; width:50px; height:43px; }
-      .dedication { margin-bottom:19px; }
       h1 { font-size:52px; line-height:1.5; }
       .cover-verse { font-size:18px; margin-top:28px; }
       .school-line { margin-top:29px; font-size:13px; }
+      .cover-object { text-align:center; }
       .envelope-stage { padding-top:98px; }
       .envelope-wrapper { max-width:370px; }
-      .letter { display:grid; grid-template-columns:minmax(0,615px) minmax(0,385px); grid-template-areas:"before art" "after art"; column-gap:clamp(45px,6vw,88px); align-items:start; padding-top:55px; }
-      .letter-before { grid-area:before; min-width:0; }
-      .letter-after { grid-area:after; min-width:0; }
-      .world-interlude { grid-area:art; margin:0; align-self:stretch; }
-      .world-sticky { position:sticky; top:28px; padding:21px 0; }
-      .world-scene { margin:0 -20px -11px; }
-      .world-art { max-width:none; }
-      .world-side-note { display:block; margin:32px 0 0; padding:18px 0 0; border-top:1px solid var(--line); color:#677661; font-size:13px; line-height:2; letter-spacing:.4px; }
-      .world-side-note span { display:block; margin-bottom:9px; color:var(--muted); font:12px/1.7 Consolas,"Courier New",monospace; letter-spacing:1px; }
-      .postscript { width:min(100%,615px); padding-top:48px; }
-      .share-area { margin-top:22px; }
+      main > :not(.cover) { width:min(100%,680px); margin-left:auto; margin-right:auto; }
+      .choir { margin:10px 0 0; }
+      .choir-caps { margin:0; }
     }
-    @media (max-width:350px) { .page { padding-left:22px; padding-right:22px; } .envelope-line { font-size:10px; letter-spacing:.3px; } h1 { font-size:31px; letter-spacing:1px; } .cover-verse { font-size:14px; letter-spacing:.3px; } .prose { font-size:16.5px; letter-spacing:.1px; } .poem { font-size:17px; padding-left:13px; } .confession h2 { font-size:23px; } .confession p { font-size:14.5px; } .cassette-note { padding:15px 12px; } }
-    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation:none !important; transition:none !important; } }
-    @media print { .progress,.read-link,.postscript,.share-area,.toast,dialog { display:none !important; } body { background:white; } .page { max-width:100%; } .cover { padding-top:15px; } .world-scene { display:none; } .cover-verse { margin-bottom:30px; } .prose { font-size:12pt; } }
+    @media (max-width:350px) { .page { padding-left:22px; padding-right:22px; } .choir { margin:10px -22px 0; } h1 { font-size:31px; } .prose { font-size:16.5px; letter-spacing:.1px; } .poem { font-size:17px; padding-left:13px; } .score a { font-size:10px; } }
+    @media (prefers-reduced-motion:reduce) {
+      html { scroll-behavior:auto; }
+      *,*::before,*::after { animation:none !important; transition:none !important; }
+      .choir { height:auto; } .choir-sticky { position:relative; height:auto; min-height:420px; grid-template-rows:300px auto; }
+      .choir-caps { min-height:0; } .choir-caps li { position:static; opacity:1; transform:none; padding:4px 0; }
+      .js .reveal:not(.is-in) { opacity:1; transform:none; }
+    }
+    @media print { .score,.read-link,.share-area,.toast,dialog,.choir,.tape-actions,.hold { display:none !important; } body { background:white; } }
   </style>
 </head>
 <body>
-  <div class="progress" aria-hidden="true"><span id="reading-progress"></span></div>
+  <nav class="score" id="score" aria-label="乐章进度">
+    <ol>
+      <li><a href="#mv1"><span class="bar"><i></i></span>Ⅰ</a></li>
+      <li><a href="#mv2"><span class="bar"><i></i></span>Ⅱ</a></li>
+      <li><a href="#mv3"><span class="bar"><i></i></span>Ⅲ</a></li>
+      <li><a href="#mv4"><span class="bar"><i></i></span>Ⅳ</a></li>
+      <li><a href="#mv5"><span class="bar"><i></i></span>Ⅴ</a></li>
+    </ol>
+    <span class="score-now" id="score-now" aria-live="polite">前奏</span>
+    <button class="sound" id="sound" type="button" aria-pressed="false" hidden>
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音关</span>
+    </button>
+  </nav>
+
   <div class="page">
     <header class="envelope-line"><span>写在青春的这一页</span><span>陈润森 <svg class="tiny-heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h5v2h4V3h5v6h-2v2h-2v2H9v2H7v-2H5v-2H3V9H1z"/></svg> 潘诗菡</span></header>
     <main>
@@ -226,41 +304,98 @@ SOFTWARE.
           <p class="school-line">上海 · 杨思高级中学 · 军训最后一天</p>
         </div>
         <div class="cover-object">
-        <div class="envelope-stage">
-          <a class="envelope-wrapper" id="open-envelope" href="#letter" aria-label="拆开陈润森写给潘诗菡的信" aria-controls="letter">
-            <span class="envelope-back" aria-hidden="true"></span>
-            <span class="letter-inside" aria-hidden="true"><span class="letter-preview">诗菡：<small>那天合唱之后，<br />有些话我一直想对你说。</small></span></span>
-            <span class="envelope-front" aria-hidden="true"><span class="envelope-title">潘诗菡 · 亲启</span></span>
-            <span class="envelope-flap" aria-hidden="true"></span><span class="wax-seal" aria-hidden="true">菡</span>
-          </a>
-        </div>
-        <p class="envelope-hint" id="envelope-hint">轻触信封，读一读我的心事</p>
-        <a class="read-link" href="#letter">也可以直接往下读<svg viewBox="0 0 12 18" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 1v14m-4-4 4 4 4-4"/></svg></a>
+          <div class="envelope-stage">
+            <a class="envelope-wrapper" id="open-envelope" href="#letter" aria-label="拆开陈润森写给潘诗菡的信" aria-controls="letter">
+              <span class="envelope-back" aria-hidden="true"></span>
+              <span class="letter-inside" aria-hidden="true"><span class="letter-preview">诗菡：<small>那天合唱之后，<br />有些话我一直想对你说。</small></span></span>
+              <span class="envelope-front" aria-hidden="true"><span class="envelope-title">潘诗菡 · 亲启</span></span>
+              <span class="envelope-flap" aria-hidden="true"></span><span class="wax-seal" aria-hidden="true">菡</span>
+            </a>
+          </div>
+          <p class="envelope-hint" id="envelope-hint">轻触信封拆开 · 五个乐章 · 约六分钟</p>
+          <a class="read-link" href="#letter">也可以直接往下读<svg viewBox="0 0 12 18" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 1v14m-4-4 4 4 4-4"/></svg></a>
         </div>
       </section>
-      <article class="letter" id="letter" aria-labelledby="letter-title">
-        <div class="letter-before">
-        <h2 class="salutation" id="letter-title">诗菡：</h2>
-        <div class="prose">
-          <p class="opening">如果要给我们的故事找一个开头，我会翻回杨思高级中学，军训结束的那一天。</p>
-          <p>那天，我们因为合唱认识。现在想来，我很喜欢这个开始：在还不熟悉彼此的时候，我们先一起唱过歌。</p>
-          <p>合唱结束，人群散开了。那天本可以像很多日子一样过去；认识你，却让它在我心里多留了一会儿。</p>
-        </div>
-        <div class="breath" aria-hidden="true"><i></i><i></i><i></i></div>
-        <div class="prose">
-          <p>知道你喜欢周杰伦，我想留一首歌给你选。我还不知道你最喜欢哪一首，也不想擅自替你决定。</p>
-          <p>如果有一天放学后，你愿意告诉我，我会记下来。等下一次听见它，也许就会想起你告诉我歌名时的样子。</p>
-          <p>歌可以从头再听；认识你的那一天，却只有一次。我不想把想说的话，一直留在没敢翻开的那一页。</p>
-        </div>
-        <aside class="cassette-note" aria-label="想和你一起听的周杰伦"><div class="cassette" aria-hidden="true"><i class="reel"></i><span class="tape-label">JAY CHOU<br />SIDE A · OUR SCHOOL DAYS</span><i class="reel"></i></div><div class="cassette-caption"><strong>留一首周杰伦，<br />等你来选。</strong><small>一首歌的时间<br />想坐在你身边</small></div></aside>
-        <blockquote class="poem"><p>我不知道一首歌，<br />能把两个人带到哪里。<br />但军训结束的那天，<br />它先把我带到了你面前。</p></blockquote>
-        <div class="prose">
-          <p>关于以后，我想到的，都是很近的小事。</p>
-          <p>某次课间，能和你多说两句话；放学后，能问一句要不要一起走；在忙着考试、忙着长大的日子里，还能把遇到的好笑的事讲给你听。</p>
-          <p>也想知道你的一天怎样过：哪门课让你费了心思，什么事让你突然笑起来，今天是否其实很平常。连没有故事可讲的日子，也值得好好听见。</p>
-        </div>
-        </div>
-        <figure class="world-interlude"><div class="world-sticky"><h2>给你留了一格晴天</h2><div class="world-scene"><svg class="world-art" id="world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 510" role="img" aria-labelledby="world-title world-description"><title id="world-title">属于陈润森和潘诗菡的方块小岛</title><desc id="world-description">漂浮的草地方块上有粉色树、小木屋、两位并肩的小人，还有一颗像素爱心。</desc><defs><filter id="shadow" x="-40%" y="-100%" width="180%" height="300%"><feGaussianBlur stdDeviation="13" />
+
+      <section class="program" id="letter" aria-labelledby="program-title">
+        <p class="program-kicker">PROGRAM</p>
+        <h2 id="program-title">节目单</h2>
+        <ol>
+          <li><a href="#mv1"><span class="pg-num">Ⅰ</span><span class="pg-name">前奏</span><span class="pg-dots"></span><span class="pg-title">在很多声音里</span></a></li>
+          <li><a href="#mv2"><span class="pg-num">Ⅱ</span><span class="pg-name">主歌</span><span class="pg-dots"></span><span class="pg-title">后来的每一个课间</span></a></li>
+          <li><a href="#mv3"><span class="pg-num">Ⅲ</span><span class="pg-name">间奏</span><span class="pg-dots"></span><span class="pg-title">A 面与 B 面</span></a></li>
+          <li><a href="#mv4"><span class="pg-num">Ⅳ</span><span class="pg-name">副歌</span><span class="pg-dots"></span><span class="pg-title">我喜欢你</span></a></li>
+          <li><a href="#mv5"><span class="pg-num">Ⅴ</span><span class="pg-name">尾声</span><span class="pg-dots"></span><span class="pg-title">延长记号</span></a></li>
+        </ol>
+        <p class="program-foot">演唱：陈润森（暂为独唱）<br />献给：潘诗菡<small>顶栏右边的 ♪ 可以打开声音，这封信配了一小段八音盒。</small></p>
+      </section>
+
+      <article class="letter" aria-label="陈润森写给潘诗菡的信">
+        <section class="movement" id="mv1" data-phrase="mv1" aria-labelledby="mv1-title">
+          <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅰ</span><p class="mv-kicker">前奏 · Prelude</p><h2 class="mv-title" id="mv1-title">在很多声音里</h2><p class="mv-tempo"><i>Andante</i>行板，像走路那样</p></header>
+          <p class="salutation">诗菡：</p>
+          <div class="prose">
+            <p class="opening reveal">如果要给我们的故事找一个开头，我会翻回杨思高级中学，军训的最后一天。</p>
+            <p class="reveal">那天，我们因为一场合唱认识。还不熟悉彼此的时候，我们先一起唱过一首歌——现在想来，我很喜欢这个开始。</p>
+            <p class="reveal">合唱有个道理：不是谁的声音最大就唱得好，而是每个人都要一边唱，一边听见别人。</p>
+            <p class="reveal">那天我大概唱得很普通。可从那以后，我好像学会了另一种“听见”。</p>
+          </div>
+          <div class="choir" id="choir">
+            <div class="choir-sticky">
+              <p class="choir-tip" aria-hidden="true">慢慢往下滑</p>
+              <canvas aria-hidden="true"></canvas>
+              <ol class="choir-caps">
+                <li class="is-on">那天，有很多声音。</li>
+                <li>后来，在很多人里，我总是先看见你。</li>
+                <li>两个不一样的音同时响起，就叫和声。</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section class="movement" id="mv2" data-phrase="mv2" aria-labelledby="mv2-title">
+          <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅱ</span><p class="mv-kicker">主歌 · Verse</p><h2 class="mv-title" id="mv2-title">后来的每一个课间</h2><p class="mv-tempo"><i>Moderato</i>中板，心跳比平时快一点</p></header>
+          <div class="prose">
+            <p class="reveal">认识你以后，日子还是原来的日子：早读，上课，写不完的卷子。只是有些地方，悄悄变了——</p>
+            <p class="reveal">我开始期待课间；走廊里人来人往，会先找一找有没有你；听周杰伦的时候，会忍不住想：这首，她会不会也喜欢？</p>
+            <p class="reveal">说实话，我们还不算熟。我知道的你，也许只是很小的一部分。所以这封信不想假装很懂你，只想把我这边的心意，诚实地讲清楚。</p>
+          </div>
+          <div class="breath" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="prose">
+            <p class="reveal">前几天，我查了你名字里的“菡”。《诗经》里有一首《泽陂》，是这样写的：</p>
+          </div>
+          <blockquote class="poem reveal"><p>彼泽之陂，有蒲菡萏。</p><p>有美一人，……辗转伏枕。</p><small>《诗经 · 陈风 · 泽陂》</small></blockquote>
+          <div class="prose">
+            <p class="reveal">菡萏，就是荷花。后面那句的意思是：有一个很好的人，让我躺在枕头上翻来覆去，睡不着。</p>
+            <p class="reveal">原来两千多年前，就有人因为想一个人失眠。这种心情很古老，可每个人遇到的时候，都像是第一次。</p>
+          </div>
+        </section>
+
+        <section class="movement" id="mv3" data-phrase="mv3" aria-labelledby="mv3-title">
+          <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅲ</span><p class="mv-kicker">间奏 · Interlude</p><h2 class="mv-title" id="mv3-title">A 面与 B 面</h2><p class="mv-tempo"><i>Allegretto</i>小快板，适合放学的路上</p></header>
+          <div class="prose"><p class="reveal">知道你喜欢周杰伦，我做了一盘只存在于这里的磁带。</p></div>
+          <figure class="tape" id="tape" aria-label="一盘写给你的磁带">
+            <div class="tape-card">
+              <div class="tape-face side-a">
+                <div class="tape-label"><span class="tape-side">SIDE A · 我想分享给你的</span><ol><li>晴天</li><li>七里香</li><li>简单爱</li></ol></div>
+                <div class="tape-window" aria-hidden="true"><i class="reel"></i><i class="reel"></i></div>
+              </div>
+              <div class="tape-face side-b" aria-hidden="true">
+                <div class="tape-label"><span class="tape-side">SIDE B · 留给你写</span><ol><li><span class="blank"></span></li><li><span class="blank"></span></li><li><span class="blank"></span> <span class="wait">等你告诉我</span></li></ol></div>
+                <div class="tape-window" aria-hidden="true"><i class="reel"></i><i class="reel"></i></div>
+              </div>
+            </div>
+            <div class="tape-actions"><button class="tape-flip" id="tape-flip" type="button" aria-pressed="false">翻到 B 面</button></div>
+          </figure>
+          <div class="prose">
+            <p class="reveal">A 面是我想分享给你的歌；B 面空着——我还不知道你最喜欢哪一首，也不想擅自替你决定。</p>
+            <p class="reveal">很多人说，《晴天》唱的是一段没来得及说出口的喜欢。我听了很多遍，最怕的，就是变成歌里那样。</p>
+            <p class="reveal">如果有一天放学后，你愿意告诉我 B 面该写什么，我会一首一首记下来。以后再听见它们，我大概都会想起你告诉我歌名时的样子。</p>
+          </div>
+          <figure class="world" id="world-figure">
+            <h3>给你留了一格晴天</h3>
+            <div class="world-scene">
+<svg class="world-art" id="world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 510" role="img" aria-labelledby="world-title world-description"><title id="world-title">属于陈润森和潘诗菡的方块小岛</title><desc id="world-description">漂浮的草地方块上有粉色树、小木屋、两位并肩的小人，还有一颗像素爱心。</desc><defs><filter id="shadow" x="-40%" y="-100%" width="180%" height="300%"><feGaussianBlur stdDeviation="13" />
 </filter></defs><ellipse cx="316" cy="448" rx="164" ry="20" fill="#a99a81" opacity=".17" filter="url(#shadow)" />
 <g transform="translate(84 146)"><g class="cloud"><path transform="scale(0.7)" d="M0 15h18V5h25v-5h21v11h26v11h15v13H0z" fill="#fffdf8"/>
 <path transform="scale(0.7)" d="M0 35h105v5H0z" fill="#efe8dc"/>
@@ -1135,37 +1270,148 @@ SOFTWARE.
 <polygon points="293.60,134.11 296.48,135.55 293.60,136.99 290.72,135.55" fill="#f3b0b1"/>
 <g fill="#cfb990"><path d="M456 202h3v6h6v3h-6v6h-3v-6h-6v-3h6z"/>
 <path d="M122 270h2v4h4v2h-4v4h-2v-4h-4v-2h4z"/>
-</g></svg></div><figcaption>一块草地，一间小屋。<br />还有一个，留在身旁的位置。</figcaption><p class="world-side-note"><span>YANGSI · THE LAST DAY OF TRAINING</span>合唱结束时，我们才刚刚认识。<br />这一格晴天，留给还没写完的以后。</p></div></figure>
-        <div class="letter-after">
-        <div class="prose">
-          <p>所以，我还在这里搭了一个小小的迷你世界。它装不下整个未来，倒刚好装得下一个愿望：下次遇见好看的风景，我想先问你，要不要一起看。</p>
-          <p>课表会换，试卷会翻过去，很多现在熟悉的声音，有一天也会变成回忆。我希望到那时候，想起杨思的校园，除了铃声和合唱，还能想起我们后来一起走过的路。</p>
-        </div>
-        <section class="confession" aria-labelledby="confession-title">
-          <h2 id="confession-title">潘诗菡，我喜欢你。</h2>
-          <p>喜欢这个因为合唱而相识的开始，<br />也期待有一天，<br />我们能一起把后面的日子写下去。</p>
+</g></svg>
+            </div>
+            <figcaption>一块草地，一间小屋。<br />还有一个，留在身旁的位置。</figcaption>
+          </figure>
+          <div class="prose">
+            <p class="reveal">我还在这里搭了一座迷你世界的小岛。它装不下整个未来，刚好装得下一个愿望：下次遇见好看的风景，我想先问问你，要不要一起看。</p>
+            <p class="reveal">课表会换，试卷会翻过去，现在熟悉的声音，有一天也会变成回忆。我希望到那时候，想起杨思，除了铃声和合唱，还能想起我们后来一起走过的路。</p>
+          </div>
         </section>
-        <div class="prose"><p>这一次，换我先开口。至于下一句怎么唱，我想留一点空白，听你的心意。</p></div>
-        <p class="ending">如果你也愿意，<br />下次，我们再一起唱首歌。</p>
-        <div class="signature">从那次合唱，写到此刻<strong>陈润森</strong><span class="signature-seal" aria-hidden="true">森</span></div>
-        </div>
+
+        <section class="movement" id="mv4" data-phrase="mv4" aria-labelledby="mv4-title">
+          <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅳ</span><p class="mv-kicker">副歌 · Chorus</p><h2 class="mv-title" id="mv4-title">我喜欢你</h2><p class="mv-tempo"><i>Con amore</i>深情地</p></header>
+          <div class="confess reveal" id="confess">
+            <span class="notes-rise" aria-hidden="true"><i>♪</i><i>♫</i><i>♪</i><i>♫</i></span>
+            <h3>潘诗菡，我喜欢你。</h3>
+            <p>喜欢这个因为合唱开始的故事，<br />也喜欢想象它后面的样子。</p>
+          </div>
+          <div class="prose">
+            <p class="reveal">说出这句话，不是要你马上给我一个答案。我只是不想让它一直藏在心里，变成《晴天》那样的遗憾——所以这一次，换我先开口。</p>
+            <p class="reveal">你可以慢慢想，也可以直接告诉我你的想法。不管答案是什么，我都会好好接住。就算和我想的不一样，我们也还是一起唱过歌的同学；这一点，不会因为这封信改变。</p>
+          </div>
+        </section>
+
+        <section class="movement" id="mv5" data-phrase="mv5" aria-labelledby="mv5-title">
+          <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅴ</span><p class="mv-kicker">尾声 · Coda</p><h2 class="mv-title" id="mv5-title">延长记号</h2><p class="mv-tempo"><i>Fermata</i>停多久，由你决定</p></header>
+          <div class="fermata" id="fermata">
+            <svg viewBox="0 0 360 150" aria-hidden="true">
+              <g class="staff"><line x1="0" y1="62" x2="360" y2="62"/><line x1="0" y1="74" x2="360" y2="74"/><line x1="0" y1="86" x2="360" y2="86"/><line x1="0" y1="98" x2="360" y2="98"/><line x1="0" y1="110" x2="360" y2="110"/><line x1="358" y1="62" x2="358" y2="110" stroke-width="3"/><line x1="350" y1="62" x2="350" y2="110"/></g>
+              <circle class="ring" cx="180" cy="92" r="16"/><circle class="ring" cx="180" cy="92" r="16"/><circle class="ring" cx="180" cy="92" r="16"/>
+              <g class="note"><ellipse class="note-head" cx="180" cy="92" rx="12" ry="8.5" fill="#493d37" transform="rotate(-18 180 92)"/><ellipse cx="180" cy="92" rx="6.2" ry="3.4" fill="#fbf6ed" transform="rotate(-48 180 92)"/></g>
+              <g class="arc"><path d="M156 44a24 24 0 0 1 48 0" fill="none" stroke="#a95166" stroke-width="3.2" stroke-linecap="round"/><circle cx="180" cy="38" r="3.2" fill="#a95166"/></g>
+            </svg>
+            <button class="hold" id="hold" type="button" aria-describedby="hold-readout">按住这个音</button>
+            <p class="hold-readout" id="hold-readout" aria-live="polite"></p>
+            <p class="fermata-text reveal">乐谱上，这个记号叫“延长记号”：<br />音符停在这里，停多久，由唱的人决定。</p>
+            <p class="fermata-text reveal">这封信的最后一个音，交给你。</p>
+          </div>
+          <p class="ending reveal">如果你也愿意，<br />下次，我们再一起唱首歌。</p>
+          <div class="signature reveal" id="signature">从那次合唱，写到此刻<strong>陈润森</strong>二〇二六年 · 秋<br /><span class="signature-seal" aria-hidden="true">森</span></div>
+        </section>
       </article>
-      <section class="postscript" id="postscript" aria-label="信末的一盏灯">
-        <svg class="window" viewBox="0 0 70 84" aria-hidden="true"><defs><radialGradient id="window-light"><stop stop-color="#edb553" stop-opacity=".5"/><stop offset="1" stop-color="#edb553" stop-opacity="0"/></radialGradient></defs><ellipse class="window-glow" fill="url(#window-light)" cx="35" cy="42" rx="35" ry="42"/><path d="M15 13h40v52H15z" fill="#a18b72"/><path class="light" d="M19 17h32v44H19z"/><path d="M33 15h4v49h-4zM17 37h36v4H17z" fill="#a18b72"/><path d="M11 65h48v5H11z" fill="#c2ab8b"/><path d="M15 70h40v3H15z" fill="#e2d5be"/></svg>
-        <button class="light-button" id="light-window" type="button" aria-pressed="false" hidden>点亮信末的这扇窗</button>
-        <p class="afterglow" id="afterglow" aria-live="polite">天色晚了，<br />给这封信留一盏灯吧。</p>
-      </section>
+
+      <aside class="ps" aria-label="附言">P.S. 小岛的夜晚，我也画好了：中秋的月亮挂在上面，想分你一半。<a href="/mid-autumn/">去看月亮 →</a></aside>
     </main>
-    <footer class="share-area"><div class="colophon">迷你世界灵感 · 原创方块小岛<br />陈润森写给潘诗菡</div><button class="share" id="share" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M10 13V2m-4 4 4-4 4 4M4 10v7h12v-7"/></svg>分享这封信</button><a class="return-site" href="/">← 回到陈润森的网站</a></footer>
+    <footer class="share-area"><div class="colophon">迷你世界灵感 · 原创方块小岛<br />这封信有一千多行代码，每一行都比我当面开口勇敢一点。</div><button class="share" id="share" type="button" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M10 13V2m-4 4 4-4 4 4M4 10v7h12v-7"/></svg>分享这封信</button><a class="return-site" href="/">← 回到陈润森的网站</a></footer>
   </div>
   <dialog id="share-dialog" aria-labelledby="share-title"><h2 id="share-title">分享这封信</h2><p>长按或选中链接复制，就可以把它发给她。</p><input id="share-url" readonly aria-label="情书分享链接" /><button id="close-share" type="button">完成</button></dialog>
   <div class="toast" id="toast" role="status" hidden></div>
   <script>
     (() => {
-      const envelope = document.getElementById('open-envelope');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+      const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+      const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+
+      /* ── 八音盒：默认静音，打开后每个乐章响一小句，带回声 ── */
+      const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, D6: 1174.66, E6: 1318.51 };
+      const PHRASES = {
+        mv1: ['E5', 'G5', 'A5', 'G5', 'E5', 'D5', 'C5'],
+        mv2: ['C5', 'D5', 'E5', 'G5', 'E5', 'D5', 'E5'],
+        mv3: ['G5', 'A5', 'C6', 'A5', 'G5', 'E5', 'G5'],
+        mv4: ['C6', 'D6', 'E6', 'D6', 'C6', 'A5', 'C6'],
+        mv5: ['G5', 'E5', 'D5', 'C5'],
+      };
+      const audio = { ctx: null, out: null, on: false, held: null };
+      const initAudio = () => {
+        if (audio.ctx) return audio.ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        const ctx = new AC();
+        const master = ctx.createGain(); master.gain.value = 0.16;
+        const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.34;
+        const feedback = ctx.createGain(); feedback.gain.value = 0.3;
+        const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
+        const wet = ctx.createGain(); wet.gain.value = 0.42;
+        master.connect(ctx.destination);
+        master.connect(delay); delay.connect(tone); tone.connect(feedback); feedback.connect(delay); tone.connect(wet); wet.connect(ctx.destination);
+        audio.ctx = ctx; audio.out = master;
+        return ctx;
+      };
+      const pluck = (freq, at, dur, level) => {
+        const { ctx, out } = audio;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.0001, at);
+        env.gain.exponentialRampToValueAtTime(level, at + 0.008);
+        env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+        env.connect(out);
+        [[freq, 'sine', 1], [freq * 2.01, 'sine', 0.22], [freq * 3.98, 'triangle', 0.05]].forEach(([f, type, g]) => {
+          const osc = ctx.createOscillator(); osc.type = type; osc.frequency.value = f;
+          const gain = ctx.createGain(); gain.gain.value = g;
+          osc.connect(gain); gain.connect(env);
+          osc.start(at); osc.stop(at + dur + 0.05);
+        });
+      };
+      const playNotes = (notes, step = 0.36) => {
+        if (!audio.on || !audio.ctx) return;
+        const t0 = audio.ctx.currentTime + 0.05;
+        notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.4 : 1.5, last ? 0.9 : 0.75); });
+      };
+      const playChord = (notes) => {
+        if (!audio.on || !audio.ctx) return;
+        const t0 = audio.ctx.currentTime + 0.05;
+        notes.forEach((n) => pluck(NOTE[n], t0, 3, 0.6));
+      };
+      const holdStart = () => {
+        if (!audio.on || !audio.ctx || audio.held) return;
+        const { ctx, out } = audio;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.0001, ctx.currentTime);
+        env.gain.exponentialRampToValueAtTime(0.45, ctx.currentTime + 0.3);
+        env.connect(out);
+        const oscs = [NOTE.C5, NOTE.G5].map((f) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.connect(env); o.start(); return o; });
+        audio.held = { env, oscs };
+      };
+      const holdStop = () => {
+        if (!audio.held) return;
+        const t = audio.ctx.currentTime;
+        const { env, oscs } = audio.held;
+        env.gain.cancelScheduledValues(t);
+        env.gain.setValueAtTime(Math.max(env.gain.value, 0.0001), t);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+        oscs.forEach((o) => o.stop(t + 1.5));
+        audio.held = null;
+      };
+      const soundButton = $('#sound');
+      soundButton.hidden = false;
+      soundButton.addEventListener('click', async () => {
+        const ctx = initAudio();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') await ctx.resume();
+        audio.on = !audio.on;
+        soundButton.setAttribute('aria-pressed', String(audio.on));
+        soundButton.querySelector('span').textContent = audio.on ? '声音开' : '声音关';
+        if (audio.on) playNotes(PHRASES[current?.dataset.phrase] || PHRASES.mv1);
+        else holdStop();
+      });
+
+      /* ── 信封 ── */
+      const envelope = $('#open-envelope');
       const paper = envelope.querySelector('.letter-inside');
-      const letter = document.getElementById('letter');
-      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const program = $('#letter');
       let opening = false;
       const openLetter = (event) => {
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -1174,116 +1420,248 @@ SOFTWARE.
         opening = true;
         const wasOpen = envelope.classList.contains('open');
         envelope.classList.add('open');
-        document.getElementById('envelope-hint').textContent = '诗菡，这封信是写给你的。';
+        $('#envelope-hint').textContent = '信拆开了。慢慢读，不着急。';
         let fallback;
-        const finishOpening = () => {
+        const finish = () => {
           if (!opening) return;
           clearTimeout(fallback);
-          paper.removeEventListener('animationend', onPaperRise);
-          letter.classList.add('is-unsealed');
-          letter.tabIndex = -1;
-          letter.focus({ preventScroll:true });
-          letter.scrollIntoView({ behavior:motionQuery.matches ? 'instant' : 'smooth', block:'start' });
+          paper.removeEventListener('animationend', onRise);
+          program.classList.add('is-unsealed');
+          program.tabIndex = -1;
+          program.focus({ preventScroll: true });
+          program.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'start' });
           opening = false;
         };
-        const onPaperRise = (animationEvent) => {
-          if (animationEvent.target === paper && animationEvent.animationName === 'letterRise') finishOpening();
-        };
-        if (wasOpen || motionQuery.matches) { finishOpening(); return; }
-        paper.addEventListener('animationend', onPaperRise);
-        fallback = setTimeout(finishOpening, 1100);
+        const onRise = (e) => { if (e.target === paper && e.animationName === 'letterRise') finish(); };
+        if (wasOpen || reduced) { finish(); return; }
+        paper.addEventListener('animationend', onRise);
+        fallback = setTimeout(finish, 1100);
       };
       envelope.addEventListener('click', openLetter);
-      envelope.addEventListener('keydown', (event) => {
-        if (event.key === ' ' || event.key === 'Spacebar') openLetter(event);
-      });
-      if (!motionQuery.matches && 'IntersectionObserver' in window) {
-        const reveal = new IntersectionObserver((entries, observer) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            observer.unobserve(entry.target);
-            if (entry.target.matches('.cassette-note,.world-interlude,.signature')) entry.target.classList.add('is-in-view');
-            if (entry.target.matches('.letter .prose p,.poem,.confession,.ending,.signature')) {
-              entry.target.animate([
-                { opacity:.35, transform:'translateY(12px)' },
-                { opacity:1, transform:'translateY(0)' },
-              ], { duration:700, easing:'cubic-bezier(.16,1,.3,1)' });
-            }
+      envelope.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Spacebar') openLetter(e); });
+
+      /* ── 入场显影 ── */
+      if (!reduced && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) if (entry.isIntersecting) { entry.target.classList.add('is-in'); io.unobserve(entry.target); }
+        }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+        $$('.reveal,.movement,.world,.signature').forEach((el) => io.observe(el));
+      } else $$('.reveal,.movement,.world,.signature').forEach((el) => el.classList.add('is-in'));
+
+      /* ── 合唱画布 ── */
+      const choir = $('#choir');
+      const canvas = choir.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      const caps = $$('.choir-caps li', choir);
+      let cw = 0, ch = 0, singers = [], her = null, him = null, choirP = reduced ? 1 : 0, choirVisible = false, harmonyPlayed = false;
+      const layoutChoir = () => {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cw = rect.width; ch = rect.height;
+        canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        singers = [];
+        const rows = [11, 13, 15];
+        const r0 = clamp(cw / 80, 4, 7);
+        rows.forEach((n, ri) => {
+          for (let i = 0; i < n; i++) {
+            const u = i / (n - 1);
+            const spread = 0.62 + ri * 0.12;
+            singers.push({ x: cw * (0.5 + (u - 0.5) * spread), y: ch * (0.3 + ri * 0.16) - ((u - 0.5) * 2) ** 2 * ch * 0.035, r: r0 * (0.9 + ri * 0.08), ph: Math.random() * 6.28, rate: 0.5 + Math.random() * 0.7 });
           }
-        }, { threshold:.12, rootMargin:'0px 0px -6% 0px' });
-        document.querySelectorAll('.letter .prose p,.poem,.confession,.ending,.signature,.cassette-note,.world-interlude').forEach(element => reveal.observe(element));
-      }
-      if (!motionQuery.matches && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
-        const worldScene = document.querySelector('.world-scene');
-        worldScene.addEventListener('pointermove', (event) => {
-          const rect = worldScene.getBoundingClientRect();
-          worldScene.style.setProperty('--scene-x', `${(((event.clientX - rect.left) / rect.width - .5) * 9).toFixed(1)}px`);
-          worldScene.style.setProperty('--scene-y', `${(((event.clientY - rect.top) / rect.height - .5) * 6).toFixed(1)}px`);
-        }, { passive:true });
-        worldScene.addEventListener('pointerleave', () => {
-          worldScene.style.removeProperty('--scene-x');
-          worldScene.style.removeProperty('--scene-y');
         });
+        her = singers[11 + 8];
+        him = singers[11 + 13 + 3];
+      };
+      const drawSinger = (s, x, y, color, alpha) => {
+        if (alpha <= 0.01) return;
+        ctx.fillStyle = `rgba(${color},${alpha})`;
+        ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x, y + s.r * 2.3, s.r * 1.55, s.r * 1.15, 0, Math.PI, 0); ctx.fill();
+      };
+      const drawVoice = (s, x, y, color, alpha, t, size) => {
+        if (alpha <= 0.01) return;
+        ctx.lineWidth = 1.2;
+        for (let k = 0; k < 3; k++) {
+          const q = (t * s.rate + s.ph + k / 3) % 1;
+          ctx.strokeStyle = `rgba(${color},${(1 - q) * alpha})`;
+          ctx.beginPath(); ctx.arc(x, y, s.r + 3 + q * size, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+        }
+      };
+      const INK = '73,61,55', ROSE = '169,81,102', HIM = '58,48,43';
+      const drawChoir = (now) => {
+        if (!cw) return;
+        const t = reduced ? 0.4 : now / 1000;
+        const p = choirP;
+        ctx.clearRect(0, 0, cw, ch);
+        const quiet = smooth(0.3, 0.5, p);
+        const focus = smooth(0.3, 0.56, p);
+        const pair = smooth(0.64, 0.86, p);
+        for (const s of singers) {
+          if (s === her || s === him) continue;
+          const a = (1 - 0.82 * quiet) * (1 - pair) * 0.62;
+          drawSinger(s, s.x, s.y + Math.sin(t * 2 + s.ph) * 0.8, INK, a);
+          drawVoice(s, s.x, s.y, INK, a * 0.55 * (1 - quiet), t, 12);
+        }
+        const hx = her.x + (cw * 0.6 - her.x) * pair, hy = her.y + (ch * 0.34 - her.y) * pair;
+        const mx = him.x + (cw * 0.4 - him.x) * pair, my = him.y + (ch * 0.34 - him.y) * pair;
+        if (focus > 0.01) {
+          const glow = ctx.createRadialGradient(hx, hy, 0, hx, hy, 46);
+          glow.addColorStop(0, `rgba(240,195,175,${0.5 * focus})`); glow.addColorStop(1, 'rgba(240,195,175,0)');
+          ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(hx, hy, 46, 0, Math.PI * 2); ctx.fill();
+        }
+        drawSinger(him, mx, my, HIM, 0.62 + 0.3 * pair);
+        drawSinger(her, hx, hy + Math.sin(t * 2 + her.ph) * 0.8 * (1 - pair), ROSE, 0.85 + 0.15 * focus);
+        drawVoice(her, hx, hy, ROSE, 0.35 + 0.6 * focus, t, 12 + 16 * focus);
+        drawVoice(him, mx, my, INK, 0.5 * pair, t, 18);
+        if (pair > 0.01) {
+          const base = ch * 0.72, amp = ch * 0.065 * pair, k1 = (Math.PI * 2) / (cw * 0.3), w = t * 1.6;
+          const wave = (fn, style, width) => {
+            ctx.strokeStyle = style; ctx.lineWidth = width; ctx.beginPath();
+            for (let x = 0; x <= cw; x += 3) { const y = base + fn(x); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+            ctx.stroke();
+          };
+          const a = (x) => amp * Math.sin(k1 * x - w);
+          const b = (x) => amp * Math.sin(k1 * 1.5 * x - w * 1.5 + 1);
+          wave(a, `rgba(${INK},${0.35 * pair})`, 1.2);
+          wave(b, `rgba(${ROSE},${0.4 * pair})`, 1.2);
+          const grad = ctx.createLinearGradient(0, 0, cw, 0);
+          grad.addColorStop(0, `rgba(${HIM},${0.85 * pair})`); grad.addColorStop(1, `rgba(${ROSE},${0.9 * pair})`);
+          wave((x) => (a(x) + b(x)) * 0.62, grad, 2.4);
+        }
+      };
+      const updateChoir = () => {
+        const r = choir.getBoundingClientRect();
+        const dist = r.height - window.innerHeight;
+        choirP = reduced ? 1 : dist > 0 ? clamp(-r.top / dist) : 1;
+        choir.classList.toggle('is-moving', choirP > 0.06);
+        const step = reduced ? -1 : choirP < 0.34 ? 0 : choirP < 0.67 ? 1 : 2;
+        caps.forEach((c, i) => c.classList.toggle('is-on', step === -1 || i === step));
+        if (step === 2 && !harmonyPlayed && audio.on) { harmonyPlayed = true; playChord(['C5', 'G5']); }
+      };
+      const choirLoop = (now) => {
+        if (!choirVisible) return;
+        drawChoir(now);
+        requestAnimationFrame(choirLoop);
+      };
+      layoutChoir();
+      if (reduced) drawChoir(0);
+      else if ('IntersectionObserver' in window) {
+        new IntersectionObserver((entries) => {
+          const visible = entries.some((e) => e.isIntersecting);
+          if (visible && !choirVisible) { choirVisible = true; layoutChoir(); requestAnimationFrame(choirLoop); }
+          choirVisible = visible;
+        }).observe(choir);
       }
-      const progress = document.getElementById('reading-progress');
+
+      /* ── 顶部乐章进度 ── */
+      const score = $('#score');
+      const scoreNow = $('#score-now');
+      const movements = $$('.movement');
+      const bars = $$('.score li');
+      const names = ['前奏', '主歌', '间奏', '副歌', '尾声'];
+      const played = new Set();
+      let current = null;
+      const updateScore = () => {
+        const vh = window.innerHeight;
+        score.classList.toggle('is-shown', program.getBoundingClientRect().top < vh * 0.6);
+        let now = null;
+        movements.forEach((mv, i) => {
+          const r = mv.getBoundingClientRect();
+          bars[i].querySelector('.bar i').style.setProperty('--p', clamp((vh * 0.5 - r.top) / r.height).toFixed(3));
+          if (r.top < vh * 0.5 && r.bottom > vh * 0.5) now = mv;
+        });
+        if (now !== current) {
+          current = now;
+          const i = movements.indexOf(now);
+          bars.forEach((b, j) => b.classList.toggle('is-now', j === i));
+          if (i >= 0) scoreNow.textContent = `${'ⅠⅡⅢⅣⅤ'[i]} ${names[i]}`;
+          if (now && !played.has(now.id)) { played.add(now.id); playNotes(PHRASES[now.dataset.phrase]); }
+        }
+      };
       let frame = 0;
-      const updateProgress = () => {
-        frame = 0;
-        const distance = document.documentElement.scrollHeight - window.innerHeight;
-        const value = distance > 0 ? Math.min(1, Math.max(0, window.scrollY / distance)) : 1;
-        progress.style.transform = `scaleX(${value})`;
-      };
-      const queueProgress = () => { if (!frame) frame = requestAnimationFrame(updateProgress); };
-      window.addEventListener('scroll', queueProgress, { passive:true });
-      window.addEventListener('resize', queueProgress);
-      updateProgress();
-      const light = document.getElementById('light-window');
-      light.hidden = false;
-      light.addEventListener('click', () => {
-        document.getElementById('postscript').classList.add('is-lit');
-        light.setAttribute('aria-pressed', 'true');
-        light.disabled = true;
-        light.textContent = '灯亮了，故事还没有散场';
-        const afterglow = document.getElementById('afterglow');
-        afterglow.replaceChildren(document.createTextNode('愿你读完这封信的时候，'), document.createElement('br'), document.createTextNode('心里也有一点暖。'));
+      const onScroll = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; updateScore(); updateChoir(); }); };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', () => { layoutChoir(); if (reduced) drawChoir(0); onScroll(); });
+      updateScore(); updateChoir();
+
+      /* ── 磁带翻面 ── */
+      const tape = $('#tape');
+      const flip = $('#tape-flip');
+      const faces = $$('.tape-face', tape);
+      flip.addEventListener('click', () => {
+        const toB = tape.classList.toggle('is-b');
+        flip.textContent = toB ? '翻回 A 面' : '翻到 B 面';
+        flip.setAttribute('aria-pressed', String(toB));
+        faces[0].setAttribute('aria-hidden', String(toB));
+        faces[1].setAttribute('aria-hidden', String(!toB));
+        tape.classList.add('is-playing');
+        clearTimeout(tape.stopTimer);
+        tape.stopTimer = setTimeout(() => tape.classList.remove('is-playing'), 2200);
+        playNotes(toB ? ['G5', 'E5', 'D5'] : ['C5', 'E5', 'G5'], 0.28);
       });
+
+      /* ── 小岛视差 ── */
+      if (!reduced && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        const scene = $('.world-scene');
+        scene.addEventListener('pointermove', (e) => {
+          const r = scene.getBoundingClientRect();
+          scene.style.setProperty('--scene-x', `${(((e.clientX - r.left) / r.width - 0.5) * 9).toFixed(1)}px`);
+          scene.style.setProperty('--scene-y', `${(((e.clientY - r.top) / r.height - 0.5) * 6).toFixed(1)}px`);
+        }, { passive: true });
+        scene.addEventListener('pointerleave', () => { scene.style.removeProperty('--scene-x'); scene.style.removeProperty('--scene-y'); });
+      }
+
+      /* ── 延长记号：按住多久，由她决定 ── */
+      const fermata = $('#fermata');
+      const hold = $('#hold');
+      const readout = $('#hold-readout');
+      let heldAt = 0, holdFrame = 0;
+      const begin = (e) => {
+        if (heldAt) return;
+        if (e.type === 'keydown') { if (e.repeat || (e.key !== ' ' && e.key !== 'Enter')) return; e.preventDefault(); }
+        if (e.type === 'pointerdown' && hold.setPointerCapture) hold.setPointerCapture(e.pointerId);
+        heldAt = performance.now();
+        fermata.classList.add('is-holding');
+        holdStart();
+        const tick = () => { if (!heldAt) return; readout.textContent = `${((performance.now() - heldAt) / 1000).toFixed(1)} 秒`; holdFrame = requestAnimationFrame(tick); };
+        tick();
+      };
+      const end = (e) => {
+        if (!heldAt) return;
+        if (e.type === 'keyup' && e.key !== ' ' && e.key !== 'Enter') return;
+        const secs = (performance.now() - heldAt) / 1000;
+        heldAt = 0;
+        cancelAnimationFrame(holdFrame);
+        fermata.classList.remove('is-holding');
+        holdStop();
+        readout.textContent = secs < 0.4 ? '再按久一点——这个音，可以停很久。' : `这个音，你让它停了 ${secs.toFixed(1)} 秒。`;
+      };
+      hold.addEventListener('pointerdown', begin);
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((type) => hold.addEventListener(type, end));
+      hold.addEventListener('keydown', begin);
+      hold.addEventListener('keyup', end);
+      hold.addEventListener('click', (e) => e.preventDefault());
+      hold.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      /* ── 分享 ── */
       let toastTimeout;
-      const notify = (message) => {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.hidden = false;
-        clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => { toast.hidden = true; }, 4000);
-      };
-      const shareDialog = document.getElementById('share-dialog');
-      let previousOverflow = '';
-      shareDialog.addEventListener('close', () => { document.body.style.overflow = previousOverflow; });
-      shareDialog.addEventListener('click', (event) => {
-        const box = shareDialog.getBoundingClientRect();
-        if (event.target === shareDialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) shareDialog.close();
-      });
-      const share = document.getElementById('share');
+      const notify = (message) => { const toast = $('#toast'); toast.textContent = message; toast.hidden = false; clearTimeout(toastTimeout); toastTimeout = setTimeout(() => { toast.hidden = true; }, 4000); };
+      const shareDialog = $('#share-dialog');
+      shareDialog.addEventListener('click', (e) => { if (e.target === shareDialog) shareDialog.close(); });
+      const share = $('#share');
       share.hidden = false;
       share.addEventListener('click', async () => {
-        const url = new URL(window.location.href);
-        url.hash = '';
-        url.search = '';
-        const shareData = { title:'那次合唱，后来有了回声 · 潘诗菡亲启', text:'陈润森写给潘诗菡的一封校园情书。', url:url.href };
+        const url = new URL(window.location.href); url.hash = ''; url.search = '';
         if (navigator.share) {
-          try { await navigator.share(shareData); return; }
+          try { await navigator.share({ title: '那次合唱，后来有了回声 · 潘诗菡亲启', text: '陈润森写给潘诗菡的一封信。', url: url.href }); return; }
           catch (error) { if (error.name === 'AbortError') return; }
         }
         try { await navigator.clipboard.writeText(url.href); notify('链接已复制。把这封信，送到她手里吧。'); }
-        catch {
-          const input = document.getElementById('share-url');
-          input.value = url.href;
-          previousOverflow = document.body.style.overflow;
-          shareDialog.showModal();
-          document.body.style.overflow = 'hidden';
-          input.focus(); input.select();
-        }
+        catch { const input = $('#share-url'); input.value = url.href; shareDialog.showModal(); input.focus(); input.select(); }
       });
-      document.getElementById('close-share').addEventListener('click', () => shareDialog.close());
+      $('#close-share').addEventListener('click', () => shareDialog.close());
     })();
   </script>
 </body>
