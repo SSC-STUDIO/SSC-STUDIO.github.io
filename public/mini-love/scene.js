@@ -796,7 +796,6 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   grainTex.needsUpdate = true;
   const withGrain = (material, amount = 0.08) => {
     material.onBeforeCompile = (shader) => {
-      shader.uniforms.uGrain = { value: grainTex };
       shader.uniforms.uGrainAmt = { value: amount };
       shader.vertexShader = `varying vec3 vLocalPos;\n${shader.vertexShader}`
         .replace(
@@ -804,19 +803,17 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           `#include <begin_vertex>
           vLocalPos = position;`
         );
-      shader.fragmentShader = `uniform sampler2D uGrain;\nuniform float uGrainAmt;\nvarying vec3 vLocalPos;\n${shader.fragmentShader}`
+      shader.fragmentShader = `uniform float uGrainAmt;\nvarying vec3 vLocalPos;\n${shader.fragmentShader}`
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-          vec3 lp = vLocalPos;
-          float ax = abs(lp.x), ay = abs(lp.y), az = abs(lp.z);
-          vec2 uv = ax > ay && ax > az ? lp.zy : (ay > az ? lp.xz : lp.xy);
-          float g = texture2D(uGrain, uv * 4.0 + 0.5).r;
-          float grain = mix(0.96, 1.04, g);
+          vec3 cell = floor(vLocalPos * 28.0 + 0.5);
+          float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float grain = mix(0.975, 1.025, h);
           diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);`
         );
     };
-    material.customProgramCacheKey = () => `grain-local-${amount}`;
+    material.customProgramCacheKey = () => `grain-hash-${amount}`;
     return material;
   };
   const instanced = (list, material) => {
