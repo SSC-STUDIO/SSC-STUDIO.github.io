@@ -35,6 +35,7 @@
     /* ── 卷首：月亮、问候与夜里的小岛 ── */
     .hero { position:relative; min-height:calc(100svh - 50px); display:grid; grid-template-rows:auto auto 1fr; padding-top:4vh; }
     .moon-wrap { position:relative; justify-self:end; width:min(64vw,330px); margin:0 -6vw -6vh 0; transform:translate3d(0,calc(var(--rise,0) * -46px),0); z-index:0; }
+    .moon-wrap::before { content:""; position:absolute; inset:-55%; border-radius:50%; background:repeating-conic-gradient(from 0deg,rgba(255,236,190,.07) 0deg 5deg,transparent 5deg 17deg); -webkit-mask:radial-gradient(circle,#000 22%,transparent 68%); mask:radial-gradient(circle,#000 22%,transparent 68%); animation:raysSpin 90s linear infinite; pointer-events:none; }
     .moon { position:relative; display:block; width:100%; aspect-ratio:1; padding:0; border:0; background:none; border-radius:50%; animation:moonRise 2.2s cubic-bezier(.16,1,.3,1) .15s both; }
     .moon::before { content:""; position:absolute; inset:-38%; border-radius:50%; background:radial-gradient(circle,rgba(255,232,178,.34) 0%,rgba(255,220,160,.12) 38%,transparent 66%); animation:halo 6s ease-in-out infinite; pointer-events:none; }
     .moon svg { position:relative; display:block; width:100%; height:100%; filter:drop-shadow(0 0 26px rgba(255,230,170,.5)); transition:filter .6s; }
@@ -48,7 +49,7 @@
     h1 { margin:0; font:500 clamp(40px,11vw,64px)/1.35 var(--serif); letter-spacing:3px; }
     h1 span { display:block; animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) both; }
     h1 span:first-child { animation-delay:.75s; }
-    h1 .accent { color:var(--gold); animation-delay:.9s; text-shadow:0 0 28px rgba(241,207,134,.35); }
+    h1 .accent { background:linear-gradient(100deg,var(--gold) 0%,var(--gold) 40%,#fff6dc 50%,var(--gold) 60%,var(--gold) 100%); background-size:260% 100%; background-position:100% 0; -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 16px rgba(241,207,134,.4)); animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) .9s both,shimmer 5.5s ease-in-out 2.6s infinite; }
     .sub { margin:18px 0 0; color:#ddd6e6; font:16px/2 var(--serif); letter-spacing:1px; animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) 1.1s both; }
     .moon-line { min-height:28px; margin:10px 0 0; color:var(--rose); font:14px/2 var(--serif); letter-spacing:1px; transition:opacity .5s; }
     .moon-line.is-hidden { opacity:0; }
@@ -157,6 +158,8 @@
     @keyframes twinkle { 0%,100% { opacity:1; } 50% { opacity:.35; } }
     @keyframes sway { from { transform:rotate(-5deg); } to { transform:rotate(5deg); } }
     @keyframes flicker { 0%,100% { opacity:.9; } 40% { opacity:.7; } 55% { opacity:1; } 70% { opacity:.8; } }
+    @keyframes shimmer { 0% { background-position:100% 0; } 55%,100% { background-position:0% 0; } }
+    @keyframes raysSpin { to { transform:rotate(360deg); } }
     @keyframes hintRing { 0%,100% { transform:scale(1); opacity:.45; } 50% { transform:scale(1.04); opacity:1; } }
     @keyframes knife { 0% { stroke-dashoffset:220; opacity:1; } 65% { stroke-dashoffset:0; opacity:1; } 100% { stroke-dashoffset:0; opacity:0; } }
     @keyframes crumb { 0% { opacity:1; transform:translateY(-4px); } 100% { opacity:0; transform:translateY(28px); } }
@@ -1268,6 +1271,19 @@
         src.connect(band); band.connect(gain); gain.connect(out);
         src.start(ctx.currentTime + 0.02);
       };
+      const thump = () => {
+        if (!audio.on || !audio.ctx) return;
+        const { ctx, out } = audio;
+        const length = Math.floor(ctx.sampleRate * 0.4);
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 3;
+        const src = ctx.createBufferSource(); src.buffer = buffer;
+        const low = ctx.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 420;
+        const gain = ctx.createGain(); gain.gain.value = 0.8;
+        src.connect(low); low.connect(gain); gain.connect(out);
+        src.start(ctx.currentTime + 0.01);
+      };
       const soundButton = document.getElementById('sound');
       soundButton.hidden = false;
       const hintTimer = setTimeout(() => {
@@ -1338,6 +1354,71 @@
           ctx.fillText(l.text, x, y + h / 2 + 22 * depth);
         }
       };
+      /* 烟花：火箭升到顶点炸开；心形那朵用心形线当初速度 */
+      let rockets = [], embers = [];
+      const FIREWORK_COLORS = [['255,217,138', '255,243,201', '245,176,76'], ['247,168,192', '255,214,226', '231,121,154'], ['191,227,255', '255,255,255', '156,200,245'], ['255,217,138', '247,168,192', '255,255,255']];
+      const HEART_COLORS = ['247,168,192', '255,214,226', '255,243,201'];
+      const launchFirework = ({ x, y, shape = 'peony', colors } = {}) => {
+        if (reduced) return;
+        const tx = x ?? rand(W * 0.12, W * 0.88);
+        const ty = y ?? rand(H * 0.1, H * 0.4);
+        const gravity = 0.1;
+        rockets.push({ x: tx + rand(-40, 40), y: H + 10, tx, vy: -Math.sqrt(2 * gravity * (H + 10 - ty)), gravity, shape, colors: colors || FIREWORK_COLORS[Math.floor(rand(0, FIREWORK_COLORS.length))], trail: [] });
+      };
+      const explode = (r) => {
+        const heart = r.shape === 'heart';
+        const count = heart ? 110 : r.shape === 'ring' ? 60 : 84;
+        for (let i = 0; i < count; i++) {
+          let vx, vy;
+          const t = (i / count) * Math.PI * 2;
+          if (heart) { vx = 16 * Math.sin(t) ** 3 * 0.21; vy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * 0.21; }
+          else if (r.shape === 'ring') { vx = Math.cos(t) * 3.3; vy = Math.sin(t) * 3.3; }
+          else { const a = rand(0, Math.PI * 2), sp = rand(0.8, 4.3); vx = Math.cos(a) * sp; vy = Math.sin(a) * sp; }
+          embers.push({ x: r.x, y: r.y, px: r.x, py: r.y, vx, vy, c: r.colors[i % r.colors.length], life: 1, decay: rand(0.009, 0.015) * (heart ? 0.75 : 1), drag: heart ? 0.962 : 0.975, grav: heart ? 0.01 : 0.03, glitter: Math.random() < 0.35, w: rand(1.2, 2.2) });
+        }
+        embers.push({ flash: true, x: r.x, y: r.y, life: 1, decay: 0.07, c: r.colors[1] });
+        thump();
+        if (heart) play(['C6', 'E6', 'G6'], 0.16, 0.5);
+      };
+      const sparkleAt = (x, y) => {
+        if (reduced) return;
+        for (let i = 0; i < 26; i++) {
+          const a = rand(0, Math.PI * 2), sp = rand(0.5, 2.6);
+          embers.push({ x, y, px: x, py: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, c: Math.random() < 0.7 ? '246,196,84' : '255,243,201', life: 1, decay: rand(0.02, 0.035), drag: 0.95, grav: 0.02, glitter: true, w: rand(1, 1.8) });
+        }
+      };
+      const drawFireworks = (dt) => {
+        if (!rockets.length && !embers.length) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+        for (const r of rockets) {
+          r.trail.push([r.x, r.y]);
+          if (r.trail.length > 10) r.trail.shift();
+          r.vy += r.gravity * dt; r.y += r.vy * dt; r.x += (r.tx - r.x) * 0.02 * dt;
+          r.trail.forEach(([x, y], i) => { ctx.fillStyle = `rgba(255,236,190,${(i / r.trail.length) * 0.7})`; ctx.beginPath(); ctx.arc(x, y, 1.6, 0, Math.PI * 2); ctx.fill(); });
+          if (r.vy >= -0.3) { r.done = true; explode(r); }
+        }
+        rockets = rockets.filter((r) => !r.done);
+        for (const e of embers) {
+          e.life -= e.decay * dt;
+          if (e.flash) {
+            const glow = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 90);
+            glow.addColorStop(0, `rgba(${e.c},${0.35 * Math.max(0, e.life)})`); glow.addColorStop(1, `rgba(${e.c},0)`);
+            ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(e.x, e.y, 90, 0, Math.PI * 2); ctx.fill();
+            continue;
+          }
+          e.px = e.x; e.py = e.y;
+          e.vx *= e.drag; e.vy = e.vy * e.drag + e.grav * dt;
+          e.x += e.vx * dt; e.y += e.vy * dt;
+          let a = Math.max(0, e.life);
+          if (e.glitter && Math.random() < 0.3) a *= 0.25;
+          ctx.strokeStyle = `rgba(${e.c},${a})`; ctx.lineWidth = e.w;
+          ctx.beginPath(); ctx.moveTo(e.px, e.py); ctx.lineTo(e.x, e.y); ctx.stroke();
+        }
+        embers = embers.filter((e) => e.life > 0);
+        ctx.restore();
+      };
       let last = 0, running = true, meteors = [], nextMeteor = performance.now() + 4000;
       const frame = (now) => {
         if (!running) return;
@@ -1360,6 +1441,7 @@
           ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 14, m.y - m.vy * 14); ctx.stroke();
         }
         meteors = meteors.filter((m) => m.life > 0);
+        drawFireworks(dt);
         for (const l of lanterns) {
           l.t += dt;
           if (l.far) { l.y -= l.vy * dt / H; if (l.y < -0.05) { l.y = 1.05; l.x = rand(0, 1); } }
@@ -1381,6 +1463,16 @@
         if (running) { last = 0; requestAnimationFrame(frame); }
       });
       requestAnimationFrame(frame);
+      if (!reduced) {
+        [[900, 'peony'], [1700, 'peony'], [2500, 'ring'], [3400, 'peony'], [4700, 'heart']].forEach(([ms, shape]) => {
+          setTimeout(() => launchFirework(shape === 'heart' ? { shape, x: W * 0.5, y: H * 0.24, colors: HEART_COLORS } : { shape }), ms);
+        });
+        const ambientFirework = () => {
+          if (!document.hidden) launchFirework();
+          setTimeout(ambientFirework, rand(12000, 22000));
+        };
+        setTimeout(ambientFirework, 15000);
+      }
 
       /* ── 月亮：轻触会回话 ── */
       const moon = document.getElementById('moon');
@@ -1396,6 +1488,10 @@
         setTimeout(() => { moonLine.textContent = line; moonLine.classList.remove('is-hidden'); }, reduced ? 0 : 180);
         moon.classList.remove('is-pulse'); void moon.offsetWidth; moon.classList.add('is-pulse');
         moon.classList.toggle('is-blush', line.startsWith('……'));
+        if (line.startsWith('……')) {
+          const r = moon.getBoundingClientRect();
+          launchFirework({ shape: 'heart', x: Math.max(W * 0.22, r.left - r.width * 0.25), y: Math.max(H * 0.14, r.top + r.height * 0.45), colors: HEART_COLORS });
+        }
         const chimes = [['E5', 'A5'], ['G5', 'C6'], ['A5', 'D6'], ['E6', 'D6', 'C6', 'A5']];
         play(chimes[(moonTaps - 1) % chimes.length], line.startsWith('……') ? 0.14 : 0.24);
       });
@@ -1548,6 +1644,7 @@
         setTimeout(() => fly.remove(), 1800);
         releaseLantern(input.value.trim());
         play(['C5', 'D5', 'E5', 'G5', 'A5', 'C6'], 0.1, 0.5);
+        setTimeout(() => launchFirework({ x: rand(W * 0.3, W * 0.7), y: rand(H * 0.12, H * 0.3), colors: FIREWORK_COLORS[0] }), 1600);
         input.value = '';
         echo.textContent = echoes[Math.min(released, echoes.length - 1)];
         released += 1;
@@ -1563,6 +1660,22 @@
         }, { threshold: 0.4 });
         first.observe(lanternSection);
       }
+
+      /* ── 落款处的收尾烟花；点夜空迸出桂花星光 ── */
+      if ('IntersectionObserver' in window) {
+        const finale = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          finale.disconnect();
+          launchFirework({ shape: 'heart', x: W * 0.5, y: H * 0.22, colors: HEART_COLORS });
+          setTimeout(() => launchFirework({ x: W * 0.24, y: H * 0.3 }), 700);
+          setTimeout(() => launchFirework({ x: W * 0.76, y: H * 0.28 }), 1200);
+        }, { threshold: 0.5 });
+        finale.observe(document.querySelector('.sign'));
+      }
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('a,button,input,form')) return;
+        sparkleAt(e.clientX, e.clientY);
+      });
 
       /* ── 分享 ── */
       const toast = document.getElementById('toast');
