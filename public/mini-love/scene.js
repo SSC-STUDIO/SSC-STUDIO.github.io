@@ -61,7 +61,7 @@ const PATH = [
   { s: 5.7, p: [0.6, 7.6, -33.8], l: [0.0, 5.2, -47.2], ph: 3.0 },
   { s: 6, p: [0.0, 10.4, -28.6], l: [0.0, 6.4, -50.0], ph: 3.0 },
 ];
-const YES_SHOT = { p: [3.4, 6.2, -37.4], l: [0.15, 4.2, -45.2] };
+const YES_SHOT = { p: [5.4, 6.8, -37.6], l: [0.1, 6.4, -46.4] };
 const MOON_POS = [10, 24, -75];
 
 const catmull = (p0, p1, p2, p3, t) => {
@@ -1672,6 +1672,54 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         shooting.splice(i, 1);
       }
     }
+    for (let i = fireworks.length - 1; i >= 0; i--) {
+      const shell = fireworks[i];
+      const age = clock - shell.born;
+      if (age < 0) continue;
+      if (!shell.sparks) {
+        const t = Math.min(1, age / shell.rise);
+        const y = shell.y0 + (shell.y1 - shell.y0) * (1 - (1 - t) ** 2);
+        if (!shell.rocket) {
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: glowTex,
+            color: shell.color,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          }));
+          sprite.scale.setScalar(0.55);
+          scene.add(sprite);
+          shell.rocket = sprite;
+        }
+        shell.rocket.position.set(shell.x, y, shell.z);
+        shell.rocket.material.opacity = 0.85;
+        if (t >= 1) {
+          scene.remove(shell.rocket);
+          shell.rocket.material.dispose();
+          shell.rocket = null;
+          burstFirework(shell);
+        }
+        continue;
+      }
+      shell.life += dt;
+      const { points, velocities, positions } = shell.sparks;
+      const fade = 1 - smooth(0.15, 2.1, shell.life);
+      for (let k = 0; k < velocities.length; k++) {
+        const [vx, vy, vz] = velocities[k];
+        const drag = Math.exp(-shell.life * 0.7);
+        positions[k * 3] = shell.x + vx * shell.life * drag;
+        positions[k * 3 + 1] = shell.y1 + vy * shell.life * drag - shell.life * shell.life * 0.55;
+        positions[k * 3 + 2] = shell.z + vz * shell.life * drag;
+      }
+      points.geometry.attributes.position.needsUpdate = true;
+      points.material.opacity = Math.max(0, fade);
+      if (shell.life > 2.2) {
+        scene.remove(points);
+        points.geometry.dispose();
+        points.material.dispose();
+        fireworks.splice(i, 1);
+      }
+    }
     for (let i = skyLanterns.length - 1; i >= 0; i--) {
       const l = skyLanterns[i];
       const age = clock - l.born;
@@ -1752,12 +1800,61 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     pulse = Math.min(1.4, pulse + 0.45);
   };
 
+  const fireworks = [];
+  const FW_COLORS = [0xffb7c8, 0xffe0a0, 0xd7c2ff, 0x9adfff, 0xff9a72, 0xfff6ea];
+  const launchFirework = (x, z, delay) => {
+    fireworks.push({
+      x,
+      z,
+      y0: islandTop + 1.1,
+      y1: islandTop + R(6.2, 10.4),
+      born: clock + delay,
+      rise: R(0.72, 1.05),
+      color: pick(FW_COLORS),
+      sparks: null,
+      life: 0,
+    });
+  };
+  const burstFirework = (shell) => {
+    const count = lite ? 36 : 72;
+    const positions = new Float32Array(count * 3);
+    const velocities = [];
+    for (let i = 0; i < count; i++) {
+      const theta = R(0, Math.PI * 2);
+      const phi = Math.acos(R(-1, 1));
+      const speed = R(1.4, 4.2);
+      velocities.push([
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.cos(phi) * speed * 0.85,
+        Math.sin(phi) * Math.sin(theta) * speed,
+      ]);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: shell.color,
+      size: 0.16,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 1,
+    });
+    const points = new THREE.Points(geo, mat);
+    points.frustumCulled = false;
+    scene.add(points);
+    shell.sparks = { points, velocities, positions };
+    shell.life = 0;
+    pulse = 1.2;
+  };
+
   const celebrate = () => {
     if (mode === 'yes') return;
     mode = 'yes';
     petalBurst(0, islandTop + 1.4, -43.8, 4.8, [1, 0.7, 0.82]);
     gust(1.6);
     for (let i = 0; i < 5; i++) releaseLantern(R(-2.5, 2.5), islandTop + R(0.5, 1.5), -44 + R(-2, 2));
+    const pattern = [[-2.2, -44.2], [1.6, -45.4], [0.2, -47.2], [-3.4, -46.0], [2.8, -43.6], [-0.8, -44.8], [3.6, -46.8]];
+    pattern.forEach(([x, z], i) => launchFirework(x + R(-0.3, 0.3), z + R(-0.3, 0.3), 0.15 + i * 0.42));
   };
 
   return {

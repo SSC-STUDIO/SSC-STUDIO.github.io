@@ -2272,7 +2272,7 @@ SOFTWARE.
       window.addEventListener('resize', () => { layoutChoir(); if (reduced) drawChoir(0); onScroll(); });
       updateScore(); updateChoir();
 
-      /* ── 她的答复：先送到联系接口，失败再打开写好的邮件 ── */
+      /* ── 她的答复：愿意就写入站内私信，并在夜空放烟花 ── */
       const reply = $('#reply');
       const replyStatus = $('#reply-status');
       const replyButtons = [ $('#reply-yes'), $('#reply-later') ];
@@ -2281,38 +2281,35 @@ SOFTWARE.
       const sendReply = async (choice) => {
         if (sending || replyButtons.some((button) => button.disabled)) return;
         sending = true;
-        const when = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
-        const label = choice === 'yes' ? '愿意' : '再想想';
-        const content = `潘诗菡选择了「${label}」。${when}`;
-        const payload = { name: '潘诗菡', email: '', subject: '写给诗菡的信 · 她的答复', content };
-        replyStatus.textContent = '正在把这句话送到他那里…';
+        if (choice !== 'yes') {
+          lockReply();
+          replyStatus.textContent = '好。这句话先留在这里。';
+          return;
+        }
+        askBeat('yes');
+        playChord(['C5', 'E5', 'G5', 'C6']);
+        swellBed(0.11, 0.5);
+        replyStatus.textContent = '正在把这句话送到他的消息里…';
         let delivered = false;
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 8000);
         try {
-          const response = await fetch('/api/contact/messages', {
+          const response = await fetch('/api/letters/reply', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({ choice: 'yes' }),
             signal: ctrl.signal,
           });
           delivered = response.ok;
         } catch {}
         clearTimeout(timer);
-        if (choice === 'yes') {
-          askBeat('yes');
-          playChord(['C5', 'E5', 'G5', 'C6']);
-          swellBed(0.11, 0.5);
-        }
         if (delivered) {
           lockReply();
-          replyStatus.textContent = '他会看到。';
+          replyStatus.textContent = '他会在消息里看到。';
           return;
         }
         sending = false;
-        const mail = `mailto:3992237161@qq.com?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(content + '\n\n这封信来自那次合唱的页面。')}`;
-        replyStatus.textContent = '这边没送出去。邮件已经写好，再点一次发送，就会到他邮箱。';
-        window.location.href = mail;
+        replyStatus.textContent = '烟花放了，这句话还没送进消息。再点一次愿意。';
       };
       replyButtons[0].addEventListener('click', () => sendReply('yes'));
       replyButtons[1].addEventListener('click', () => sendReply('later'));
