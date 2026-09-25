@@ -46,22 +46,22 @@ const skyAt = (phase) => {
 };
 
 /* 阅读进度 s：0 封面，1–5 对应五个乐章开头，6 读完。
-   机位都在岛的东侧、树冠和屋檐之上，视线略向下，正文落在天空上，风景留在画面下沿。 */
+   全程走岛的东侧，躲开屋檐与紫树冠；视线略向下，让水面、灯笼和浮岛留在画面里。 */
 const PATH = [
   { s: 0, p: [1.6, 4.6, 11.2], l: [1.4, 1.15, -1.2], ph: 0.05 },
   { s: 1, p: [6.2, 3.8, 4.6], l: [1.2, 1.15, -1.6], ph: 0.2 },
   { s: 1.7, p: [6.8, 3.6, 0.4], l: [1.6, 1.05, -2.8], ph: 0.5 },
   { s: 2, p: [6.6, 3.9, -9.4], l: [0.4, 0.95, -15.4], ph: 1.05 },
-  { s: 2.7, p: [6.2, 3.5, -14.6], l: [0.1, 0.85, -17.4], ph: 1.3 },
-  { s: 3, p: [6.0, 4.0, -22.2], l: [-0.2, 1.25, -28.6], ph: 2.05 },
-  { s: 3.7, p: [5.4, 3.7, -27.4], l: [-0.3, 1.15, -31.2], ph: 2.35 },
-  { s: 4, p: [4.2, 4.8, -33.8], l: [0.15, 2.9, -45.2], ph: 2.75 },
-  { s: 4.7, p: [2.8, 4.6, -36.2], l: [0.05, 3.25, -45.6], ph: 2.95 },
-  { s: 5, p: [1.6, 4.5, -35.4], l: [0, 3.15, -45.2], ph: 3.0 },
-  { s: 5.7, p: [0.2, 5.4, -34.2], l: [0, 3.4, -45.6], ph: 3.0 },
-  { s: 6, p: [0, 7.6, -29.2], l: [0, 3.8, -47.5], ph: 3.0 },
+  { s: 2.7, p: [6.4, 3.6, -14.8], l: [0.2, 0.9, -17.6], ph: 1.3 },
+  { s: 3, p: [6.8, 4.3, -20.6], l: [0.3, 1.35, -28.0], ph: 2.05 },
+  { s: 3.7, p: [7.2, 4.6, -26.0], l: [0.1, 1.45, -31.6], ph: 2.35 },
+  { s: 4, p: [6.6, 5.2, -32.2], l: [0.2, 3.15, -44.8], ph: 2.75 },
+  { s: 4.7, p: [5.4, 5.3, -35.6], l: [0.1, 3.35, -45.4], ph: 2.95 },
+  { s: 5, p: [4.6, 5.1, -36.8], l: [0.05, 3.25, -45.2], ph: 3.0 },
+  { s: 5.7, p: [3.4, 5.8, -34.6], l: [0.0, 3.55, -45.8], ph: 3.0 },
+  { s: 6, p: [2.2, 7.8, -30.2], l: [0.0, 4.1, -48.2], ph: 3.0 },
 ];
-const YES_SHOT = { p: [3.8, 5.2, -36.4], l: [0.1, 4.6, -45.6] };
+const YES_SHOT = { p: [4.8, 5.5, -37.0], l: [0.15, 4.05, -45.4] };
 const MOON_POS = [10, 24, -75];
 
 const catmull = (p0, p1, p2, p3, t) => {
@@ -115,7 +115,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xffffff, 0.018);
-  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 420);
+  const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 620);
   const display = (rgb, target = new THREE.Color()) => target.setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
 
   /* ── 收集方块，最后一次性做成实例网格 ── */
@@ -766,13 +766,58 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       }
     });
 
-  /* ── 做成实例网格 ── */
+  /* ── 做成实例网格：共用一张颗粒纹理，让草、木、石不再是纯色块 ── */
   const cube = new THREE.BoxGeometry(1, 1, 1);
   const tmpMatrix = new THREE.Matrix4();
   const tmpQuat = new THREE.Quaternion();
   const tmpPos = new THREE.Vector3();
   const tmpScale = new THREE.Vector3();
   const tmpColor = new THREE.Color();
+  const grainCanvas = document.createElement('canvas');
+  grainCanvas.width = grainCanvas.height = 128;
+  {
+    const g = grainCanvas.getContext('2d');
+    const img = g.createImageData(128, 128);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const n = (rng() * 255) | 0;
+      const m = (rng() * 255) | 0;
+      img.data[i] = n;
+      img.data[i + 1] = m;
+      img.data[i + 2] = ((n + m) / 2) | 0;
+      img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+  }
+  const grainTex = new THREE.CanvasTexture(grainCanvas);
+  grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping;
+  grainTex.colorSpace = THREE.NoColorSpace;
+  grainTex.needsUpdate = true;
+  const withGrain = (material, amount = 0.14) => {
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uGrain = { value: grainTex };
+      shader.uniforms.uGrainAmt = { value: amount };
+      shader.vertexShader = `varying vec3 vWorldPos;\n${shader.vertexShader}`
+        .replace(
+          '#include <project_vertex>',
+          `#include <project_vertex>
+          vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+        );
+      shader.fragmentShader = `uniform sampler2D uGrain;\nuniform float uGrainAmt;\nvarying vec3 vWorldPos;\n${shader.fragmentShader}`
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          vec3 gp = vWorldPos * 0.72;
+          float g1 = texture2D(uGrain, gp.xz * 0.18 + gp.y * 0.07).r;
+          float g2 = texture2D(uGrain, gp.zy * 0.26 + gp.x * 0.05).g;
+          float grain = mix(0.72, 1.22, g1 * 0.55 + g2 * 0.45);
+          diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);
+          float edge = abs(fract(gp.x * 2.0) - 0.5) + abs(fract(gp.z * 2.0) - 0.5);
+          diffuseColor.rgb *= 1.0 - uGrainAmt * 0.16 * smoothstep(0.68, 0.98, edge);`
+        );
+    };
+    material.customProgramCacheKey = () => `grain-${amount}`;
+    return material;
+  };
   const instanced = (list, material) => {
     const mesh = new THREE.InstancedMesh(cube, material, Math.max(1, list.length));
     list.forEach((b, i) => {
@@ -791,9 +836,9 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     scene.add(mesh);
     return mesh;
   };
-  instanced(lit, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-  const warmMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const magicMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.26));
+  const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.12);
+  const magicMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.14);
   instanced(glow.warm, warmMat);
   instanced(glow.magic, magicMat);
 
@@ -960,7 +1005,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     const n = Math.round(R(8, 16));
     for (let k = 0; k < n; k++) cloudList.push([cx + R(-3, 3), cy + (rng() < 0.3 ? 0.5 : 0), cz + R(-1.6, 1.6), R(1.2, 2.2), 0.55, R(1.0, 1.8), '#ffffff', 0.03]);
   }
-  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 });
+  const cloudMat = withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }), 0.1);
   const clouds = instanced(cloudList, cloudMat);
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.18));
@@ -970,9 +1015,9 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   const hemi = new THREE.HemisphereLight(0xffffff, 0xffffff, 1.0);
   scene.add(hemi);
 
-  /* ── 水面：花园的碧绿、樱花河的湛蓝、运河的暗色、湖上的星光 ── */
+  /* ── 水面：大到雾里看不见边；细涟漪 + 软高光；四区颜色保留 ── */
   const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(52, 96, 1, 1),
+    new THREE.PlaneGeometry(420, 480, 1, 1),
     new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -983,6 +1028,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         uSky: { value: new THREE.Vector3() },
         uFog: { value: new THREE.Vector3() },
         uFogDensity: { value: 0.02 },
+        uGrain: { value: grainTex },
       },
       vertexShader: `
         varying vec3 vWorld;
@@ -998,6 +1044,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       fragmentShader: `
         uniform float uTime, uNight, uLamp, uFogDensity;
         uniform vec3 uSky, uFog;
+        uniform sampler2D uGrain;
         varying vec3 vWorld;
         varying float vDist;
         vec3 zoneColor(float z, float k) {
@@ -1011,24 +1058,41 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           return mix(mix(mix(a, b, t1), c, t2), d, t3);
         }
         void main() {
-          float w1 = sin(vWorld.x * 2.4 + uTime * 1.1) * sin(vWorld.z * 1.9 - uTime * 0.8);
-          float w2 = sin((vWorld.x - vWorld.z) * 4.6 + uTime * 1.9) * 0.5;
-          float k = 0.5 + 0.35 * w1 + 0.15 * w2;
+          vec2 xz = vWorld.xz;
+          float w1 = sin(xz.x * 3.6 + uTime * 1.25) * sin(xz.y * 2.8 - uTime * 0.95);
+          float w2 = sin((xz.x - xz.y) * 7.2 + uTime * 2.1) * 0.45;
+          float w3 = sin(xz.x * 11.0 - xz.y * 9.5 + uTime * 2.8) * 0.22;
+          float w4 = sin((xz.x + xz.y) * 18.0 + uTime * 3.4) * 0.12;
+          float wave = w1 * 0.5 + w2 * 0.28 + w3 * 0.14 + w4 * 0.08;
+          float k = 0.5 + 0.42 * wave;
           vec3 col = zoneColor(vWorld.z, k);
-          col = mix(col, uSky, 0.16 + 0.12 * (1.0 - uNight));
-          float glint = pow(max(0.0, w1 * 0.6 + w2 * 0.8), 6.0);
-          col += glint * mix(vec3(1.0), vec3(1.0, 0.8, 0.55), uLamp) * (0.22 + 0.3 * uLamp);
-          vec2 cell = floor(vWorld.xz * 5.0);
-          float sp = step(0.996, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
+          float grain = texture2D(uGrain, xz * 0.045 + vec2(uTime * 0.008, -uTime * 0.006)).r;
+          col *= mix(0.92, 1.06, grain);
+          col = mix(col, uSky, 0.14 + 0.1 * (1.0 - uNight));
+          float dx = cos(xz.x * 3.6 + uTime * 1.25) * sin(xz.y * 2.8 - uTime * 0.95) * 3.6
+            + cos((xz.x - xz.y) * 7.2 + uTime * 2.1) * 7.2 * 0.45;
+          float dz = sin(xz.x * 3.6 + uTime * 1.25) * cos(xz.y * 2.8 - uTime * 0.95) * 2.8
+            - cos((xz.x - xz.y) * 7.2 + uTime * 2.1) * 7.2 * 0.45;
+          vec3 nrm = normalize(vec3(-dx * 0.04, 1.0, -dz * 0.04));
+          vec3 viewDir = normalize(cameraPosition - vWorld);
+          vec3 lightDir = normalize(vec3(0.35, 0.82, 0.28));
+          float spec = pow(max(0.0, dot(reflect(-lightDir, nrm), viewDir)), 48.0);
+          float streak = pow(max(0.0, 1.0 - abs(nrm.x * 2.2 + nrm.z * 0.6)), 10.0) * (0.55 + 0.45 * wave);
+          vec3 spark = mix(vec3(0.92, 0.96, 1.0), vec3(1.0, 0.82, 0.58), uLamp);
+          col += spark * (spec * (0.28 + 0.35 * uLamp) + streak * (0.12 + 0.18 * uLamp));
+          float glint = pow(max(0.0, wave), 5.0);
+          col += glint * spark * (0.08 + 0.12 * uLamp);
+          vec2 cell = floor(xz * 6.5);
+          float sp = step(0.997, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
           col += vec3(0.85, 0.88, 1.0) * sp * uNight * (0.5 + 0.5 * sin(uTime * 3.0 + cell.x));
           float f = 1.0 - exp(-pow(uFogDensity * vDist, 2.0));
-          gl_FragColor = vec4(mix(col, uFog, f), 0.93);
+          gl_FragColor = vec4(mix(col, uFog, f), 0.94);
         }
       `,
     })
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, 0.32, -26);
+  water.position.set(0, 0.32, -40);
   scene.add(water);
 
   const fall = new THREE.Mesh(
