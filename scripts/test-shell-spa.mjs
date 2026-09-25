@@ -238,20 +238,20 @@ try {
   assert(back.rail, '回首页应重建导轨')
   assert(back.daypart === home.daypart, '时段在换页后应保持')
 
-  await clickSelector('.sb-menu a[href="#about"], .sb-menu a[href="/#about"]')
-  const about = await snapshot('hash-about')
-  assert(about.path === '/', '关于应停在首页')
-  assert(about.hash === '#about' || about.current.includes('#about') || about.current.includes('/#about'),
-    `关于应高亮，hash=${about.hash} current=${JSON.stringify(about.current)}`)
+  await clickSelector('.js-index-open')
+  assert(await evaluate(`document.querySelector('.js-site-index')?.open === true`), '目录应能打开')
+  await clickSelector('.js-index-chapter[href="#about"]')
+  const chapter = await snapshot('index-chapter')
+  assert(chapter.path === '/' && chapter.hash === '#about', `目录本页章节应停在首页 #about，得到 ${chapter.path}${chapter.hash}`)
+  assert(await evaluate(`document.querySelector('.js-site-index')?.open === false`), '跳章节后目录应收起')
 
   await navigate(`${BASE}/contact`)
-  await clickSelector('.sb-menu a[href="/#about"]')
+  await clickSelector('.sb-menu a[href="/about"]')
   const fromContact = await snapshot('spa-about')
-  assert(fromContact.path === '/', `从联系回关于应到首页，得到 ${fromContact.path}`)
-  assert(/^\d{2}:\d{2}$/.test(fromContact.clock), `SPA 回首页时钟 ${fromContact.clock}`)
-  assert(fromContact.term.startsWith('今值'), `SPA 回首页节气 ${fromContact.term}`)
+  assert(fromContact.path === '/about', `从联系点关于应到关于页，得到 ${fromContact.path}`)
+  assert(fromContact.term.startsWith('今值'), `SPA 后节气 ${fromContact.term}`)
   assert(
-    fromContact.current.some((href) => href === '#about' || href === '/#about'),
+    fromContact.current.includes('/about'),
     `SPA 后关于应高亮，得到 ${JSON.stringify(fromContact.current)}`
   )
 
