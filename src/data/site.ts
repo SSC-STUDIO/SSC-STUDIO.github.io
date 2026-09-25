@@ -9,7 +9,7 @@ import { navLinks } from './nav'
 import { projects } from './projects'
 
 export const siteOrigin = String(
-  import.meta.env.SITE || 'https://chenrunsen.cn'
+  import.meta.env.SITE || 'https://ssc-studio.github.io'
 ).replace(/\/$/, '')
 
 /** 账号 / 管理 / 私信 / 班级：页面 noindex，且不得进入 sitemap */

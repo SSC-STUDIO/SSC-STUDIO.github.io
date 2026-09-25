@@ -71,7 +71,7 @@ function apiTunnelFallback() {
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://chenrunsen.cn',
+  site: 'https://ssc-studio.github.io',
   scopedStyleStrategy: 'class',
 
   server: {

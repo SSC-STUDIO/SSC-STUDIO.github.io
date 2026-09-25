@@ -1,6 +1,6 @@
 # 陈润森 · Chen Runsen
 
-个人网站 [chenrunsen.cn](https://chenrunsen.cn)：作品集、文章、实验游戏，以及一处班级记忆现场。
+个人网站 [ssc-studio.github.io](https://ssc-studio.github.io)：作品集、文章、实验游戏，以及一处班级记忆现场。
 
 用 **Astro** 构建。视觉身份以「森」字构成、朱砂印章和中文宋体为骨架。
 
@@ -9,8 +9,8 @@
 ## 本地开发
 
 ```bash
-git clone https://github.com/SSC-STUDIO/ChenRunsen-Website.git
-cd ChenRunsen-Website/site
+git clone https://github.com/SSC-STUDIO/SSC-STUDIO.github.io.git
+cd SSC-STUDIO.github.io
 npm install
 npm run dev
 ```
@@ -18,6 +18,10 @@ npm run dev
 - `npm run build` 产出静态站点
 - 开发时 `/api` 经 Vite 代理到本机 `18080`（SSH 隧道连生产）
 - `npm run sync:repos` 重新拉取 GitHub 仓库，写入 `src/data/github-repos.json`（项目页的开源仓库区读这份数据）
+
+## 部署
+
+推送 `main` 后，GitHub Actions 构建站点并发布到 GitHub Pages，网址为 [ssc-studio.github.io](https://ssc-studio.github.io/)。Pages 只提供静态文件；账号、留言、排行榜等 `/api` 功能需要另行部署后端并接入同源路由。
 
 ### GitHub 仓库同步
 
