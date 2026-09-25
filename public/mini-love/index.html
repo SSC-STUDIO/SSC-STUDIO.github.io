@@ -73,8 +73,12 @@ SOFTWARE.
     .envelope-line { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-top:max(26px,env(safe-area-inset-top)); padding-bottom:18px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:1.7px; }
     .tiny-heart { width:12px; height:12px; display:inline-block; vertical-align:-1px; fill:var(--rose); margin:0 5px; }
 
+    .fx { position:fixed; inset:0; z-index:11; width:100%; height:100%; pointer-events:none; }
+
     /* ── 卷首与信封（信封层叠与起落改编自 luo-5/love-letter-site-template，MIT） ── */
-    .cover { text-align:center; padding-top:27px; }
+    .cover { position:relative; text-align:center; padding-top:27px; }
+    .bokeh { position:absolute; inset:-20px -40px; z-index:-1; pointer-events:none; }
+    .bokeh i { position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%; background:radial-gradient(circle,var(--c) 0%,transparent 68%); opacity:.5; animation:bokehFloat var(--d) ease-in-out var(--delay) infinite alternate; }
     .cover-mark { display:block; width:43px; height:37px; margin:0 auto 13px; }
     .cover-mark .music-notes { transform-box:fill-box; transform-origin:center; animation:noteAnswer 4.8s ease-in-out 1.4s infinite; }
     .dedication { font-size:12px; color:var(--muted); letter-spacing:4px; margin:0 0 16px; }
@@ -83,6 +87,8 @@ SOFTWARE.
     .cover-mark,.dedication,h1 .title-first,h1 .title-last,.cover-verse,.school-line { display:block; animation:coverEnter 760ms cubic-bezier(.16,1,.3,1) both; }
     .dedication { animation-delay:140ms; } h1 .title-first { animation-delay:240ms; } h1 .title-last { animation-delay:330ms; } .cover-verse { animation-delay:460ms; } .school-line { animation-delay:550ms; }
     .cover-object { animation:coverEnter 820ms cubic-bezier(.16,1,.3,1) 470ms both; }
+    h1 .title-last { background:linear-gradient(100deg,var(--rose) 0%,var(--rose) 42%,#f0c29c 50%,var(--rose) 58%,var(--rose) 100%); background-size:260% 100%; background-position:100% 0; -webkit-background-clip:text; background-clip:text; color:transparent; animation:coverEnter 760ms cubic-bezier(.16,1,.3,1) 330ms both,shimmer 6s ease-in-out 2.4s infinite; }
+    .confess.is-in h3 { animation:confessGlow 3.6s ease-in-out 2.4s infinite; }
     .cover-verse { font:15px/2 var(--serif); letter-spacing:1px; margin:19px -4px 0; }
     .school-line { font-size:12px; letter-spacing:1px; color:var(--muted); margin:20px 0 8px; }
     .envelope-stage { position:relative; padding:72px 4px 4px; perspective:1200px; }
@@ -261,6 +267,9 @@ SOFTWARE.
     @keyframes drift { from { transform:translateX(-4px); } to { transform:translateX(6px); } }
     @keyframes noteRise { 0% { opacity:0; transform:translateY(10px) rotate(-8deg); } 20% { opacity:.9; } 100% { opacity:0; transform:translateY(-90px) rotate(10deg); } }
     @keyframes ring { from { opacity:.8; transform:scale(.6); } to { opacity:0; transform:scale(2.4); } }
+    @keyframes bokehFloat { from { transform:translate3d(0,0,0) scale(1); opacity:.3; } to { transform:translate3d(var(--dx),var(--dy),0) scale(1.15); opacity:.7; } }
+    @keyframes shimmer { 0% { background-position:100% 0; } 55%,100% { background-position:0% 0; } }
+    @keyframes confessGlow { 0%,100% { text-shadow:0 0 0 rgba(233,140,165,0); } 50% { text-shadow:0 0 22px rgba(233,140,165,.5); } }
     @keyframes popHeart { 0% { opacity:0; transform:translateY(0) scale(.5); } 18% { opacity:1; transform:translateY(-10px) scale(1); } 100% { opacity:0; transform:translateY(-78px) scale(1.15); } }
     @keyframes sealSign { from { opacity:.2; transform:scale(1.28) rotate(7deg); } to { opacity:1; transform:scale(1) rotate(-8deg); } }
 
@@ -292,6 +301,7 @@ SOFTWARE.
   </style>
 </head>
 <body>
+  <canvas class="fx" id="fx" aria-hidden="true"></canvas>
   <nav class="score" id="score" aria-label="乐章进度">
     <ol>
       <li><a href="#mv1"><span class="bar"><i></i></span>Ⅰ</a></li>
@@ -310,6 +320,15 @@ SOFTWARE.
     <header class="envelope-line"><span>写在青春的这一页</span><span>陈润森 <svg class="tiny-heart" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h5v2h4V3h5v6h-2v2h-2v2H9v2H7v-2H5v-2H3V9H1z"/></svg> 潘诗菡</span></header>
     <main>
       <section class="cover" aria-labelledby="main-title">
+        <div class="bokeh" aria-hidden="true">
+          <i style="--s:120px;--x:6%;--y:12%;--c:#f6c9cf;--d:9s;--dx:18px;--dy:-22px;--delay:-2s"></i>
+          <i style="--s:70px;--x:38%;--y:4%;--c:#f8dcb8;--d:11s;--dx:-14px;--dy:16px;--delay:-5s"></i>
+          <i style="--s:150px;--x:70%;--y:18%;--c:#f3c1ca;--d:13s;--dx:-20px;--dy:-18px;--delay:-1s"></i>
+          <i style="--s:56px;--x:88%;--y:62%;--c:#f7e1b0;--d:8s;--dx:12px;--dy:-26px;--delay:-3s"></i>
+          <i style="--s:96px;--x:20%;--y:70%;--c:#f5d0d6;--d:10s;--dx:22px;--dy:-12px;--delay:-6s"></i>
+          <i style="--s:44px;--x:54%;--y:82%;--c:#fbe6c4;--d:7s;--dx:-10px;--dy:-20px;--delay:-4s"></i>
+          <i style="--s:84px;--x:92%;--y:6%;--c:#f4cbd3;--d:12s;--dx:-16px;--dy:20px;--delay:-7s"></i>
+        </div>
         <div class="cover-copy">
           <svg class="cover-mark" viewBox="0 0 60 50" aria-hidden="true"><path d="M3 16 27 4l24 12-24 12z" fill="#a9bf8e"/><path d="M3 16 27 28v16L3 32z" fill="#a18b72"/><path d="M27 28 51 16v16L27 44z" fill="#806e59"/><path d="M3 16 27 28v5L3 21z" fill="#7f9a69"/><path d="M27 28 51 16v5L27 33z" fill="#6b865b"/><path class="music-notes" d="M34 2v14a5 5 0 1 1-2-4V5l15-3v11a5 5 0 1 1-2-4V0z" fill="#a95166"/></svg>
           <p class="dedication">潘诗菡 · 亲启</p>
@@ -1345,6 +1364,127 @@ SOFTWARE.
       const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
       const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
+      /* ── 绚烂层：花瓣、星光、爱心；盖在正文上但不接点击，没有粒子时不跑帧 ── */
+      const fx = (() => {
+        const canvas = $('#fx');
+        const g = canvas.getContext('2d');
+        let W = 0, H = 0, parts = [], running = false, last = 0;
+        const resize = () => {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          W = window.innerWidth; H = window.innerHeight;
+          canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resize();
+        window.addEventListener('resize', resize);
+        const rnd = (a, b) => a + Math.random() * (b - a);
+        const pick = (list) => list[Math.floor(Math.random() * list.length)];
+        const PETALS = ['246,193,204', '242,167,184', '235,144,165', '251,217,223'];
+        const GOLDS = ['246,213,139', '243,194,107', '255,241,201'];
+        const ROSES = ['229,138,160', '212,106,134', '244,183,193'];
+        const heartPath = (s) => {
+          g.beginPath(); g.moveTo(0, s * 0.32);
+          g.bezierCurveTo(-s * 1.05, -s * 0.38, -s * 0.5, -s * 1.1, 0, -s * 0.5);
+          g.bezierCurveTo(s * 0.5, -s * 1.1, s * 1.05, -s * 0.38, 0, s * 0.32);
+          g.closePath();
+        };
+        const draw = {
+          petal(p) {
+            g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.scale(1, Math.cos(p.flip));
+            g.fillStyle = `rgba(${p.c},${p.a})`;
+            g.beginPath(); g.moveTo(0, -p.s);
+            g.bezierCurveTo(p.s * 0.95, -p.s * 0.55, p.s * 0.65, p.s * 0.85, 0, p.s);
+            g.bezierCurveTo(-p.s * 0.65, p.s * 0.85, -p.s * 0.95, -p.s * 0.55, 0, -p.s);
+            g.fill(); g.restore();
+          },
+          spark(p) {
+            const a = p.a * (0.6 + 0.4 * Math.sin(p.tw));
+            g.strokeStyle = `rgba(${p.c},${a})`; g.lineWidth = 1.1;
+            g.beginPath(); g.moveTo(p.x - p.s, p.y); g.lineTo(p.x + p.s, p.y); g.moveTo(p.x, p.y - p.s); g.lineTo(p.x, p.y + p.s); g.stroke();
+            g.fillStyle = `rgba(255,255,255,${a})`; g.beginPath(); g.arc(p.x, p.y, p.s * 0.3, 0, Math.PI * 2); g.fill();
+          },
+          heart(p) { g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.fillStyle = `rgba(${p.c},${p.a})`; heartPath(p.s); g.fill(); g.restore(); },
+          dot(p) { const a = p.a * (0.55 + 0.45 * Math.sin(p.tw)); g.fillStyle = `rgba(${p.c},${a})`; g.beginPath(); g.arc(p.x, p.y, p.s, 0, Math.PI * 2); g.fill(); },
+        };
+        const tick = (now) => {
+          const dt = Math.min(3, (now - (last || now)) / 16.67); last = now;
+          g.clearRect(0, 0, W, H);
+          for (const p of parts) {
+            if (p.form) p.form(p, now);
+            else {
+              const drag = p.drag ?? 1;
+              p.vx *= drag; p.vy = p.vy * drag + (p.grav ?? 0) * dt;
+              p.x += (p.vx + (p.sway ? Math.sin(p.tw) * p.sway : 0)) * dt; p.y += p.vy * dt;
+            }
+            p.rot = (p.rot ?? 0) + (p.vr ?? 0) * dt;
+            p.flip = (p.flip ?? 0) + (p.vf ?? 0) * dt;
+            p.tw = (p.tw ?? 0) + (p.vt ?? 0.15) * dt;
+            p.life -= (p.decay ?? 0) * dt;
+            p.a = clamp(p.life) * (p.alpha ?? 1);
+            if (p.kind === 'petal' && p.y > H + 30) p.life = 0;
+            if (p.a > 0.01) draw[p.kind](p);
+          }
+          parts = parts.filter((p) => p.life > 0);
+          if (parts.length) requestAnimationFrame(tick);
+          else { running = false; g.clearRect(0, 0, W, H); }
+        };
+        const push = (p) => {
+          if (reduced || parts.length > 700) return;
+          parts.push(p);
+          if (!running) { running = true; last = 0; requestAnimationFrame(tick); }
+        };
+        return {
+          burst(x, y, { hearts = 12, sparks = 26, power = 1 } = {}) {
+            for (let i = 0; i < hearts; i++) push({ kind: 'heart', x, y, vx: rnd(-2.6, 2.6) * power, vy: rnd(-5.5, -2.2) * power, grav: 0.07, drag: 0.985, s: rnd(5, 10), rot: rnd(-0.5, 0.5), vr: rnd(-0.03, 0.03), c: pick(ROSES), life: rnd(1.2, 1.7), decay: 0.014 });
+            for (let i = 0; i < sparks; i++) {
+              const angle = rnd(0, Math.PI * 2), speed = rnd(1.5, 5) * power;
+              push({ kind: 'spark', x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, grav: 0.03, drag: 0.95, s: rnd(2.5, 5), c: pick(GOLDS), life: rnd(0.9, 1.4), decay: 0.016, vt: 0.3 });
+            }
+          },
+          petals(count = 60, span = 2600) {
+            if (reduced) return;
+            for (let i = 0; i < count; i++) {
+              setTimeout(() => push({ kind: 'petal', x: rnd(-20, W + 20), y: rnd(-60, -10), vx: rnd(-0.4, 0.5), vy: rnd(0.7, 1.5), sway: rnd(0.4, 1.1), vt: rnd(0.02, 0.05), tw: rnd(0, 6.28), s: rnd(5, 9), rot: rnd(0, 6.28), vr: rnd(-0.03, 0.03), vf: rnd(0.03, 0.08), c: pick(PETALS), alpha: rnd(0.7, 0.95), life: 9, decay: 0.012 }), (i / count) * span);
+            }
+          },
+          rise(x, y, strength = 1) {
+            push({ kind: Math.random() < 0.3 ? 'heart' : 'spark', x: x + rnd(-12, 12), y: y + rnd(-4, 4), vx: rnd(-0.6, 0.6), vy: rnd(-2.4, -1) * strength, grav: -0.01, drag: 0.99, s: rnd(2.5, 5.5), rot: rnd(-0.4, 0.4), c: Math.random() < 0.5 ? pick(GOLDS) : pick(ROSES), life: rnd(0.9, 1.3), decay: 0.013, vt: 0.25 });
+          },
+          trail(x, y) {
+            push({ kind: 'dot', x, y, vx: rnd(-0.3, 0.3), vy: rnd(-0.6, 0.1), grav: 0.01, drag: 0.98, s: rnd(1, 2.2), c: Math.random() < 0.5 ? pick(GOLDS) : pick(PETALS), life: 0.8, decay: 0.03, vt: 0.4 });
+          },
+          /* 光点从四面八方聚成一颗心，跳两下再散开；心跟着锚点元素走 */
+          heartForm(anchor, size) {
+            if (reduced) return;
+            const t0 = performance.now();
+            const center = () => { const r = anchor.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2 - size * 0.15]; };
+            const N = 120;
+            for (let i = 0; i < N; i++) {
+              const t = (i / N) * Math.PI * 2;
+              const tx = (16 * Math.sin(t) ** 3 / 16) * size;
+              const ty = (-(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16) * size;
+              const sx = rnd(-W * 0.7, W * 0.7), sy = rnd(-H * 0.7, H * 0.7);
+              const delay = rnd(0, 420);
+              const isHeart = Math.random() < 0.16;
+              parts.push({
+                kind: isHeart ? 'heart' : 'dot', s: isHeart ? rnd(3.5, 5.5) : rnd(1.6, 2.8), c: Math.random() < 0.65 ? pick(ROSES) : pick(GOLDS), life: 99, alpha: 0, vt: rnd(0.15, 0.35), tw: rnd(0, 6.28), x: 0, y: 0,
+                form(p, now) {
+                  const [cx, cy] = center();
+                  const e = (now - t0 - delay) / 1000;
+                  if (e < 0) { p.x = cx + sx; p.y = cy + sy; p.alpha = 0; return; }
+                  if (e < 1.3) { const k = 1 - (1 - e / 1.3) ** 3; p.x = cx + sx + (tx - sx) * k; p.y = cy + sy + (ty - sy) * k; p.alpha = Math.min(1, e * 2); return; }
+                  if (e < 3.9) { const beat = Math.max(0, Math.sin((e - 1.3) * Math.PI * 1.6)) ** 6 * 0.09; p.x = cx + tx * (1 + beat); p.y = cy + ty * (1 + beat); p.alpha = 1; return; }
+                  const f = (e - 3.9) / 1.7;
+                  p.x = cx + tx * (1 + f * 0.6); p.y = cy + ty * (1 + f * 0.6) - f * 36; p.alpha = Math.max(0, 1 - f);
+                  if (f >= 1) p.life = 0;
+                },
+              });
+            }
+            if (!running) { running = true; last = 0; requestAnimationFrame(tick); }
+          },
+        };
+      })();
+
       /* ── 八音盒：默认静音，打开后每个乐章响一小句，带回声 ── */
       const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, D6: 1174.66, E6: 1318.51 };
       const PHRASES = {
@@ -1446,6 +1586,7 @@ SOFTWARE.
           audio.on = !audio.on;
           audio.userMuted = !audio.on;
           syncSound();
+          if (audio.on) { const r = button.getBoundingClientRect(); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 4, sparks: 14, power: 0.7 }); }
           if (audio.on) playNotes(PHRASES[current?.dataset.phrase] || PHRASES.mv1);
           else holdStop();
         });
@@ -1472,6 +1613,10 @@ SOFTWARE.
         opening = true;
         const wasOpen = envelope.classList.contains('open');
         envelope.classList.add('open');
+        if (!wasOpen) {
+          const r = envelope.getBoundingClientRect();
+          setTimeout(() => fx.burst(r.left + r.width / 2, r.top + r.height * 0.35, { hearts: 16, sparks: 32 }), 260);
+        }
         $('#envelope-hint').textContent = '信拆开了。慢慢读，不着急。';
         let fallback;
         const finish = () => {
@@ -1703,6 +1848,42 @@ SOFTWARE.
         playNotes(['E5', 'G5', 'C6'], 0.14);
       });
 
+      /* ── 告白与结尾的绚烂时刻 ── */
+      const whenSeen = (el, threshold, fn) => {
+        if (!el || !('IntersectionObserver' in window)) return;
+        const io = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          io.disconnect();
+          fn();
+        }, { threshold });
+        io.observe(el);
+      };
+      whenSeen($('#confess'), 0.55, () => {
+        fx.petals(72, 3000);
+        setTimeout(() => {
+          const r = $('#confess h3').getBoundingClientRect();
+          fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 10, sparks: 44, power: 1.15 });
+        }, 1300);
+      });
+      const ending = $('.ending');
+      whenSeen(ending, 0.6, () => setTimeout(() => {
+        fx.heartForm(ending, Math.min(128, window.innerWidth * 0.3));
+        playNotes(['C5', 'E5', 'G5', 'C6'], 0.2);
+      }, 500));
+      if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        let lastTrail = 0;
+        window.addEventListener('pointermove', (e) => {
+          const now = performance.now();
+          if (now - lastTrail < 34) return;
+          lastTrail = now;
+          fx.trail(e.clientX, e.clientY);
+        }, { passive: true });
+      }
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('a,button,input,dialog,.world-scene,.tape-card,.envelope-wrapper,.score')) return;
+        fx.burst(e.clientX, e.clientY, { hearts: 3, sparks: 10, power: 0.6 });
+      });
+
       /* ── 小岛视差 ── */
       if (!reduced && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
         const scene = $('.world-scene');
@@ -1719,6 +1900,8 @@ SOFTWARE.
       const hold = $('#hold');
       const readout = $('#hold-readout');
       const sustain = $('#sustain');
+      const fermataSvg = $('svg', fermata);
+      const notePoint = () => { const r = fermataSvg.getBoundingClientRect(); return [r.left + r.width * (180 / 360), r.top + r.height * (92 / 150)]; };
       const SUSTAIN_FROM = 190, SUSTAIN_TO = 342, SUSTAIN_FULL_S = 8;
       let heldAt = 0, holdFrame = 0;
       const begin = (e) => {
@@ -1734,6 +1917,9 @@ SOFTWARE.
           const secs = (performance.now() - heldAt) / 1000;
           readout.textContent = `${secs.toFixed(1)} 秒`;
           sustain.setAttribute('x2', (SUSTAIN_FROM + (SUSTAIN_TO - SUSTAIN_FROM) * Math.min(1, secs / SUSTAIN_FULL_S)).toFixed(1));
+          const [nx, ny] = notePoint();
+          if (Math.random() < 0.55 + Math.min(0.4, secs * 0.08)) fx.rise(nx, ny - 10, 1 + Math.min(0.8, secs * 0.1));
+          if (secs > 3 && Math.random() < 0.4) fx.rise(nx, ny - 10, 1.6);
           holdFrame = requestAnimationFrame(tick);
         };
         tick();
@@ -1748,6 +1934,10 @@ SOFTWARE.
         holdStop();
         hold.textContent = '再按一次';
         readout.textContent = secs < 0.4 ? '再按久一点——这个音，可以停很久。' : `这个音，你让它停了 ${secs.toFixed(1)} 秒。`;
+        if (secs >= 0.4) {
+          const [nx, ny] = notePoint();
+          fx.burst(nx, ny - 8, { hearts: Math.min(30, 6 + Math.round(secs * 4)), sparks: Math.min(64, 16 + Math.round(secs * 8)), power: Math.min(1.7, 0.9 + secs * 0.08) });
+        }
       };
       hold.addEventListener('pointerdown', begin);
       ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((type) => hold.addEventListener(type, end));
