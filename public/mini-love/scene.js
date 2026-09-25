@@ -766,7 +766,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       }
     });
 
-  /* ── 做成实例网格：共用一张颗粒纹理，让草、木、石不再是纯色块 ── */
+  /* ── 做成实例网格：共用一张颗粒纹理，局部坐标采样，避免世界缩放拉成条纹 ── */
   const cube = new THREE.BoxGeometry(1, 1, 1);
   const tmpMatrix = new THREE.Matrix4();
   const tmpQuat = new THREE.Quaternion();
@@ -774,48 +774,49 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   const tmpScale = new THREE.Vector3();
   const tmpColor = new THREE.Color();
   const grainCanvas = document.createElement('canvas');
-  grainCanvas.width = grainCanvas.height = 128;
+  grainCanvas.width = grainCanvas.height = 64;
   {
     const g = grainCanvas.getContext('2d');
-    const img = g.createImageData(128, 128);
+    const img = g.createImageData(64, 64);
     for (let i = 0; i < img.data.length; i += 4) {
       const n = (rng() * 255) | 0;
-      const m = (rng() * 255) | 0;
       img.data[i] = n;
-      img.data[i + 1] = m;
-      img.data[i + 2] = ((n + m) / 2) | 0;
+      img.data[i + 1] = n;
+      img.data[i + 2] = n;
       img.data[i + 3] = 255;
     }
     g.putImageData(img, 0, 0);
   }
   const grainTex = new THREE.CanvasTexture(grainCanvas);
   grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping;
+  grainTex.magFilter = THREE.NearestFilter;
+  grainTex.minFilter = THREE.NearestFilter;
+  grainTex.generateMipmaps = false;
   grainTex.colorSpace = THREE.NoColorSpace;
   grainTex.needsUpdate = true;
-  const withGrain = (material, amount = 0.14) => {
+  const withGrain = (material, amount = 0.08) => {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uGrain = { value: grainTex };
       shader.uniforms.uGrainAmt = { value: amount };
-      shader.vertexShader = `varying vec3 vWorldPos;\n${shader.vertexShader}`
+      shader.vertexShader = `varying vec3 vLocalPos;\n${shader.vertexShader}`
         .replace(
-          '#include <project_vertex>',
-          `#include <project_vertex>
-          vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          vLocalPos = position;`
         );
-      shader.fragmentShader = `uniform sampler2D uGrain;\nuniform float uGrainAmt;\nvarying vec3 vWorldPos;\n${shader.fragmentShader}`
+      shader.fragmentShader = `uniform sampler2D uGrain;\nuniform float uGrainAmt;\nvarying vec3 vLocalPos;\n${shader.fragmentShader}`
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-          vec3 gp = vWorldPos * 0.72;
-          float g1 = texture2D(uGrain, gp.xz * 0.18 + gp.y * 0.07).r;
-          float g2 = texture2D(uGrain, gp.zy * 0.26 + gp.x * 0.05).g;
-          float grain = mix(0.72, 1.22, g1 * 0.55 + g2 * 0.45);
-          diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);
-          float edge = abs(fract(gp.x * 2.0) - 0.5) + abs(fract(gp.z * 2.0) - 0.5);
-          diffuseColor.rgb *= 1.0 - uGrainAmt * 0.16 * smoothstep(0.68, 0.98, edge);`
+          vec3 lp = vLocalPos;
+          float ax = abs(lp.x), ay = abs(lp.y), az = abs(lp.z);
+          vec2 uv = ax > ay && ax > az ? lp.zy : (ay > az ? lp.xz : lp.xy);
+          float g = texture2D(uGrain, uv * 4.0 + 0.5).r;
+          float grain = mix(0.96, 1.04, g);
+          diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);`
         );
     };
-    material.customProgramCacheKey = () => `grain-${amount}`;
+    material.customProgramCacheKey = () => `grain-local-${amount}`;
     return material;
   };
   const instanced = (list, material) => {
@@ -836,9 +837,9 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     scene.add(mesh);
     return mesh;
   };
-  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.26));
-  const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.12);
-  const magicMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.14);
+  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.1));
+  const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.06);
+  const magicMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.07);
   instanced(glow.warm, warmMat);
   instanced(glow.magic, magicMat);
 
