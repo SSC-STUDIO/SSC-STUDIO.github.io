@@ -1,11 +1,10 @@
 /**
- * 中秋夜里的方块水乡：桂花、灯笼、水面与圆月。
- * three 按需从 CDN 加载；失败时页面仍用原来的 2D 夜空。
- * 镜头随阅读进度缓移，不接受拖拽；交互会点亮月亮、放孔明灯、放烟花。
+ * 中秋夜里的方块水乡：桂花、灯笼、水面、圆月与蒲公英。
+ * three 只从同目录 vendor/ 加载，不依赖 CDN。
+ * 镜头随阅读进度缓移；交互会点亮月亮、放孔明灯、放烟花。
  */
 
 const THREE_LOCAL = './vendor/three.module.js';
-const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
 
 const mulberry32 = (seed) => () => {
   seed |= 0;
@@ -28,14 +27,14 @@ const hexRGB = (hex) => {
 
 /* 阅读进度 s：0 卷首，1 短信，2 月饼，3 月相，4 放灯，5 落款 */
 const PATH = [
-  { s: 0, p: [8.4, 5.9, 5.2], l: [0.8, 2.4, -6.5] },
-  { s: 1, p: [8.6, 5.5, -1.0], l: [0.4, 1.9, -12.0] },
-  { s: 2, p: [8.2, 5.6, -7.5], l: [0.2, 1.8, -16.5] },
-  { s: 3, p: [8.0, 6.1, -6.5], l: [3.5, 7.5, -28.0] },
-  { s: 4, p: [7.6, 5.9, -5.0], l: [0.4, 3.8, -14.5] },
-  { s: 5, p: [8.0, 6.0, -2.5], l: [0.6, 3.0, -16.0] },
+  { s: 0, p: [9.2, 6.4, 6.8], l: [0.4, 2.2, -7.5] },
+  { s: 1, p: [9.0, 6.0, 0.2], l: [0.2, 1.9, -12.5] },
+  { s: 2, p: [8.6, 5.9, -6.8], l: [0.1, 1.85, -17.0] },
+  { s: 3, p: [8.4, 6.6, -5.5], l: [2.8, 8.5, -30.0] },
+  { s: 4, p: [8.0, 6.2, -4.2], l: [0.3, 3.6, -15.0] },
+  { s: 5, p: [8.4, 6.3, -1.8], l: [0.4, 2.9, -16.5] },
 ];
-const MOON_POS = [11, 20, -58];
+const MOON_POS = [10, 22, -56];
 
 const catmull = (p0, p1, p2, p3, t) => {
   const t2 = t * t;
@@ -62,22 +61,21 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   let THREE;
   try {
     THREE = await import(THREE_LOCAL);
-  } catch {
-    try {
-      THREE = await import(THREE_CDN);
-    } catch {
-      return null;
-    }
+  } catch (err) {
+    console.error('three local import failed', err);
+    throw err;
   }
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  } catch {
-    return null;
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', alpha: false });
+  } catch (err) {
+    console.error('WebGLRenderer failed', err);
+    throw err;
   }
+  renderer.setClearColor(0x090f2c, 1);
   renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.08;
 
   const lite = reduced
     || (navigator.deviceMemory && navigator.deviceMemory <= 4)
@@ -294,39 +292,74 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   }
   const dandelionSpots = [];
   const swayStems = [];
-  for (let i = 0; i < (lite ? 14 : 22); i++) {
-    const x = R(-6.8, 6.8);
-    const z = R(-24, 4.5);
-    if (isWater(x, z) || isBlocked(x, z) || Math.abs(x) < 1.4) continue;
-    const h = R(0.42, 0.72);
+  const fluffMat = new THREE.MeshBasicMaterial({ color: 0xf8f4ea, transparent: true, opacity: 0.92, depthWrite: false });
+  const spokeMat = new THREE.MeshBasicMaterial({ color: 0xece6d8, transparent: true, opacity: 0.5, depthWrite: false });
+  const tipMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.82, depthWrite: false });
+  const stemMat = new THREE.MeshLambertMaterial({ color: 0x5a7a42 });
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xe8d8a0 });
+  const seedSphere = new THREE.SphereGeometry(1, 6, 6);
+  const tipSphere = new THREE.SphereGeometry(1, 5, 5);
+  const makeFluffyHead = (radius = 0.28) => {
+    const head = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), coreMat);
+    head.add(core);
+    const n = lite ? 48 : 72;
+    for (let k = 0; k < n; k++) {
+      const u = rng();
+      const v = rng();
+      const theta = 2 * Math.PI * u;
+      const phi = Math.acos(2 * v - 1);
+      const rr = radius * (0.62 + 0.38 * Math.pow(rng(), 0.45));
+      const px = Math.sin(phi) * Math.cos(theta) * rr;
+      const py = Math.cos(phi) * rr;
+      const pz = Math.sin(phi) * Math.sin(theta) * rr;
+      const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.007, rr * 0.95, 4), spokeMat);
+      spoke.position.set(px * 0.48, py * 0.48, pz * 0.48);
+      spoke.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(px, py, pz).normalize(),
+      );
+      head.add(spoke);
+      const seed = new THREE.Mesh(seedSphere, fluffMat);
+      const sr = 0.026 + rng() * 0.016;
+      seed.scale.set(sr * 1.2, sr * 0.85, sr * 1.2);
+      seed.position.set(px, py, pz);
+      head.add(seed);
+      if (rng() < 0.75) {
+        const tip = new THREE.Mesh(tipSphere, tipMat);
+        tip.position.set(px * 1.16, py * 1.16, pz * 1.16);
+        tip.scale.set(0.038, 0.014, 0.038);
+        tip.lookAt(0, 0, 0);
+        head.add(tip);
+      }
+    }
+    return head;
+  };
+  const plantDandelion = (x, z, h = R(0.55, 0.95), radius = R(0.22, 0.32)) => {
+    if (isWater(x, z) || isBlocked(x, z)) return;
     const cy = 0.5 + h;
     dandelionSpots.push([x, cy, z, h]);
-    if (swayStems.length < (lite ? 8 : 12)) {
-      const group = new THREE.Group();
-      group.position.set(x, 0.5, z);
-      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.04, h, 0.04), new THREE.MeshLambertMaterial({ color: 0x4a6b3c }));
-      stem.position.y = h / 2;
-      const head = new THREE.Group();
-      head.position.y = h;
-      for (let k = 0; k < 7; k++) {
-        const a = (k / 7) * Math.PI * 2;
-        const fluff = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), new THREE.MeshBasicMaterial({ color: 0xf7f3ea }));
-        fluff.position.set(Math.cos(a) * 0.1, R(-0.02, 0.04), Math.sin(a) * 0.1);
-        head.add(fluff);
-      }
-      const core = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.09), new THREE.MeshBasicMaterial({ color: 0xfff8ee }));
-      head.add(core);
-      group.add(stem, head);
-      scene.add(group);
-      swayStems.push({ group, phase: rng() * 6.28, amp: R(0.05, 0.12) });
-    } else {
-      box(x, 0.5 + h / 2, z, 0.035, h, 0.035, pick(['#4a6b3c', '#3f5f34']), 0);
-      for (let k = 0; k < 7; k++) {
-        const a = (k / 7) * Math.PI * 2;
-        box(x + Math.cos(a) * 0.1, cy + R(-0.02, 0.04), z + Math.sin(a) * 0.1, 0.07, 0.07, 0.07, pick(['#f7f3ea', '#fffaf2', '#efe9dc']), 0.02);
-      }
-      box(x, cy, z, 0.09, 0.09, 0.09, '#fff8ee', 0);
+    const group = new THREE.Group();
+    group.position.set(x, 0.5, z);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.02, h, 6), stemMat);
+    stem.position.y = h / 2;
+    const head = makeFluffyHead(radius);
+    head.position.y = h;
+    group.add(stem, head);
+    scene.add(group);
+    if (swayStems.length < (lite ? 14 : 22)) {
+      swayStems.push({ group, head, phase: rng() * 6.28, amp: R(0.08, 0.16) });
     }
+  };
+  // 镜头近处几株，保证一眼能认出蒲公英
+  [[-2.4, 1.2], [-1.6, -0.6], [1.8, 0.4], [2.6, -2.2], [-3.2, -3.5], [3.4, -5.0], [-4.0, -7.5], [0.9, -4.8]].forEach(([x, z], i) => {
+    plantDandelion(x, z, 0.62 + (i % 3) * 0.1, 0.26 + (i % 2) * 0.04);
+  });
+  for (let i = 0; i < (lite ? 14 : 22); i++) {
+    const x = R(-6.8, 6.8);
+    const z = R(-24, 4.8);
+    if (Math.abs(x) < 1.35) continue;
+    plantDandelion(x, z);
   }
 
   /* 远丘 */
@@ -386,7 +419,7 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
           `#include <color_fragment>
           vec3 cell = floor(vLocalPos * 28.0 + 0.5);
           float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-          diffuseColor.rgb *= mix(1.0, mix(0.975, 1.025, h), uGrainAmt);`
+          diffuseColor.rgb *= mix(1.0 - uGrainAmt * 0.025, 1.0 + uGrainAmt * 0.025, h);`
         );
     };
     material.customProgramCacheKey = () => `ma-grain-${amount}`;
@@ -410,9 +443,9 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
     scene.add(mesh);
     return mesh;
   };
-  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.1));
-  const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.06);
-  const goldMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.05);
+  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 1.0));
+  const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.7);
+  const goldMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.55);
   instanced(glow.warm, warmMat);
   instanced(glow.gold, goldMat);
 
@@ -543,10 +576,10 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   moonMesh.position.set(...MOON_POS);
   scene.add(moonMesh);
   const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: glowTex, color: 0xffe6b0, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0.72,
+    map: glowTex, color: 0xffe6b0, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0.82,
   }));
   moonGlow.position.set(...MOON_POS);
-  moonGlow.scale.setScalar(38);
+  moonGlow.scale.setScalar(44);
   scene.add(moonGlow);
   const moonBlush = new THREE.Sprite(new THREE.SpriteMaterial({
     map: glowTex, color: 0xffa0b8, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, opacity: 0,
@@ -555,12 +588,15 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   moonBlush.scale.setScalar(28);
   scene.add(moonBlush);
 
-  scene.add(new THREE.AmbientLight(0xb0c0e8, 0.28));
-  const moonLight = new THREE.DirectionalLight(0xffe8c0, 0.85);
+  scene.add(new THREE.AmbientLight(0xb8c6ec, 0.32));
+  const moonLight = new THREE.DirectionalLight(0xffe8c0, 1.05);
   moonLight.position.set(...MOON_POS);
   scene.add(moonLight);
   scene.add(moonLight.target);
-  const hemi = new THREE.HemisphereLight(0x6a7ab8, 0x1a2030, 0.7);
+  const fillLight = new THREE.DirectionalLight(0x8899cc, 0.22);
+  fillLight.position.set(-12, 10, 8);
+  scene.add(fillLight);
+  const hemi = new THREE.HemisphereLight(0x7a8ac8, 0x1a2030, 0.78);
   scene.add(hemi);
 
   /* 水面：大到雾里看不见边 */
@@ -610,10 +646,13 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
           vec3 nrm = normalize(vec3(-dx * 0.04, 1.0, -dz * 0.04));
           vec3 viewDir = normalize(cameraPosition - vWorld);
           vec3 moonDir = normalize(vec3(0.35, 0.72, -0.55));
-          float spec = pow(max(0.0, dot(reflect(-moonDir, nrm), viewDir)), 42.0);
-          float streak = pow(max(0.0, 1.0 - abs(nrm.x * 2.0 + nrm.z * 0.5)), 9.0) * (0.55 + 0.45 * wave);
+          float spec = pow(max(0.0, dot(reflect(-moonDir, nrm), viewDir)), 36.0);
+          float streak = pow(max(0.0, 1.0 - abs(nrm.x * 2.0 + nrm.z * 0.5)), 8.0) * (0.55 + 0.45 * wave);
           vec3 spark = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.82, 0.55), uLamp);
-          col += spark * (spec * (0.32 + 0.4 * uLamp + uMoonPulse * 0.35) + streak * (0.14 + 0.2 * uLamp));
+          col += spark * (spec * (0.42 + 0.48 * uLamp + uMoonPulse * 0.4) + streak * (0.18 + 0.24 * uLamp));
+          /* soft moon path on canal */
+          float moonPath = exp(-pow((vWorld.x - 0.6) * 1.4, 2.0)) * smoothstep(-4.0, -26.0, vWorld.z);
+          col += vec3(1.0, 0.92, 0.72) * moonPath * (0.12 + 0.18 * uMoonPulse);
           vec2 cell = floor(xz * 6.2);
           float sp = step(0.997, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
           col += vec3(0.9, 0.92, 1.0) * sp * (0.45 + 0.55 * sin(uTime * 3.0 + cell.x));
@@ -768,8 +807,8 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   fallMesh.frustumCulled = false;
   scene.add(fallMesh);
 
-  /* 蒲公英飞絮：随风与钢琴律动飘起 */
-  const seedCount = lite ? 48 : 96;
+  /* 蒲公英飞絮：伞状绒毛 + 细茎，随风与钢琴律动飘起 */
+  const seedCount = lite ? 56 : 110;
   const seedGeo = buildBillboards(Math.max(1, seedCount));
   seedGeo.index = petalQuad.index;
   seedGeo.setAttribute('position', petalQuad.getAttribute('position'));
@@ -777,7 +816,7 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   const sSeed = new Float32Array(seedCount * 4);
   for (let i = 0; i < seedCount; i++) {
     const spot = dandelionSpots[i % Math.max(1, dandelionSpots.length)] || [R(-5, 5), 1.2, R(-18, 2), 0.5];
-    sOrigin.set([spot[0] + R(-0.2, 0.2), spot[1], spot[2] + R(-0.2, 0.2)], i * 3);
+    sOrigin.set([spot[0] + R(-0.15, 0.15), spot[1] + R(-0.05, 0.08), spot[2] + R(-0.15, 0.15)], i * 3);
     sSeed.set([rng(), rng(), rng(), rng()], i * 4);
   }
   seedGeo.setAttribute('aOrigin', new THREE.InstancedBufferAttribute(sOrigin, 3));
@@ -794,17 +833,17 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
       varying float vFade;
       varying vec2 vUv;
       void main() {
-        float life = mod(aSeed.x + uTime * (0.08 + aSeed.y * 0.1 + uMusic * 0.12), 1.0);
+        float life = mod(aSeed.x + uTime * (0.06 + aSeed.y * 0.09 + uMusic * 0.1), 1.0);
         vec3 p = aOrigin;
-        p.y += life * (2.4 + uMusic * 1.8) + sin(uTime * 1.3 + aSeed.z * 6.28) * 0.12;
-        p.x += life * (1.6 + uWind * 1.4 + uMusic * 0.9) * (0.4 + aSeed.w);
-        p.z += sin(uTime * 0.7 + aSeed.z * 6.28) * life * 1.2;
-        float ang = uTime * (0.8 + aSeed.x) + aSeed.y * 6.28;
+        p.y += life * (2.8 + uMusic * 2.0) + sin(uTime * 1.1 + aSeed.z * 6.28) * 0.14;
+        p.x += life * (1.9 + uWind * 1.6 + uMusic * 1.0) * (0.35 + aSeed.w);
+        p.z += sin(uTime * 0.65 + aSeed.z * 6.28) * life * 1.35;
+        float ang = uTime * (0.55 + aSeed.x * 0.8) + aSeed.y * 6.28;
         float c = cos(ang), s = sin(ang);
-        float size = 0.09 + aSeed.z * 0.05;
-        vec3 local = vec3(position.x * size * c - position.y * size * 0.7 * s, position.x * size * s + position.y * size * 0.7 * c, 0.0);
+        float size = 0.11 + aSeed.z * 0.06;
+        vec3 local = vec3(position.x * size * c - position.y * size * 0.85 * s, position.x * size * s + position.y * size * 0.85 * c, 0.0);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p + local, 1.0);
-        vFade = smoothstep(0.0, 0.08, life) * smoothstep(1.0, 0.7, life) * (0.55 + 0.45 * uMusic);
+        vFade = smoothstep(0.0, 0.06, life) * smoothstep(1.0, 0.72, life) * (0.5 + 0.5 * uMusic + 0.25);
         vUv = uv;
       }
     `,
@@ -812,12 +851,17 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
       varying float vFade;
       varying vec2 vUv;
       void main() {
-        vec2 q = vUv - 0.5;
+        vec2 q = (vUv - 0.5) * vec2(1.0, 1.25);
         float d = length(q);
-        if (d > 0.5) discard;
-        float spokes = abs(sin(atan(q.y, q.x) * 5.0));
-        float a = smoothstep(0.5, 0.15, d) * (0.35 + 0.65 * spokes);
-        gl_FragColor = vec4(vec3(0.97, 0.95, 0.9), a * vFade);
+        if (d > 0.52) discard;
+        float angle = atan(q.y, q.x);
+        float spokes = abs(sin(angle * 6.0));
+        float parasol = smoothstep(0.48, 0.12, d) * (0.28 + 0.72 * pow(spokes, 0.65));
+        float stem = smoothstep(0.08, 0.0, abs(q.x)) * smoothstep(0.05, -0.42, q.y) * 0.55;
+        float core = smoothstep(0.12, 0.0, d) * 0.9;
+        float a = clamp(parasol + stem + core, 0.0, 1.0);
+        vec3 col = mix(vec3(0.92, 0.9, 0.84), vec3(1.0, 0.99, 0.96), core);
+        gl_FragColor = vec4(col, a * vFade);
       }
     `,
   });
@@ -980,9 +1024,13 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
     seedMat.uniforms.uWind.value = wind;
     seedMat.uniforms.uMusic.value = musicPulse;
     for (const s of swayStems) {
-      const lean = Math.sin(clock * (1.5 + s.amp * 3) + s.phase) * s.amp + musicPulse * 0.2;
+      const lean = Math.sin(clock * (1.45 + s.amp * 3) + s.phase) * s.amp + musicPulse * 0.22 + wind * 0.04;
       s.group.rotation.z = lean;
-      s.group.rotation.x = lean * 0.4;
+      s.group.rotation.x = lean * 0.35;
+      if (s.head) {
+        s.head.rotation.y = Math.sin(clock * 0.9 + s.phase) * 0.12;
+        s.head.scale.setScalar(1 + musicPulse * 0.04);
+      }
     }
     water.material.uniforms.uTime.value = clock;
     water.material.uniforms.uMoonPulse.value = moonPulse;
