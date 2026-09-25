@@ -116,11 +116,14 @@
     .seal { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; margin-top:10px; border:1.5px solid #e0796a; color:#e0796a; font:20px/1 var(--serif); transform:rotate(-8deg); }
     .ps { margin:36px 0 0; padding:18px 20px; border:1px dashed rgba(241,207,134,.3); border-radius:4px; text-align:left; font:15px/2 var(--serif); color:#ddd5e4; }
     .ps a { color:var(--gold); text-underline-offset:5px; }
-    .foot { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; padding:18px 0 max(28px,env(safe-area-inset-bottom)); border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .foot { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; padding:18px 0 calc(max(28px,env(safe-area-inset-bottom)) + 52px); border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .sound { position:fixed; right:max(14px,env(safe-area-inset-right)); bottom:max(16px,env(safe-area-inset-bottom)); z-index:9; display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border:1px solid rgba(241,207,134,.4); border-radius:20px; background:rgba(11,17,48,.72); color:var(--muted); font-size:12px; letter-spacing:1px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+    .sound[aria-pressed="true"] { border-color:var(--gold-deep); color:var(--gold); box-shadow:0 0 16px rgba(241,207,134,.25); }
+    .sound svg { width:14px; height:14px; }
     .foot a { color:var(--muted); text-decoration:none; }
     .foot a:hover { color:var(--gold); }
     .share { min-height:44px; padding:8px 14px; border:1px solid rgba(241,207,134,.3); border-radius:4px; background:transparent; color:#e6dcc8; font-size:13px; letter-spacing:1px; }
-    .toast { position:fixed; left:50%; bottom:max(24px,env(safe-area-inset-bottom)); transform:translateX(-50%); max-width:calc(100vw - 32px); padding:12px 18px; border-radius:6px; background:#f4ecdc; color:#1b1f3a; font-size:13px; line-height:1.7; z-index:10; }
+    .toast { position:fixed; left:50%; bottom:calc(max(16px,env(safe-area-inset-bottom)) + 52px); transform:translateX(-50%); max-width:calc(100vw - 32px); padding:12px 18px; border-radius:6px; background:#f4ecdc; color:#1b1f3a; font-size:13px; line-height:1.7; z-index:10; }
 
     @keyframes moonRise { from { opacity:0; transform:translateY(60px) scale(.94); } to { opacity:1; transform:none; } }
     @keyframes halo { 0%,100% { opacity:.85; transform:scale(1); } 50% { opacity:1; transform:scale(1.05); } }
@@ -1170,11 +1173,76 @@
       <button class="share" id="share" type="button">分享这一页</button>
     </div>
   </div>
+  <button class="sound" id="sound" type="button" aria-pressed="false" hidden>
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音关</span>
+  </button>
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script>
     (() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ── 八音盒：默认静音；与表白页同一副音色和回声 ── */
+      const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98 };
+      const audio = { ctx: null, out: null, on: false };
+      const initAudio = () => {
+        if (audio.ctx) return audio.ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        const ctx = new AC();
+        const master = ctx.createGain(); master.gain.value = 0.15;
+        const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.34;
+        const feedback = ctx.createGain(); feedback.gain.value = 0.32;
+        const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
+        const wet = ctx.createGain(); wet.gain.value = 0.45;
+        master.connect(ctx.destination);
+        master.connect(delay); delay.connect(tone); tone.connect(feedback); feedback.connect(delay); tone.connect(wet); wet.connect(ctx.destination);
+        audio.ctx = ctx; audio.out = master;
+        return ctx;
+      };
+      const pluck = (freq, at, dur, level) => {
+        const { ctx, out } = audio;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.0001, at);
+        env.gain.exponentialRampToValueAtTime(level, at + 0.008);
+        env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+        env.connect(out);
+        [[freq, 'sine', 1], [freq * 2.01, 'sine', 0.22], [freq * 3.98, 'triangle', 0.05]].forEach(([f, type, g]) => {
+          const osc = ctx.createOscillator(); osc.type = type; osc.frequency.value = f;
+          const gain = ctx.createGain(); gain.gain.value = g;
+          osc.connect(gain); gain.connect(env);
+          osc.start(at); osc.stop(at + dur + 0.05);
+        });
+      };
+      const play = (notes, step = 0.32, level = 0.75) => {
+        if (!audio.on || !audio.ctx) return;
+        const t0 = audio.ctx.currentTime + 0.04;
+        notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.2 : 1.4, last ? level * 1.15 : level); });
+      };
+      const crisp = () => {
+        if (!audio.on || !audio.ctx) return;
+        const { ctx, out } = audio;
+        const length = Math.floor(ctx.sampleRate * 0.06);
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 2;
+        const src = ctx.createBufferSource(); src.buffer = buffer;
+        const band = ctx.createBiquadFilter(); band.type = 'bandpass'; band.frequency.value = 2200; band.Q.value = 0.9;
+        const gain = ctx.createGain(); gain.gain.value = 0.9;
+        src.connect(band); band.connect(gain); gain.connect(out);
+        src.start(ctx.currentTime + 0.02);
+      };
+      const soundButton = document.getElementById('sound');
+      soundButton.hidden = false;
+      soundButton.addEventListener('click', async () => {
+        const ctx = initAudio();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') await ctx.resume();
+        audio.on = !audio.on;
+        soundButton.setAttribute('aria-pressed', String(audio.on));
+        soundButton.querySelector('span').textContent = audio.on ? '声音开' : '声音关';
+        play(['G5', 'C6', 'E6'], 0.22, 0.6);
+      });
 
       /* ── 夜空：星星、桂花、孔明灯 ── */
       const canvas = document.getElementById('sky');
@@ -1271,6 +1339,8 @@
         setTimeout(() => { moonLine.textContent = line; moonLine.classList.remove('is-hidden'); }, reduced ? 0 : 180);
         moon.classList.remove('is-pulse'); void moon.offsetWidth; moon.classList.add('is-pulse');
         moon.classList.toggle('is-blush', line.startsWith('……'));
+        const chimes = [['E5', 'A5'], ['G5', 'C6'], ['A5', 'D6'], ['E6', 'D6', 'C6', 'A5']];
+        play(chimes[(moonTaps - 1) % chimes.length], line.startsWith('……') ? 0.14 : 0.24);
       });
 
       /* ── 卷首视差：往下读时月亮再升一点 ── */
@@ -1320,9 +1390,12 @@
         const split = cake.classList.toggle('is-split');
         cake.setAttribute('aria-pressed', String(split));
         if (split) {
+          crisp();
+          play(['E5', 'G5'], 0.2, 0.6);
           cakeHint.textContent = '再点一下，把它合起来';
           cakeNote.innerHTML = '我切得不太均匀——<strong>大的那一半，给你。</strong><br />是莲蓉蛋黄的。莲蓉是莲子做的，莲子是荷花结的；而你名字里的“菡”，本来就是荷花。';
         } else {
+          play(['C5', 'E5', 'G5', 'C6'], 0.16, 0.65);
           cakeHint.textContent = '轻触月饼，切开它';
           cakeNote.innerHTML = '分开是两半，合起来，<strong>还是一个圆。</strong>';
         }
@@ -1398,6 +1471,7 @@
       form.addEventListener('submit', (event) => {
         event.preventDefault();
         releaseLantern(input.value.trim());
+        play(['C5', 'D5', 'E5', 'G5', 'A5', 'C6'], 0.1, 0.5);
         input.value = '';
         echo.textContent = echoes[Math.min(released, echoes.length - 1)];
         released += 1;
@@ -1408,6 +1482,7 @@
           if (!entries.some((e) => e.isIntersecting)) return;
           first.disconnect();
           releaseLantern('愿诗菡开心，不止今晚', { x: W * 0.3, size: 24 });
+          play(['G5', 'A5', 'C6', 'D6'], 0.12, 0.45);
           echo.textContent = '我先放了一盏。轮到你了。';
         }, { threshold: 0.4 });
         first.observe(lanternSection);
