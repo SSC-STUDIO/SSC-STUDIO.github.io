@@ -4,7 +4,8 @@
  * 镜头随阅读进度缓移，不接受拖拽；交互会点亮月亮、放孔明灯、放烟花。
  */
 
-const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
+const THREE_LOCAL = './vendor/three.module.js';
+const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
 
 const mulberry32 = (seed) => () => {
   seed |= 0;
@@ -60,9 +61,13 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   if (!canvas) return null;
   let THREE;
   try {
-    THREE = await import(THREE_URL);
+    THREE = await import(THREE_LOCAL);
   } catch {
-    return null;
+    try {
+      THREE = await import(THREE_CDN);
+    } catch {
+      return null;
+    }
   }
 
   let renderer;
@@ -279,13 +284,49 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
     }
   });
 
-  /* 岸边矮草与桂花碎屑 */
+  /* 岸边矮草、桂花碎屑与蒲公英 */
   for (let i = 0; i < 34; i++) {
     const x = R(-7.0, 7.0);
     const z = R(-26, 5);
     if (isWater(x, z) || isBlocked(x, z)) continue;
     box(x, 0.58, z, 0.22, 0.16, 0.22, pick(['#3d6a48', '#4a7a52']), 0.08);
     if (rng() < 0.25) gbox('gold', x, 0.72, z, 0.08, 0.08, 0.08, '#ffe08a');
+  }
+  const dandelionSpots = [];
+  const swayStems = [];
+  for (let i = 0; i < (lite ? 14 : 22); i++) {
+    const x = R(-6.8, 6.8);
+    const z = R(-24, 4.5);
+    if (isWater(x, z) || isBlocked(x, z) || Math.abs(x) < 1.4) continue;
+    const h = R(0.42, 0.72);
+    const cy = 0.5 + h;
+    dandelionSpots.push([x, cy, z, h]);
+    if (swayStems.length < (lite ? 8 : 12)) {
+      const group = new THREE.Group();
+      group.position.set(x, 0.5, z);
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.04, h, 0.04), new THREE.MeshLambertMaterial({ color: 0x4a6b3c }));
+      stem.position.y = h / 2;
+      const head = new THREE.Group();
+      head.position.y = h;
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2;
+        const fluff = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), new THREE.MeshBasicMaterial({ color: 0xf7f3ea }));
+        fluff.position.set(Math.cos(a) * 0.1, R(-0.02, 0.04), Math.sin(a) * 0.1);
+        head.add(fluff);
+      }
+      const core = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.09), new THREE.MeshBasicMaterial({ color: 0xfff8ee }));
+      head.add(core);
+      group.add(stem, head);
+      scene.add(group);
+      swayStems.push({ group, phase: rng() * 6.28, amp: R(0.05, 0.12) });
+    } else {
+      box(x, 0.5 + h / 2, z, 0.035, h, 0.035, pick(['#4a6b3c', '#3f5f34']), 0);
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2;
+        box(x + Math.cos(a) * 0.1, cy + R(-0.02, 0.04), z + Math.sin(a) * 0.1, 0.07, 0.07, 0.07, pick(['#f7f3ea', '#fffaf2', '#efe9dc']), 0.02);
+      }
+      box(x, cy, z, 0.09, 0.09, 0.09, '#fff8ee', 0);
+    }
   }
 
   /* 远丘 */
@@ -727,6 +768,63 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   fallMesh.frustumCulled = false;
   scene.add(fallMesh);
 
+  /* 蒲公英飞絮：随风与钢琴律动飘起 */
+  const seedCount = lite ? 48 : 96;
+  const seedGeo = buildBillboards(Math.max(1, seedCount));
+  seedGeo.index = petalQuad.index;
+  seedGeo.setAttribute('position', petalQuad.getAttribute('position'));
+  const sOrigin = new Float32Array(seedCount * 3);
+  const sSeed = new Float32Array(seedCount * 4);
+  for (let i = 0; i < seedCount; i++) {
+    const spot = dandelionSpots[i % Math.max(1, dandelionSpots.length)] || [R(-5, 5), 1.2, R(-18, 2), 0.5];
+    sOrigin.set([spot[0] + R(-0.2, 0.2), spot[1], spot[2] + R(-0.2, 0.2)], i * 3);
+    sSeed.set([rng(), rng(), rng(), rng()], i * 4);
+  }
+  seedGeo.setAttribute('aOrigin', new THREE.InstancedBufferAttribute(sOrigin, 3));
+  seedGeo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(sSeed, 4));
+  const seedMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: { uTime: { value: 0 }, uWind: { value: 0 }, uMusic: { value: 0 } },
+    vertexShader: `
+      attribute vec3 aOrigin;
+      attribute vec4 aSeed;
+      uniform float uTime, uWind, uMusic;
+      varying float vFade;
+      varying vec2 vUv;
+      void main() {
+        float life = mod(aSeed.x + uTime * (0.08 + aSeed.y * 0.1 + uMusic * 0.12), 1.0);
+        vec3 p = aOrigin;
+        p.y += life * (2.4 + uMusic * 1.8) + sin(uTime * 1.3 + aSeed.z * 6.28) * 0.12;
+        p.x += life * (1.6 + uWind * 1.4 + uMusic * 0.9) * (0.4 + aSeed.w);
+        p.z += sin(uTime * 0.7 + aSeed.z * 6.28) * life * 1.2;
+        float ang = uTime * (0.8 + aSeed.x) + aSeed.y * 6.28;
+        float c = cos(ang), s = sin(ang);
+        float size = 0.09 + aSeed.z * 0.05;
+        vec3 local = vec3(position.x * size * c - position.y * size * 0.7 * s, position.x * size * s + position.y * size * 0.7 * c, 0.0);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p + local, 1.0);
+        vFade = smoothstep(0.0, 0.08, life) * smoothstep(1.0, 0.7, life) * (0.55 + 0.45 * uMusic);
+        vUv = uv;
+      }
+    `,
+    fragmentShader: `
+      varying float vFade;
+      varying vec2 vUv;
+      void main() {
+        vec2 q = vUv - 0.5;
+        float d = length(q);
+        if (d > 0.5) discard;
+        float spokes = abs(sin(atan(q.y, q.x) * 5.0));
+        float a = smoothstep(0.5, 0.15, d) * (0.35 + 0.65 * spokes);
+        gl_FragColor = vec4(vec3(0.97, 0.95, 0.9), a * vFade);
+      }
+    `,
+  });
+  const seedMesh = new THREE.Mesh(seedGeo, seedMat);
+  seedMesh.frustumCulled = false;
+  scene.add(seedMesh);
+
   /* 孔明灯与烟花 */
   const skyLanterns = [];
   const lanternBody = new THREE.BoxGeometry(0.28, 0.36, 0.28);
@@ -822,6 +920,8 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
   let blush = 0;
   let blushTarget = 0;
   let wind = 0;
+  let musicPulse = 0;
+  let musicTarget = 0;
   let last = 0;
   let running = !reduced;
   let frame = 0;
@@ -854,7 +954,10 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
     pulse *= Math.exp(-dt * 3.2);
     moonPulse *= Math.exp(-dt * 1.8);
     blush += (blushTarget - blush) * Math.min(1, dt * 2.5);
+    musicPulse += (musicTarget - musicPulse) * Math.min(1, dt * 8);
+    musicTarget *= Math.exp(-dt * 2.4);
     wind *= Math.exp(-dt * 0.7);
+    wind = Math.min(2.2, wind + musicPulse * dt * 1.6);
     pickTarget();
     camPos.lerp(wantPos, reduced ? 1 : Math.min(1, dt * 1.8));
     camLook.lerp(wantLook, reduced ? 1 : Math.min(1, dt * 1.8));
@@ -873,6 +976,14 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
     haloUniforms.uPulse.value = pulse + moonPulse * 0.5;
     fallMat.uniforms.uTime.value = clock;
     fallMat.uniforms.uWind.value = wind;
+    seedMat.uniforms.uTime.value = clock;
+    seedMat.uniforms.uWind.value = wind;
+    seedMat.uniforms.uMusic.value = musicPulse;
+    for (const s of swayStems) {
+      const lean = Math.sin(clock * (1.5 + s.amp * 3) + s.phase) * s.amp + musicPulse * 0.2;
+      s.group.rotation.z = lean;
+      s.group.rotation.x = lean * 0.4;
+    }
     water.material.uniforms.uTime.value = clock;
     water.material.uniforms.uMoonPulse.value = moonPulse;
     sky.material.uniforms.uTime.value = clock;
@@ -1033,6 +1144,11 @@ export async function mountAutumn(canvas, { reduced = false } = {}) {
       pulse = Math.min(1.4, pulse + 0.55);
       haloUniforms.uWave.value = clock;
       moonPulse = Math.min(1.2, moonPulse + 0.35);
+      renderStill();
+    },
+    setMusicPulse(amount = 0.6) {
+      musicTarget = Math.min(1.4, Math.max(musicTarget, amount));
+      wind = Math.min(2.2, wind + amount * 0.35);
       renderStill();
     },
     finale() {

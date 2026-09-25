@@ -506,7 +506,7 @@ SOFTWARE.
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg>
         </button>
         <p class="intro-hint">轻触这里，开始<small>会有一点点音乐 · 戴上耳机更好</small></p>
-        <button class="intro-mute" id="intro-mute" type="button">静音开始</button>
+        <button class="intro-mute" id="intro-mute" type="button">静音开始（默认会出声）</button>
       </div>
       <div class="intro-lines" id="intro-lines" aria-live="polite"></div>
     </div>
@@ -525,8 +525,9 @@ SOFTWARE.
       <li><a href="#mv5"><span class="bar"><i></i></span>Ⅴ</a></li>
     </ol>
     <span class="score-now" id="score-now" aria-live="polite">前奏</span>
-    <button class="sound js-sound-toggle" id="sound" type="button" aria-pressed="false" data-on="声音开" data-off="声音关" hidden>
-      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音关</span>
+    <button class="sound js-sound-toggle" id="sound" type="button" aria-pressed="true" data-on="声音开" data-off="声音关" hidden>
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg>
+      <span>声音开</span>
     </button>
   </nav>
 
@@ -576,7 +577,7 @@ SOFTWARE.
           <li style="--i:4"><a href="#mv5"><span class="pg-num">Ⅴ</span><span class="pg-name">尾声</span><span class="pg-dots"></span><span class="pg-title">延长记号</span></a></li>
         </ol>
         <p class="program-foot">演唱：陈润森（暂为独唱）<br />献给：潘诗菡</p>
-        <button class="program-sound js-sound-toggle" type="button" aria-pressed="false" data-on="♪ 八音盒已打开，点这里关掉" data-off="♪ 打开八音盒，边听边读"><span>♪ 打开八音盒，边听边读</span></button>
+        <button class="program-sound js-sound-toggle" type="button" aria-pressed="true" data-on="♪ 八音盒已打开，点这里关掉" data-off="♪ 打开八音盒，边听边读"><span>♪ 八音盒已打开，点这里关掉</span></button>
         <p class="program-note">每个乐章会响一小句旋律。之后也可以在顶栏右边随时开关。</p>
       </section>
 
@@ -1750,7 +1751,7 @@ SOFTWARE.
         mv4: ['C6', 'D6', 'E6', 'D6', 'C6', 'A5', 'C6'],
         mv5: ['G5', 'E5', 'D5', 'C5'],
       };
-      const audio = { ctx: null, out: null, on: false, held: null };
+      const audio = { ctx: null, out: null, on: true, userMuted: false, held: null };
       const initAudio = () => {
         if (audio.ctx) return audio.ctx;
         const AC = window.AudioContext || window.webkitAudioContext;
@@ -1904,15 +1905,33 @@ SOFTWARE.
           }
         });
       });
-      /* iPhone 只在轻触时放行声音：第一次轻触页面就悄悄解锁，按住音符时才能立刻响 */
-      const unlockEvents = ['pointerup', 'touchend', 'keydown'];
+      syncSound();
+      /* 默认出声：尽快解锁；若被浏览器拦住，第一次轻触/按键即开 */
+      const unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
       const unlockAudio = () => {
         const ctx = initAudio();
         if (!ctx) return;
-        if (ctx.state === 'running') { unlockEvents.forEach((type) => document.removeEventListener(type, unlockAudio, true)); return; }
-        ctx.resume().catch(() => {});
+        const kick = () => {
+          if (audio.on && !audio.userMuted) {
+            startBed();
+            if (!document.documentElement.classList.contains('intro-pending')) {
+              playNotes(PHRASES.mv1, 0.32, 0.55);
+            }
+          }
+          unlockEvents.forEach((type) => document.removeEventListener(type, unlockAudio, true));
+        };
+        if (ctx.state === 'running') { kick(); return; }
+        ctx.resume().then(() => { if (ctx.state === 'running') kick(); }).catch(() => {});
       };
       unlockEvents.forEach((type) => document.addEventListener(type, unlockAudio, true));
+      enableAudioSoon();
+      function enableAudioSoon() {
+        const ctx = initAudio();
+        if (!ctx) return;
+        ctx.resume().then(() => {
+          if (ctx.state === 'running' && audio.on && !audio.userMuted) startBed();
+        }).catch(() => {});
+      }
 
       /* ── 开场：邀请 → 序曲（几行字配主旋律）→ 金线启幕，封面随后依次浮现 ── */
       const afterIntro = [];

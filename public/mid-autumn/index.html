@@ -48,7 +48,7 @@
     html.has-island .wish-echo,
     html.has-island .sign,
     html.has-island .privacy { text-shadow:0 1px 14px rgba(6,10,28,.7),0 0 28px rgba(6,10,28,.35); }
-    html.has-island .island-wrap { opacity:0; pointer-events:none; height:0; margin:0; overflow:hidden; }
+    html.has-island .island-wrap { opacity:0 !important; pointer-events:none; height:0 !important; margin:0 !important; overflow:hidden; animation:none !important; }
     html.has-island .hero { min-height:calc(100svh - 50px); }
     .topline { display:flex; justify-content:space-between; gap:12px; padding-top:max(22px,env(safe-area-inset-top)); padding-bottom:14px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:2px; }
 
@@ -161,7 +161,7 @@
     .sound { position:fixed; right:max(14px,env(safe-area-inset-right)); bottom:max(16px,env(safe-area-inset-bottom)); z-index:9; display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border:1px solid rgba(241,207,134,.4); border-radius:20px; background:rgba(11,17,48,.72); color:var(--muted); font-size:12px; letter-spacing:1px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
     .sound[aria-pressed="true"] { border-color:var(--gold-deep); color:var(--gold); box-shadow:0 0 16px rgba(241,207,134,.25); }
     .sound svg { width:14px; height:14px; }
-    .sound::before { content:"可以打开声音"; position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%); padding:6px 10px; border-radius:4px; background:rgba(244,236,220,.95); color:#1b1f3a; font-size:12px; white-space:nowrap; opacity:0; transition:opacity .4s; pointer-events:none; }
+    .sound::before { content:"点这里可关掉"; position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%); padding:6px 10px; border-radius:4px; background:rgba(244,236,220,.95); color:#1b1f3a; font-size:12px; white-space:nowrap; opacity:0; transition:opacity .4s; pointer-events:none; }
     .sound.is-hint { animation:soundHint 1.3s ease-in-out 3; }
     .sound.is-hint::before { opacity:1; }
     .foot a { color:var(--muted); text-decoration:none; }
@@ -1139,7 +1139,7 @@
           <p>中秋快乐。</p>
           <p>今天是团圆的日子。这会儿，你大概正和家人坐在一起，吃月饼，聊天，说一些平时来不及说的话。这样的晚上很珍贵，我不想打扰，只想在里面悄悄放一句祝福。</p>
           <p>团圆饭，我已经说不清有多久没坐上了。</p>
-          <p>月亮每年都圆。看见它，还是会停一下——不是不懂团圆，是那张桌子离我太远。</p>
+          <p>月亮每年都圆。看见它，还是会停一下——是那张桌子离我太远。</p>
           <p>今年不一样。月亮还是旧的，可我多了一个牵挂的人。</p>
           <blockquote class="quote">但愿人长久，千里共婵娟。<small>苏轼《水调歌头》</small></blockquote>
           <p>写中秋的诗那么多，这一句最有名。我们平时离得不远，用不着千里；可今晚抬头的时候，想到我们看的是同一轮月亮，还是觉得很好。</p>
@@ -1237,8 +1237,8 @@
       <button class="share" id="share" type="button">分享这一页</button>
     </div>
   </div>
-  <button class="sound" id="sound" type="button" aria-pressed="false" hidden>
-    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音关</span>
+  <button class="sound" id="sound" type="button" aria-pressed="true" title="一段原创钢琴小句，可关掉" hidden>
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音开</span>
   </button>
   <div class="toast" id="toast" role="status" hidden></div>
 
@@ -1281,9 +1281,18 @@
       };
       window.addEventListener('scroll', () => { syncWorld(); }, { passive: true });
 
-      /* ── 八音盒：默认静音；与表白页同一副音色和回声 ── */
-      const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98 };
-      const audio = { ctx: null, out: null, on: false };
+      /* ── 八音盒 + 原创钢琴小句：默认出声；与表白页同一副音色和回声 ── */
+      const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98 };
+      const audio = { ctx: null, out: null, on: true };
+      /* 原创短句，六拍一圈，和任何成名曲都无关 */
+      const PIANO_LOOP = [
+        [0.0, 'E5', 0.55], [0.5, 'G5', 0.55], [1.0, 'A5', 0.7], [1.7, 'G5', 0.55],
+        [2.3, 'F5', 0.55], [2.8, 'D5', 0.7], [3.5, 'E5', 0.9],
+        [4.5, 'D5', 0.45], [4.95, 'E5', 0.45], [5.4, 'G5', 0.7], [6.1, 'E5', 1.1],
+      ];
+      const PIANO_CYCLE = 7.6;
+      let pianoTimer = 0;
+      let pianoNext = 0;
       const initAudio = () => {
         if (audio.ctx) return audio.ctx;
         const AC = window.AudioContext || window.webkitAudioContext;
@@ -1291,7 +1300,7 @@
         // 与她手机里正在放的歌混音，不打断
         try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch {}
         const ctx = new AC();
-        const master = ctx.createGain(); master.gain.value = 0.15;
+        const master = ctx.createGain(); master.gain.value = 0.14;
         const delay = ctx.createDelay(1.5); delay.delayTime.value = 0.34;
         const feedback = ctx.createGain(); feedback.gain.value = 0.32;
         const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 2600;
@@ -1300,6 +1309,20 @@
         master.connect(delay); delay.connect(tone); tone.connect(feedback); feedback.connect(delay); tone.connect(wet); wet.connect(ctx.destination);
         audio.ctx = ctx; audio.out = master;
         return ctx;
+      };
+      const softPiano = (freq, at, dur, level) => {
+        const { ctx, out } = audio;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.0001, at);
+        env.gain.exponentialRampToValueAtTime(level, at + 0.02);
+        env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+        env.connect(out);
+        [[freq, 'sine', 1], [freq * 2.003, 'sine', 0.18], [freq * 0.5, 'triangle', 0.08]].forEach(([f, type, g]) => {
+          const osc = ctx.createOscillator(); osc.type = type; osc.frequency.value = f;
+          const gain = ctx.createGain(); gain.gain.value = g;
+          osc.connect(gain); gain.connect(env);
+          osc.start(at); osc.stop(at + dur + 0.05);
+        });
       };
       const pluck = (freq, at, dur, level) => {
         const { ctx, out } = audio;
@@ -1319,6 +1342,29 @@
         if (!audio.on || !audio.ctx) return;
         const t0 = audio.ctx.currentTime + 0.04;
         notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.2 : 1.4, last ? level * 1.15 : level); });
+      };
+      const schedulePianoCycle = (from = 0) => {
+        if (!audio.on || !audio.ctx) return;
+        const t0 = audio.ctx.currentTime + 0.05;
+        PIANO_LOOP.forEach(([when, n, dur]) => {
+          if (when < from) return;
+          softPiano(NOTE[n], t0 + when - from, Math.max(0.9, dur * 1.5), 0.42);
+          const delayMs = Math.max(0, (when - from) * 1000);
+          setTimeout(() => talkWorld((api) => api.setMusicPulse(0.55 + dur * 0.25)), delayMs);
+        });
+        pianoNext = performance.now() + (PIANO_CYCLE - from) * 1000;
+      };
+      const syncSoundUi = () => {
+        soundButton.setAttribute('aria-pressed', String(audio.on));
+        soundButton.querySelector('span').textContent = audio.on ? '声音开' : '声音关';
+      };
+      const enableAudio = async () => {
+        const ctx = initAudio();
+        if (!ctx) return false;
+        if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+        if (ctx.state === 'suspended') return false;
+        if (audio.on && performance.now() > pianoNext - 100) schedulePianoCycle(0);
+        return true;
       };
       const crisp = () => {
         if (!audio.on || !audio.ctx) return;
@@ -1348,21 +1394,33 @@
       };
       const soundButton = document.getElementById('sound');
       soundButton.hidden = false;
-      const hintTimer = setTimeout(() => {
-        if (audio.on) return;
-        soundButton.classList.add('is-hint');
-        setTimeout(() => soundButton.classList.remove('is-hint'), 4200);
-      }, 3500);
+      syncSoundUi();
+      enableAudio();
+      const unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
+      const unlockAudio = () => {
+        enableAudio().then((ok) => {
+          if (ok) unlockEvents.forEach((type) => document.removeEventListener(type, unlockAudio, true));
+        });
+      };
+      unlockEvents.forEach((type) => document.addEventListener(type, unlockAudio, true));
+      const pianoTick = () => {
+        if (audio.on && audio.ctx && audio.ctx.state === 'running' && performance.now() >= pianoNext) schedulePianoCycle(0);
+        pianoTimer = requestAnimationFrame(pianoTick);
+      };
+      requestAnimationFrame(pianoTick);
       soundButton.addEventListener('click', async () => {
-        clearTimeout(hintTimer);
         soundButton.classList.remove('is-hint');
         const ctx = initAudio();
         if (!ctx) return;
         if (ctx.state === 'suspended') await ctx.resume();
         audio.on = !audio.on;
-        soundButton.setAttribute('aria-pressed', String(audio.on));
-        soundButton.querySelector('span').textContent = audio.on ? '声音开' : '声音关';
-        play(['G5', 'C6', 'E6'], 0.22, 0.6);
+        syncSoundUi();
+        if (audio.on) {
+          schedulePianoCycle(0);
+          play(['G5', 'C6', 'E6'], 0.22, 0.5);
+        } else {
+          pianoNext = Infinity;
+        }
       });
 
       /* ── 夜空：星星、桂花、孔明灯 ── */
