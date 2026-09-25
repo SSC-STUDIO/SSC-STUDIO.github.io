@@ -28,8 +28,28 @@
     .sky-bg { position:fixed; inset:0; z-index:-2; background:linear-gradient(180deg,#090f2c 0%,#111a44 34%,#232b5b 62%,#423f6d 84%,#665274 100%); }
     .sky-bg::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse 75% 48% at 76% 10%,rgba(255,228,170,.17),transparent 70%); }
     canvas.sky { position:fixed; inset:0; z-index:-1; width:100%; height:100%; pointer-events:none; }
-
-    .page { width:min(100%,1120px); margin:0 auto; padding:0 max(24px,env(safe-area-inset-right)) 0 max(24px,env(safe-area-inset-left)); }
+    .island-stage { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .island-stage canvas { display:block; width:100%; height:100%; }
+    .page { position:relative; z-index:1; width:min(100%,1120px); margin:0 auto; padding:0 max(24px,env(safe-area-inset-right)) 0 max(24px,env(safe-area-inset-left)); }
+    html.has-island .sky-bg { opacity:.35; }
+    html.has-island canvas.sky { opacity:.55; mix-blend-mode:screen; }
+    html.has-island .page::before { content:""; position:fixed; z-index:-1; left:50%; top:0; bottom:0; width:min(720px,100%); transform:translateX(-50%); pointer-events:none; background:linear-gradient(90deg,rgba(8,12,36,.12),rgba(8,12,36,.42) 10%,rgba(8,12,36,.42) 90%,rgba(8,12,36,.12)); }
+    html.has-island h1,
+    html.has-island .sub,
+    html.has-island .lunar,
+    html.has-island .moon-line,
+    html.has-island .prose,
+    html.has-island .kicker,
+    html.has-island h2,
+    html.has-island .quote,
+    html.has-island .cake-note,
+    html.has-island .phase-text,
+    html.has-island .phase-after,
+    html.has-island .wish-echo,
+    html.has-island .sign,
+    html.has-island .privacy { text-shadow:0 1px 14px rgba(6,10,28,.7),0 0 28px rgba(6,10,28,.35); }
+    html.has-island .island-wrap { opacity:0; pointer-events:none; height:0; margin:0; overflow:hidden; }
+    html.has-island .hero { min-height:calc(100svh - 50px); }
     .topline { display:flex; justify-content:space-between; gap:12px; padding-top:max(22px,env(safe-area-inset-top)); padding-bottom:14px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:2px; }
 
     /* ── 卷首：月亮、问候与夜里的小岛 ── */
@@ -174,6 +194,9 @@
       .moon-wrap { grid-column:2; grid-row:1; justify-self:end; width:min(26vw,330px); margin:0 4% -40px 0; }
       .island-wrap { grid-column:2; grid-row:2; margin:0; }
       .scroll-hint { grid-column:1 / -1; grid-row:3; }
+      html.has-island .hero { grid-template-columns:minmax(0,1fr) minmax(0,.72fr); }
+      html.has-island .greeting { grid-column:1; grid-row:1 / span 2; max-width:560px; }
+      html.has-island .moon-wrap { grid-column:2; grid-row:1 / span 2; align-self:center; width:min(22vw,280px); margin:0 2% 0 0; }
       h1 { font-size:66px; }
       .sub { font-size:18px; }
       section.block { padding:84px 0; }
@@ -187,6 +210,7 @@
 <body>
   <div class="sky-bg" aria-hidden="true"></div>
   <canvas class="sky" id="sky" aria-hidden="true"></canvas>
+  <div class="island-stage" id="island-stage" aria-hidden="true"><canvas id="autumn-world"></canvas></div>
 
   <div class="page">
     <header class="topline"><span>二〇二六 · 中秋</span><span>陈润森 致 潘诗菡</span></header>
@@ -1219,6 +1243,41 @@
     (() => {
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+      /* 三维水乡在信纸后面；加载失败就继续用 2D 夜空 */
+      let worldApi = null;
+      const talkWorld = (fn) => { try { if (worldApi) fn(worldApi); } catch {} };
+      import('./scene.js')
+        .then(({ mountAutumn }) => mountAutumn(document.getElementById('autumn-world'), { reduced }))
+        .then((api) => {
+          if (!api) return;
+          worldApi = api;
+          document.documentElement.classList.add('has-island');
+          syncWorld();
+        })
+        .catch(() => {});
+
+      const sectionMarks = [
+        { el: '.hero', s: 0 },
+        { el: '#letter', s: 1 },
+        { el: '#cake-title', s: 2 },
+        { el: '#phase-title', s: 3 },
+        { el: '#lanterns', s: 4 },
+        { el: '.sign', s: 5 },
+      ];
+      const syncWorld = () => {
+        if (!worldApi) return;
+        const mid = window.scrollY + window.innerHeight * 0.42;
+        let best = 0;
+        for (const mark of sectionMarks) {
+          const node = document.querySelector(mark.el);
+          if (!node) continue;
+          const top = node.getBoundingClientRect().top + window.scrollY;
+          if (mid >= top - 40) best = mark.s;
+        }
+        talkWorld((api) => api.setProgress(best));
+      };
+      window.addEventListener('scroll', () => { syncWorld(); }, { passive: true });
+
       /* ── 八音盒：默认静音；与表白页同一副音色和回声 ── */
       const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98 };
       const audio = { ctx: null, out: null, on: false };
@@ -1488,6 +1547,11 @@
         setTimeout(() => { moonLine.textContent = line; moonLine.classList.remove('is-hidden'); }, reduced ? 0 : 180);
         moon.classList.remove('is-pulse'); void moon.offsetWidth; moon.classList.add('is-pulse');
         moon.classList.toggle('is-blush', line.startsWith('……'));
+        talkWorld((api) => {
+          api.pulseMoon(line.startsWith('……') ? 1.2 : 0.7);
+          api.blushMoon(line.startsWith('……'));
+          if (line.startsWith('……')) api.launchFirework({ x: 1.2, z: -10, color: 0xffb7c8 });
+        });
         if (line.startsWith('……')) {
           const r = moon.getBoundingClientRect();
           launchFirework({ shape: 'heart', x: Math.max(W * 0.22, r.left - r.width * 0.25), y: Math.max(H * 0.14, r.top + r.height * 0.45), colors: HEART_COLORS });
@@ -1547,6 +1611,7 @@
           setTimeout(() => cake.classList.remove('is-cutting'), 600);
           crisp();
           play(['E5', 'G5'], 0.2, 0.6);
+          talkWorld((api) => api.cakeSplit());
           cakeHint.textContent = '再点一下，把它合起来';
           cakeNote.innerHTML = '我切得不太均匀——<strong>大的那一半，给你。</strong><br />是莲蓉蛋黄的。莲蓉是莲子做的，莲子是荷花结的；而你名字里的“菡”，本来就是荷花。';
         } else {
@@ -1643,6 +1708,10 @@
         form.appendChild(fly);
         setTimeout(() => fly.remove(), 1800);
         releaseLantern(input.value.trim());
+        talkWorld((api) => {
+          api.releaseLantern({ x: (Math.random() - 0.5) * 4, z: -8 - Math.random() * 10 });
+          setTimeout(() => api.launchFirework({ x: (Math.random() - 0.5) * 4, z: -10 - Math.random() * 8 }), 1500);
+        });
         play(['C5', 'D5', 'E5', 'G5', 'A5', 'C6'], 0.1, 0.5);
         setTimeout(() => launchFirework({ x: rand(W * 0.3, W * 0.7), y: rand(H * 0.12, H * 0.3), colors: FIREWORK_COLORS[0] }), 1600);
         input.value = '';
@@ -1655,6 +1724,7 @@
           if (!entries.some((e) => e.isIntersecting)) return;
           first.disconnect();
           releaseLantern('愿诗菡开心，不止今晚', { x: W * 0.3, size: 24 });
+          talkWorld((api) => api.releaseLantern({ x: -1.2, z: -9 }));
           play(['G5', 'A5', 'C6', 'D6'], 0.12, 0.45);
           echo.textContent = '我先放了一盏。轮到你了。';
         }, { threshold: 0.4 });
@@ -1666,6 +1736,7 @@
         const finale = new IntersectionObserver((entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return;
           finale.disconnect();
+          talkWorld((api) => api.finale());
           launchFirework({ shape: 'heart', x: W * 0.5, y: H * 0.22, colors: HEART_COLORS });
           setTimeout(() => launchFirework({ x: W * 0.24, y: H * 0.3 }), 700);
           setTimeout(() => launchFirework({ x: W * 0.76, y: H * 0.28 }), 1200);
