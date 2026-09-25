@@ -125,6 +125,65 @@ SOFTWARE.
     .tiny-heart { width:12px; height:12px; display:inline-block; vertical-align:-1px; fill:var(--rose); margin:0 5px; }
 
     .fx { position:fixed; inset:0; z-index:11; width:100%; height:100%; pointer-events:none; }
+    .island-stage { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    .island-stage canvas { display:block; width:100%; height:100%; }
+    html.has-island, html.has-island body { background:#0c1430; color:#f6efe4; }
+    html.has-island body::before { display:none; }
+    html.has-island .page { position:relative; z-index:1; background:transparent; color:#f6efe4; }
+    html.has-island .program a,
+    html.has-island .dedication,
+    html.has-island .mv-tempo,
+    html.has-island .world h3,
+    html.has-island .world figcaption,
+    html.has-island .hold-tip,
+    html.has-island .envelope-hint,
+    html.has-island .read-link,
+    html.has-island .score a,
+    html.has-island .score-now { color:#f0e6da; }
+    html.has-island .sound,
+    html.has-island .reply-later,
+    html.has-island .program-sound,
+    html.has-island .hold,
+    html.has-island .tape-flip { background:transparent; color:#f6efe4; border-color:rgba(246,239,228,.4); }
+    html.has-island .sound[aria-pressed="true"],
+    html.has-island .program-sound[aria-pressed="true"],
+    html.has-island .fermata.is-holding .hold { background:var(--rose); color:#fff8ee; border-color:var(--rose); }
+    html.has-island .curtain { opacity:.58; }
+    html.has-island .cover-copy,
+    html.has-island .program,
+    html.has-island .prose,
+    html.has-island .poem,
+    html.has-island .mv-head,
+    html.has-island .salutation,
+    html.has-island .confess,
+    html.has-island .confess h3,
+    html.has-island .fermata,
+    html.has-island .ending,
+    html.has-island .signature,
+    html.has-island .ps,
+    html.has-island .share-area,
+    html.has-island .envelope-line,
+    html.has-island .reply,
+    html.has-island .score { background:transparent; border-color:transparent; box-shadow:none; }
+    html.has-island .score { border-bottom-color:transparent; backdrop-filter:none; }
+    html.has-island .program { outline-color:transparent; }
+    html.has-island .prose,
+    html.has-island .poem,
+    html.has-island .ending,
+    html.has-island .fermata-text,
+    html.has-island .reply-lead,
+    html.has-island .cover-verse,
+    html.has-island h1,
+    html.has-island .salutation { text-shadow:0 1px 12px rgba(8,10,28,.55); }
+    html.has-island .signature strong { color:#f6efe4; }
+    html.has-island .envelope-line,
+    html.has-island .school-line,
+    html.has-island .mv-kicker,
+    html.has-island .signature,
+    html.has-island .ps,
+    html.has-island .colophon,
+    html.has-island .share,
+    html.has-island .return-site { color:#e6d9cc; }
 
     /* ── 卷首与信封（信封层叠与起落改编自 luo-5/love-letter-site-template，MIT） ── */
     .cover { position:relative; text-align:center; padding-top:27px; }
@@ -305,6 +364,14 @@ SOFTWARE.
     .hold-readout { min-height:34px; margin:14px 0 0; color:var(--rose); font:16px/2 var(--serif); letter-spacing:1px; }
     .fermata-text { margin:6px 0 0; font:16px/2.05 var(--serif); letter-spacing:.5px; color:var(--ink); }
     .ending { font:18px/2.1 var(--serif); margin:34px 0 33px; text-align:center; }
+    .reply { margin:10px 0 28px; padding:22px 16px 18px; text-align:center; border:1px solid var(--line); }
+    .reply-lead { margin:0 0 16px; font:16px/2 var(--serif); letter-spacing:.4px; }
+    .reply-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:12px; }
+    .reply-yes, .reply-later { min-height:48px; padding:0 26px; border-radius:24px; font:16px/1 var(--serif); letter-spacing:3px; }
+    .reply-yes { border:0; background:var(--rose); color:#fff8ee; }
+    .reply-later { border:1px solid var(--line); background:#fffaf4; color:var(--muted); letter-spacing:2px; }
+    .reply-yes:disabled, .reply-later:disabled { opacity:.5; }
+    .reply-status { min-height:48px; margin:14px 0 0; color:var(--rose); font:15px/1.9 var(--serif); }
     .signature { text-align:right; font-size:12px; line-height:1.9; color:var(--muted); margin:0 0 42px; letter-spacing:1px; }
     .signature strong { display:block; font:500 25px/1.8 var(--serif); letter-spacing:5px; color:var(--ink); margin-top:5px; }
     .signature-seal { display:inline-flex; align-items:center; justify-content:center; width:39px; height:39px; margin-top:9px; border:1px solid var(--rose); color:var(--rose); font:20px/1 var(--serif); transform:rotate(-8deg); }
@@ -383,6 +450,7 @@ SOFTWARE.
   </style>
 </head>
 <body>
+  <div class="island-stage" id="island-stage" aria-hidden="true"><canvas id="island"></canvas></div>
   <div class="intro" id="intro" role="dialog" aria-modal="true" aria-label="开场">
     <div class="curtain curtain-top" aria-hidden="true"></div>
     <div class="curtain curtain-bottom" aria-hidden="true"></div>
@@ -1451,6 +1519,14 @@ SOFTWARE.
             <p class="fermata-text reveal">乐谱上，这个记号叫“延长记号”：<br />音符停在这里，停多久，由唱的人决定。</p>
             <p class="fermata-text reveal">这封信的最后一个音，交给你。</p>
           </div>
+          <div class="reply" id="reply">
+            <p class="reply-lead">如果你愿意，就告诉我一声。<br />不想现在回答，也完全没关系。</p>
+            <div class="reply-actions">
+              <button class="reply-yes" id="reply-yes" type="button">愿意</button>
+              <button class="reply-later" id="reply-later" type="button">再想想</button>
+            </div>
+            <p class="reply-status" id="reply-status" aria-live="polite"></p>
+          </div>
           <p class="ending reveal">如果你也愿意，<br />下次，我们再一起唱首歌。</p>
           <div class="signature reveal" id="signature">从那次合唱，写到此刻<strong>陈润森</strong>二〇二六年 · 秋<br /><span class="signature-seal" aria-hidden="true">森</span></div>
         </section>
@@ -1469,6 +1545,19 @@ SOFTWARE.
       const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
       const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
       const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+
+      /* 三维小岛在信纸后面；加载失败就当没有，信照常读 */
+      let islandApi = null;
+      const askBeat = (beat) => { try { islandApi?.setBeat(beat); } catch {} };
+      import('./scene.js')
+        .then(({ mountIsland }) => mountIsland(document.getElementById('island'), { reduced }))
+        .then((api) => {
+          if (!api) return;
+          islandApi = api;
+          document.documentElement.classList.add('has-island');
+          askBeat(document.documentElement.classList.contains('intro-pending') ? 'moon' : 'arrive');
+        })
+        .catch(() => {});
 
       /* ── 绚烂层：花瓣、星光、爱心；盖在正文上但不接点击，没有粒子时不跑帧 ── */
       const fx = (() => {
@@ -1648,10 +1737,10 @@ SOFTWARE.
           osc.start(at); osc.stop(at + dur + 0.05);
         });
       };
-      const playNotes = (notes, step = 0.36) => {
+      const playNotes = (notes, step = 0.36, level = 0.75) => {
         if (!audio.on || !audio.ctx) return;
         const t0 = audio.ctx.currentTime + 0.05;
-        notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.4 : 1.5, last ? 0.9 : 0.75); });
+        notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.6 : 1.5, last ? level * 1.15 : level); });
       };
       const playChord = (notes) => {
         if (!audio.on || !audio.ctx) return;
@@ -1660,10 +1749,54 @@ SOFTWARE.
       };
       const playTheme = () => {
         if (!audio.on || !audio.ctx) return;
+        startBed();
         const beat = 0.5, t0 = audio.ctx.currentTime + 0.12;
         THEME.forEach(([b, n, d]) => pluck(NOTE[n], t0 + b * beat, Math.max(1.4, d * beat * 1.6), 0.8));
         THEME_BASS.forEach(([b, n]) => pluck(NOTE[n], t0 + b * beat, 2.2, 0.42));
         THEME_INNER.forEach(([b, n]) => pluck(NOTE[n], t0 + b * beat, 0.9, 0.16));
+      };
+      /* 打开声音后一直垫着的很轻的和声，乐章小句叠在上面 */
+      let bed = null;
+      const startBed = () => {
+        if (bed || !audio.ctx) return;
+        const { ctx, out } = audio;
+        const g = ctx.createGain();
+        g.gain.value = 0.0001;
+        const warm = ctx.createBiquadFilter();
+        warm.type = 'lowpass';
+        warm.frequency.value = 900;
+        g.connect(warm);
+        warm.connect(out);
+        const oscs = [130.81, 164.81, 196].map((freq, i) => {
+          const o = ctx.createOscillator();
+          o.type = 'sine';
+          o.frequency.value = freq;
+          const level = ctx.createGain();
+          level.gain.value = i === 1 ? 0.35 : 0.55;
+          o.connect(level);
+          level.connect(g);
+          o.start();
+          return o;
+        });
+        g.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 1.4);
+        bed = { g, oscs };
+      };
+      const swellBed = (value, seconds = 1.2) => {
+        if (!bed || !audio.ctx) return;
+        const t = audio.ctx.currentTime;
+        bed.g.gain.cancelScheduledValues(t);
+        bed.g.gain.setValueAtTime(Math.max(bed.g.gain.value, 0.0001), t);
+        bed.g.gain.linearRampToValueAtTime(value, t + seconds);
+      };
+      const stopBed = () => {
+        if (!bed || !audio.ctx) return;
+        const { g, oscs } = bed;
+        const t = audio.ctx.currentTime;
+        g.gain.cancelScheduledValues(t);
+        g.gain.setValueAtTime(Math.max(g.gain.value, 0.0001), t);
+        g.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+        oscs.forEach((o) => o.stop(t + 0.7));
+        bed = null;
       };
       /* 延长记号按住就该有声音：只要她没亲手关掉，就不看八音盒开关 */
       const holdStart = () => {
@@ -1715,9 +1848,15 @@ SOFTWARE.
           audio.on = !audio.on;
           audio.userMuted = !audio.on;
           syncSound();
-          if (audio.on) { const r = button.getBoundingClientRect(); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 4, sparks: 14, power: 0.7 }); }
-          if (audio.on) playNotes(PHRASES[current?.dataset.phrase] || PHRASES.mv1);
-          else holdStop();
+          if (audio.on) {
+            const r = button.getBoundingClientRect();
+            fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 4, sparks: 14, power: 0.7 });
+            startBed();
+            playNotes(PHRASES[current?.dataset.phrase] || PHRASES.mv1, 0.36, current?.dataset.phrase === 'mv4' ? 1 : 0.75);
+          } else {
+            holdStop();
+            stopBed();
+          }
         });
       });
       /* iPhone 只在轻触时放行声音：第一次轻触页面就悄悄解锁，按住音符时才能立刻响 */
@@ -1801,6 +1940,7 @@ SOFTWARE.
             window.scrollTo(0, 0);
             intro.classList.add('is-opening');
             root.classList.remove('cover-hold');
+            askBeat('arrive');
             afterIntro.splice(0).forEach((fn) => fn());
           }, reduced ? 0 : 800);
           setTimeout(() => {
@@ -2045,7 +2185,13 @@ SOFTWARE.
           const i = movements.indexOf(now);
           bars.forEach((b, j) => b.classList.toggle('is-now', j === i));
           if (i >= 0) scoreNow.textContent = `${'ⅠⅡⅢⅣⅤ'[i]} ${names[i]}`;
-          if (now && !played.has(now.id)) { played.add(now.id); playNotes(PHRASES[now.dataset.phrase]); }
+          if (now && !played.has(now.id)) {
+            played.add(now.id);
+            const chorus = now.dataset.phrase === 'mv4';
+            swellBed(chorus ? 0.1 : 0.04);
+            playNotes(PHRASES[now.dataset.phrase], 0.36, chorus ? 1 : 0.75);
+          }
+          if (now) askBeat(now.id);
         }
       };
       let frame = 0;
@@ -2053,6 +2199,52 @@ SOFTWARE.
       window.addEventListener('scroll', onScroll, { passive: true });
       window.addEventListener('resize', () => { layoutChoir(); if (reduced) drawChoir(0); onScroll(); });
       updateScore(); updateChoir();
+
+      /* ── 她的答复：先送到联系接口，失败再打开写好的邮件 ── */
+      const reply = $('#reply');
+      const replyStatus = $('#reply-status');
+      const replyButtons = [ $('#reply-yes'), $('#reply-later') ];
+      let sending = false;
+      const lockReply = () => replyButtons.forEach((button) => { button.disabled = true; });
+      const sendReply = async (choice) => {
+        if (sending || replyButtons.some((button) => button.disabled)) return;
+        sending = true;
+        const when = new Date().toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' });
+        const label = choice === 'yes' ? '愿意' : '再想想';
+        const content = `潘诗菡选择了「${label}」。${when}`;
+        const payload = { name: '潘诗菡', email: '', subject: '写给诗菡的信 · 她的答复', content };
+        replyStatus.textContent = '正在把这句话送到他那里…';
+        let delivered = false;
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        try {
+          const response = await fetch('/api/contact/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+            signal: ctrl.signal,
+          });
+          delivered = response.ok;
+        } catch {}
+        clearTimeout(timer);
+        if (choice === 'yes') {
+          askBeat('yes');
+          playChord(['C5', 'E5', 'G5', 'C6']);
+          swellBed(0.11, 0.5);
+        }
+        if (delivered) {
+          lockReply();
+          replyStatus.textContent = '他会看到。';
+          return;
+        }
+        sending = false;
+        const mail = `mailto:3992237161@qq.com?subject=${encodeURIComponent(payload.subject)}&body=${encodeURIComponent(content + '\n\n这封信来自那次合唱的页面。')}`;
+        replyStatus.textContent = '这边没送出去。邮件已经写好，再点一次发送，就会到他邮箱。';
+        window.location.href = mail;
+      };
+      replyButtons[0].addEventListener('click', () => sendReply('yes'));
+      replyButtons[1].addEventListener('click', () => sendReply('later'));
+      if (reply) reply.dataset.ready = '1';
 
       /* ── 磁带翻面 ── */
       const tape = $('#tape');
