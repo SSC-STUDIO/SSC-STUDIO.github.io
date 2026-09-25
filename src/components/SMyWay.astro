@@ -100,6 +100,7 @@ const ecosystem = [
     href: '/mini-love/',
     name: '给诗菡的信',
     summary: '军训最后一天的合唱，后来有了回声。',
+    standalone: true,
   },
 ]
 
@@ -170,7 +171,11 @@ const cnNum = ['壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖', '�
     {
       ecosystem.map((item, index) => (
         <div class="a-object a-object--ecosystem">
-          <a href={item.href} class="a__inner">
+          <a
+            href={item.href}
+            class="a__inner"
+            data-astro-reload={item.standalone ? '' : undefined}
+          >
             <span class="a__badge">{cnNum[index] ?? index + 1}</span>
             <span class="a__name">{item.name}</span>
             <span class="a__summary">{item.summary}</span>
