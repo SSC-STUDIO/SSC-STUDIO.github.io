@@ -130,8 +130,8 @@ SOFTWARE.
     html.has-island, html.has-island body { background:#0c1430; color:#f6efe4; }
     html.has-island body::before { display:none; }
     html.has-island .page { position:relative; z-index:1; background:transparent; color:#f6efe4; }
-    html.has-island .page::before { content:""; position:fixed; z-index:-1; left:50%; top:0; bottom:0; width:min(760px,100%); transform:translateX(-50%); pointer-events:none; background:linear-gradient(180deg,rgba(8,12,28,.16),rgba(8,12,28,.04) 18%,rgba(8,12,28,.05) 70%,rgba(8,12,28,.18)); }
-    html.has-island.island-day .page::before { background:linear-gradient(180deg,rgba(255,248,240,.22),rgba(255,248,240,.05) 20%,rgba(255,248,240,.06) 72%,rgba(255,248,240,.2)); }
+    html.has-island .page::before { content:""; position:fixed; z-index:-1; left:50%; top:0; bottom:0; width:min(790px,100%); transform:translateX(-50%); pointer-events:none; background:linear-gradient(90deg,rgba(7,14,29,.25),rgba(7,14,29,.78) 8%,rgba(7,14,29,.78) 92%,rgba(7,14,29,.25)); }
+    html.has-island.island-day .page::before { background:linear-gradient(90deg,rgba(255,250,243,.24),rgba(255,250,243,.86) 8%,rgba(255,250,243,.86) 92%,rgba(255,250,243,.24)); }
     html.has-island .program a,
     html.has-island .dedication,
     html.has-island .mv-tempo,
@@ -167,8 +167,10 @@ SOFTWARE.
     html.has-island .envelope-line,
     html.has-island .reply,
     html.has-island .score { background:transparent; border-color:transparent; box-shadow:none; }
-    html.has-island .score { border-bottom-color:transparent; backdrop-filter:none; }
+    html.has-island .score { background:rgba(10,18,39,.88); border-bottom-color:rgba(246,239,228,.24); backdrop-filter:blur(12px); }
     html.has-island .program { outline-color:transparent; }
+    html.has-island .fermata-text { color:#f6efe4; }
+    html.has-island .confess h3 { color:#ffd9e0; }
     html.has-island .prose,
     html.has-island .poem,
     html.has-island .ending,
@@ -189,6 +191,8 @@ SOFTWARE.
     html.has-island.island-day,
     html.has-island.island-day body { color:#3f342e; }
     html.has-island.island-day .page { color:#3f342e; }
+    html.has-island.island-day .score { background:rgba(251,246,237,.94); border-bottom-color:rgba(80,60,50,.18); }
+    html.has-island.island-day .confess h3 { color:var(--rose); }
     html.has-island.island-day .program a,
     html.has-island.island-day .dedication,
     html.has-island.island-day .mv-tempo,
@@ -313,6 +317,11 @@ SOFTWARE.
     .prose { font:17px/2.05 var(--serif); letter-spacing:.55px; overflow-wrap:break-word; text-align:justify; }
     .prose p { margin:0 0 25px; }
     .prose .opening { font-size:18px; }
+    .scene-moment { position:relative; width:100vw; height:clamp(330px,62svh,700px); margin:18px 0 45px calc(50% - 50vw); overflow:hidden; background:#14243c; }
+    .scene-moment img { position:absolute; inset:-6% 0; display:block; width:100%; height:112%; object-fit:cover; object-position:center; transform:translate3d(0,var(--image-shift,0px),0) scale(1.04); }
+    .scene-moment::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(11,24,38,.08),transparent 35%,rgba(11,24,38,.16)); }
+    .scene-moment--lanterns img { object-position:55% center; }
+    .scene-moment--stars img { object-position:52% center; }
     .breath { height:42px; display:flex; align-items:center; justify-content:center; gap:9px; margin:1px 0 23px; }
     .breath i { display:block; width:4px; height:4px; background:#c99a90; }
     .breath i:nth-child(2) { width:5px; height:5px; background:#ad6e74; }
@@ -476,12 +485,14 @@ SOFTWARE.
       .choir-caps { margin:0; }
     }
     @media (max-width:350px) { .page { padding-left:22px; padding-right:22px; } .choir { margin:10px -22px 0; } h1 { font-size:31px; } .prose { font-size:16.5px; letter-spacing:.1px; } .poem { font-size:17px; padding-left:13px; } .score a { font-size:10px; } }
+    @media (max-width:599px) { .scene-moment { height:clamp(320px,55svh,540px); margin-top:14px; margin-bottom:35px; } }
     @media (prefers-reduced-motion:reduce) {
       html { scroll-behavior:auto; }
       *,*::before,*::after { animation:none !important; transition:none !important; }
       .choir { height:auto; } .choir-sticky { position:relative; height:auto; min-height:420px; grid-template-rows:300px auto; }
       .choir-caps { min-height:0; } .choir-caps li { position:static; opacity:1; transform:none; padding:4px 0; }
       .js .reveal:not(.is-in) { opacity:1; transform:none; }
+      .scene-moment img { transform:none; }
     }
     @media print { .score,.read-link,.share-area,.toast,dialog,.choir,.tape-actions,.hold { display:none !important; } body { background:white; } }
   </style>
@@ -579,6 +590,7 @@ SOFTWARE.
       <article class="letter" aria-label="陈润森写给潘诗菡的信">
         <section class="movement" id="mv1" data-phrase="mv1" aria-labelledby="mv1-title">
           <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅰ</span><p class="mv-kicker">前奏 · Prelude</p><h2 class="mv-title" id="mv1-title">在很多声音里</h2><p class="mv-tempo"><i>Andante</i>行板，像走路那样</p></header>
+          <figure class="scene-moment scene-moment--garden"><img src="./scenes/garden.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="晨光里，樱花树环绕一间粉色屋顶的方块小屋。" /></figure>
           <p class="salutation">诗菡：</p>
           <div class="prose">
             <p class="opening reveal">如果要给我们的故事找一个开头，我会翻回杨思高级中学，军训的最后一天。</p>
@@ -602,6 +614,7 @@ SOFTWARE.
 
         <section class="movement" id="mv2" data-phrase="mv2" aria-labelledby="mv2-title">
           <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅱ</span><p class="mv-kicker">主歌 · Verse</p><h2 class="mv-title" id="mv2-title">后来的每一个课间</h2><p class="mv-tempo"><i>Moderato</i>中板，心跳比平时快一点</p></header>
+          <figure class="scene-moment scene-moment--sakura"><img src="./scenes/sakura.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="樱花河与小桥之间，方块小屋坐落在春天的山谷里。" /></figure>
           <div class="prose">
             <p class="reveal">认识你以后，日子还是原来的日子：早读，上课，写不完的卷子。只是有些地方，悄悄变了——</p>
             <p class="reveal">我开始期待课间；走廊里人来人往，会先找一找有没有你；听周杰伦的时候，会忍不住想：这首，她会不会也喜欢？</p>
@@ -620,6 +633,7 @@ SOFTWARE.
 
         <section class="movement" id="mv3" data-phrase="mv3" aria-labelledby="mv3-title">
           <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅲ</span><p class="mv-kicker">间奏 · Interlude</p><h2 class="mv-title" id="mv3-title">A 面与 B 面</h2><p class="mv-tempo"><i>Allegretto</i>小快板，适合放学的路上</p></header>
+          <figure class="scene-moment scene-moment--lanterns"><img src="./scenes/lanterns.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="蓝紫色黄昏的方块水乡，石桥、柳树和屋檐下的灯笼渐次亮起。" /></figure>
           <div class="prose"><p class="reveal">知道你喜欢周杰伦，我做了一盘只存在于这里的磁带。</p></div>
           <figure class="tape" id="tape" aria-label="一盘写给你的磁带">
             <div class="tape-card">
@@ -1529,6 +1543,7 @@ SOFTWARE.
 
         <section class="movement" id="mv4" data-phrase="mv4" aria-labelledby="mv4-title">
           <header class="mv-head"><span class="mv-num" aria-hidden="true">Ⅳ</span><p class="mv-kicker">副歌 · Chorus</p><h2 class="mv-title" id="mv4-title">我喜欢你</h2><p class="mv-tempo"><i>Con amore</i>深情地</p></header>
+          <figure class="scene-moment scene-moment--stars"><img src="./scenes/star-island.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="星河下，发光的水晶和木桥连接着一座灯火温暖的方块浮岛。" /></figure>
           <div class="confess reveal" id="confess">
             <span class="notes-rise" aria-hidden="true"><i>♪</i><i>♫</i><i>♪</i><i>♫</i></span>
             <h3>潘诗菡，我喜欢你。</h3>
@@ -2215,6 +2230,7 @@ SOFTWARE.
       const score = $('#score');
       const scoreNow = $('#score-now');
       const movements = $$('.movement');
+      const sceneMoments = $$('.scene-moment');
       const bars = $$('.score li');
       const names = ['前奏', '主歌', '间奏', '副歌', '尾声'];
       const played = new Set();
@@ -2249,6 +2265,12 @@ SOFTWARE.
           }
         }
         talkIsland((api) => api.setProgress(story));
+        if (!reduced) sceneMoments.forEach((moment) => {
+          const r = moment.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > vh) return;
+          const shift = clamp((vh / 2 - r.top - r.height / 2) * 0.09, -22, 22);
+          moment.style.setProperty('--image-shift', `${shift.toFixed(1)}px`);
+        });
         const root = document.documentElement;
         ['island-day', 'island-dusk', 'island-night'].forEach((name) => root.classList.toggle(name, name === inkFor(story)));
         if (now !== current) {
