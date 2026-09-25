@@ -184,6 +184,41 @@ SOFTWARE.
     html.has-island .colophon,
     html.has-island .share,
     html.has-island .return-site { color:#e6d9cc; }
+    html.has-island.island-day,
+    html.has-island.island-day body { color:#3f342e; }
+    html.has-island.island-day .page { color:#3f342e; }
+    html.has-island.island-day .program a,
+    html.has-island.island-day .dedication,
+    html.has-island.island-day .mv-tempo,
+    html.has-island.island-day .world h3,
+    html.has-island.island-day .world figcaption,
+    html.has-island.island-day .hold-tip,
+    html.has-island.island-day .envelope-hint,
+    html.has-island.island-day .read-link,
+    html.has-island.island-day .score a,
+    html.has-island.island-day .score-now { color:#5c4c44; }
+    html.has-island.island-day .sound,
+    html.has-island.island-day .reply-later,
+    html.has-island.island-day .program-sound,
+    html.has-island.island-day .hold,
+    html.has-island.island-day .tape-flip { color:#3f342e; border-color:rgba(80,60,50,.35); }
+    html.has-island.island-day .prose,
+    html.has-island.island-day .poem,
+    html.has-island.island-day .ending,
+    html.has-island.island-day .fermata-text,
+    html.has-island.island-day .reply-lead,
+    html.has-island.island-day .cover-verse,
+    html.has-island.island-day h1,
+    html.has-island.island-day .salutation { text-shadow:0 1px 12px rgba(255,250,240,.8),0 0 18px rgba(255,244,228,.45); }
+    html.has-island.island-day .signature strong { color:#3f342e; }
+    html.has-island.island-day .envelope-line,
+    html.has-island.island-day .school-line,
+    html.has-island.island-day .mv-kicker,
+    html.has-island.island-day .signature,
+    html.has-island.island-day .ps,
+    html.has-island.island-day .colophon,
+    html.has-island.island-day .share,
+    html.has-island.island-day .return-site { color:#6a574c; }
 
     /* ── 卷首与信封（信封层叠与起落改编自 luo-5/love-letter-site-template，MIT） ── */
     .cover { position:relative; text-align:center; padding-top:27px; }
@@ -1548,7 +1583,10 @@ SOFTWARE.
 
       /* 三维小岛在信纸后面；加载失败就当没有，信照常读 */
       let islandApi = null;
-      const askBeat = (beat) => { try { islandApi?.setBeat(beat); } catch {} };
+      const talkIsland = (fn) => { try { if (islandApi) fn(islandApi); } catch {} };
+      const askBeat = (beat) => talkIsland((api) => api.setBeat(beat));
+      const askScene = (name, value) => talkIsland((api) => api.event(name, value));
+      let syncIsland = () => {};
       import('./scene.js')
         .then(({ mountIsland }) => mountIsland(document.getElementById('island'), { reduced }))
         .then((api) => {
@@ -1556,6 +1594,7 @@ SOFTWARE.
           islandApi = api;
           document.documentElement.classList.add('has-island');
           askBeat(document.documentElement.classList.contains('intro-pending') ? 'moon' : 'arrive');
+          syncIsland();
         })
         .catch(() => {});
 
@@ -1931,6 +1970,7 @@ SOFTWARE.
           line.classList.add('is-on');
           if (shown) { const old = shown; old.classList.add('is-off'); setTimeout(() => old.remove(), 1300); }
           shown = line;
+          talkIsland((api) => api.pulse());
         };
         const finish = () => {
           if (finished || intro.classList.contains('is-seaming')) return;
@@ -1957,6 +1997,7 @@ SOFTWARE.
           invite.classList.add('is-leaving');
           const r = orb.getBoundingClientRect();
           fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 6, sparks: 40, power: 1.1 });
+          talkIsland((api) => api.pulse());
           if (withSound) {
             const ctx = initAudio();
             if (ctx) {
@@ -2000,6 +2041,7 @@ SOFTWARE.
           const r = envelope.getBoundingClientRect();
           const seal = envelope.querySelector('.wax-seal').getBoundingClientRect();
           fx.shards(seal.left + seal.width / 2, seal.top + seal.height / 2);
+          askScene('open');
           playNotes(['G5', 'C6', 'E6'], 0.12);
           setTimeout(() => fx.burst(r.left + r.width / 2, r.top + r.height * 0.3, { hearts: 16, sparks: 34 }), 420);
         }
@@ -2040,7 +2082,7 @@ SOFTWARE.
       const caps = $$('.choir-caps li', choir);
       const steps = $$('.choir-steps i', choir);
       const serifFont = getComputedStyle(document.documentElement).getPropertyValue('--serif').trim() || 'serif';
-      let cw = 0, ch = 0, singers = [], her = null, him = null, choirP = reduced ? 1 : 0, choirVisible = false, harmonyPlayed = false;
+      let cw = 0, ch = 0, singers = [], her = null, him = null, choirP = reduced ? 1 : 0, choirVisible = false, harmonyPlayed = false, lastChoirStep = -2;
       const layoutChoir = () => {
         const rect = canvas.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
@@ -2146,6 +2188,10 @@ SOFTWARE.
         const step = reduced ? -1 : choirP < 0.34 ? 0 : choirP < 0.67 ? 1 : 2;
         caps.forEach((c, i) => c.classList.toggle('is-on', step === -1 || i === step));
         steps.forEach((dot, i) => dot.classList.toggle('is-on', step === -1 || i <= step));
+        if (step !== lastChoirStep) {
+          lastChoirStep = step;
+          if (step >= 0) askScene('choir', step);
+        }
         if (step === 2 && !harmonyPlayed && audio.on) { harmonyPlayed = true; playChord(['C5', 'G5']); }
       };
       const choirLoop = (now) => {
@@ -2171,15 +2217,38 @@ SOFTWARE.
       const names = ['前奏', '主歌', '间奏', '副歌', '尾声'];
       const played = new Set();
       let current = null;
+      const inkFor = (s) => (s < 2.85 ? 'island-day' : s < 4.15 ? 'island-dusk' : 'island-night');
       const updateScore = () => {
         const vh = window.innerHeight;
+        const mid = vh * 0.5;
         score.classList.toggle('is-shown', program.getBoundingClientRect().top < vh * 0.6);
         let now = null;
-        movements.forEach((mv, i) => {
-          const r = mv.getBoundingClientRect();
-          bars[i].querySelector('.bar i').style.setProperty('--p', clamp((vh * 0.5 - r.top) / r.height).toFixed(3));
-          if (r.top < vh * 0.5 && r.bottom > vh * 0.5) now = mv;
-        });
+        let story = 0;
+        const cover = document.querySelector('.cover');
+        if (program.getBoundingClientRect().top > mid) {
+          const cr = cover.getBoundingClientRect();
+          story = clamp((mid - cr.top) / Math.max(cr.height, 1)) * 0.9;
+        } else {
+          let found = false;
+          movements.forEach((mv, i) => {
+            const r = mv.getBoundingClientRect();
+            bars[i].querySelector('.bar i').style.setProperty('--p', clamp((mid - r.top) / r.height).toFixed(3));
+            if (r.top < mid && r.bottom > mid) {
+              now = mv;
+              story = 1 + i + clamp((mid - r.top) / r.height);
+              found = true;
+            }
+          });
+          if (!found) {
+            const first = movements[0].getBoundingClientRect();
+            const last = movements[movements.length - 1].getBoundingClientRect();
+            if (first.top > mid) story = 0.92;
+            else if (last.bottom < mid) story = 6;
+          }
+        }
+        talkIsland((api) => api.setProgress(story));
+        const root = document.documentElement;
+        ['island-day', 'island-dusk', 'island-night'].forEach((name) => root.classList.toggle(name, name === inkFor(story)));
         if (now !== current) {
           current = now;
           const i = movements.indexOf(now);
@@ -2194,6 +2263,7 @@ SOFTWARE.
           if (now) askBeat(now.id);
         }
       };
+      syncIsland = () => updateScore();
       let frame = 0;
       const onScroll = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; updateScore(); updateChoir(); }); };
       window.addEventListener('scroll', onScroll, { passive: true });
@@ -2259,6 +2329,7 @@ SOFTWARE.
         tape.classList.add('is-playing');
         clearTimeout(tape.stopTimer);
         tape.stopTimer = setTimeout(() => tape.classList.remove('is-playing'), 2200);
+        askScene('tape');
         playNotes(toB ? ['G5', 'E5', 'D5'] : ['C5', 'E5', 'G5'], 0.28);
       });
       $('.tape-card', tape).addEventListener('click', () => flip.click());
@@ -2285,6 +2356,7 @@ SOFTWARE.
           worldScene.appendChild(heart);
           setTimeout(() => heart.remove(), 1700 + i * 130);
         }
+        askScene('world');
         playNotes(['E5', 'G5', 'C6'], 0.14);
       });
 
@@ -2298,8 +2370,9 @@ SOFTWARE.
         }, { threshold });
         io.observe(el);
       };
+      whenSeen($('.poem'), 0.45, () => askScene('poem'));
       whenSeen($('#confess'), 0.55, () => {
-        fx.petals(72, 3000);
+        askScene('confess');
         setTimeout(() => {
           const r = $('#confess h3').getBoundingClientRect();
           fx.burst(r.left + r.width / 2, r.top + r.height / 2, { hearts: 10, sparks: 44, power: 1.15 });
@@ -2321,7 +2394,9 @@ SOFTWARE.
       }
       document.addEventListener('click', (e) => {
         if (e.target.closest('a,button,input,dialog,.world-scene,.tape-card,.envelope-wrapper,.score')) return;
-        fx.burst(e.clientX, e.clientY, { hearts: 3, sparks: 10, power: 0.6 });
+        let hit = false;
+        talkIsland((api) => { hit = !!api.tap(e.clientX, e.clientY); });
+        if (!hit) fx.burst(e.clientX, e.clientY, { hearts: 3, sparks: 10, power: 0.6 });
       });
 
       /* ── 小岛视差 ── */
@@ -2351,6 +2426,7 @@ SOFTWARE.
         heldAt = performance.now();
         fermata.classList.add('is-holding');
         hold.textContent = '还在响……松开就停';
+        talkIsland((api) => api.setHold(1));
         holdStart();
         const tick = () => {
           if (!heldAt) return;
@@ -2371,10 +2447,12 @@ SOFTWARE.
         heldAt = 0;
         cancelAnimationFrame(holdFrame);
         fermata.classList.remove('is-holding');
+        talkIsland((api) => api.setHold(0));
         holdStop();
         hold.textContent = '再按一次';
         readout.textContent = secs < 0.4 ? '再按久一点——这个音，可以停很久。' : `这个音，你让它停了 ${secs.toFixed(1)} 秒。`;
         if (secs >= 0.4) {
+          askScene('release', secs);
           const [nx, ny] = notePoint();
           fx.burst(nx, ny - 8, { hearts: Math.min(30, 6 + Math.round(secs * 4)), sparks: Math.min(64, 16 + Math.round(secs * 8)), power: Math.min(1.7, 0.9 + secs * 0.08) });
         }
