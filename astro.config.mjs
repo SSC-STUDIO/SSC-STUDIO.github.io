@@ -105,7 +105,7 @@ function publicDirectoryIndex() {
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://ssc-studio.github.io',
+  site: 'https://chenrunsen.cn',
   scopedStyleStrategy: 'class',
 
   server: {

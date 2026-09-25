@@ -26,3 +26,10 @@
 
 /* Import */
 @import '../../node_modules/modern-normalize/modern-normalize.css';
+
+/* FOUC boot reveal: once this stylesheet applies, lift the inline hide gate
+   (works without JS / noscript; pairs with BaseLayout is-css-ready). */
+html body {
+  visibility: visible !important;
+  opacity: 1 !important;
+}

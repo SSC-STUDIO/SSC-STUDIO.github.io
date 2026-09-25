@@ -86,7 +86,7 @@ function isAllowedMediaPath(pathname: string): boolean {
 /**
  * Keep only same-origin media paths.
  *
- * Absolute production URLs (`https://ssc-studio.github.io/api/attachments/...`)
+ * Absolute production URLs (`https://chenrunsen.cn/api/attachments/...`)
  * are rewritten to a relative path so the local `/api` proxy can serve
  * them. Foreign origins, credentialed URLs, `javascript:` / `data:` /
  * `vbscript:`, and paths outside the attachment prefixes are rejected.
@@ -106,7 +106,7 @@ export function resolveSafeMediaUrl(url: string): string | null {
     const base =
       typeof window !== "undefined"
         ? window.location.origin
-        : "https://ssc-studio.github.io";
+        : "https://chenrunsen.cn";
     const parsed = new URL(trimmed, base);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return null;
