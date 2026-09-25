@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
+import fs from 'node:fs';
 import net from 'node:net';
 
 import react from '@astrojs/react';
@@ -69,6 +70,39 @@ function apiTunnelFallback() {
   };
 }
 
+/**
+ * Dev-only: serve `public/<dir>/index.html` for `/<dir>/` and `/<dir>`.
+ *
+ * GitHub Pages resolves directory URLs to their index.html, so the
+ * standalone letters under public/ (mini-love, mid-autumn) are linked as
+ * `/mini-love/`. The Astro dev server does not do that lookup for public
+ * files and answers 404 instead.
+ */
+function publicDirectoryIndex() {
+  const publicDir = path.resolve(__dirname, 'public');
+
+  return {
+    name: 'public-directory-index',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (!req.url) return next();
+        const [pathname, query = ''] = req.url.split('?');
+        if (path.extname(pathname)) return next();
+
+        const dir = decodeURIComponent(pathname).replace(/\/+$/, '');
+        if (!dir) return next();
+
+        const indexFile = path.join(publicDir, dir, 'index.html');
+        if (!indexFile.startsWith(publicDir) || !fs.existsSync(indexFile)) return next();
+
+        req.url = `${dir}/index.html${query ? `?${query}` : ''}`;
+        next();
+      });
+    },
+  };
+}
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://ssc-studio.github.io',
@@ -79,7 +113,7 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [apiTunnelFallback()],
+    plugins: [apiTunnelFallback(), publicDirectoryIndex()],
     server: {
       proxy: {
         // Local dev: forward API calls through the SSH tunnel to production
