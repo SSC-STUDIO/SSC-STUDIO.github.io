@@ -1,0 +1,635 @@
+---
+import { songs } from '../features/jay-town/songs'
+
+const stops = [
+  { name: '樱花街口', mood: '把第一首歌，留给春天。' },
+  { name: '唱片小巷', mood: '旧唱片转动，晚风也有了节拍。' },
+  { name: '晴天广场', mood: '阳光落在屋檐和路面之间。' },
+  { name: '花海车站', mood: '下一班列车，开往花开的地方。' },
+  { name: '七里香河堤', mood: '沿着水声，再听一遍夏天。' },
+] as const
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#dcece7" />
+    <meta name="description" content="沿着樱花街口、唱片小巷与七里香河堤，走进一座装着周杰伦歌曲的小镇。" />
+    <meta property="og:title" content="周杰伦的樱花小镇" />
+    <meta property="og:description" content="一座可以散步、看花、听歌的小镇。" />
+    <title>周杰伦的樱花小镇</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#song-drawer-open">跳到歌单按钮</a>
+    <main class="town" id="town" aria-labelledby="town-title">
+      <div class="town-poster" aria-hidden="true"></div>
+      <canvas class="town-canvas" id="town-canvas" aria-hidden="true"></canvas>
+      <div class="town-shade" aria-hidden="true"></div>
+
+      <header class="town-header">
+        <div class="identity">
+          <div class="identity__labels"><span>SAKURA</span><span>FM 2000—</span></div>
+          <h1 id="town-title">周杰伦的<span>樱花小镇</span></h1>
+          <p>沿着花落的方向，把歌听成一段散步。</p>
+        </div>
+        <div class="header-tools" role="group" aria-label="小镇工具">
+          <a class="home-link" href="/" title="返回陈润森的网站" aria-label="返回陈润森的网站">← <span>返回</span></a>
+          <button class="tool-button day-toggle" id="day-toggle" type="button" aria-label="切换到夜晚" title="切换到夜晚" aria-pressed="false"><span aria-hidden="true">☾</span></button>
+          <button class="tool-button" id="help-open" type="button" aria-label="帮助与来源" title="帮助与来源"><span aria-hidden="true">?</span></button>
+          <button class="hide-button" id="ui-hide" type="button" aria-label="隐藏界面" title="隐藏界面">隐藏界面</button>
+        </div>
+      </header>
+
+      <button class="ui-restore" id="ui-restore" type="button" hidden>显示界面</button>
+
+      <div class="scene-status" id="scene-status" role="status" aria-live="polite">小镇正在亮起…</div>
+      <div class="scene-failure" id="scene-failure" hidden>
+        <p>3D 场景暂时无法显示，歌单仍可查看。</p>
+        <button class="scene-failure__action" id="failure-songs" type="button">打开歌单</button>
+      </div>
+
+      <div class="place-stamp" aria-live="polite" aria-atomic="true">
+        <span class="place-stamp__index" id="place-index">01 / 05</span>
+        <strong id="place-name">樱花街口</strong>
+        <span id="place-mood">把第一首歌，留给春天。</span>
+      </div>
+
+      <nav class="town-route" aria-label="小镇五站">
+        {stops.map((stop, index) => (
+          <button
+            class:list={['town-route__stop', index === 0 && 'is-active']}
+            type="button"
+            data-zone={index}
+            aria-label={`第 ${index + 1} 站：${stop.name}`}
+            aria-current={index === 0 ? 'location' : undefined}
+          >
+            <span class="town-route__marker" aria-hidden="true"></span>
+            <span class="town-route__number">{String(index + 1).padStart(2, '0')}</span>
+            <strong>{stop.name}</strong>
+          </button>
+        ))}
+      </nav>
+
+      <div class="player-bar" role="group" aria-label="歌曲播放器">
+        <button class="player-bar__record" id="song-drawer-open" type="button" aria-label="打开歌单" title="打开歌单" aria-controls="song-drawer" aria-expanded="false"><span aria-hidden="true">♫</span></button>
+        <div class="player-bar__info" aria-live="polite" aria-atomic="true">
+          <strong id="current-song">{songs[0]?.title ?? '小镇歌单'}</strong>
+          <span id="current-status">未打开</span>
+        </div>
+        <button class="player-bar__control" id="previous-song" type="button" aria-label="上一首" title="上一首" disabled={songs.length === 0}><span aria-hidden="true">‹</span></button>
+        <button class="player-bar__control player-bar__control--primary" id="listen-song" type="button" aria-label="打开当前歌曲" title="打开当前歌曲" disabled={songs.length === 0}><span aria-hidden="true">▶</span></button>
+        <button class="player-bar__control" id="next-song" type="button" aria-label="下一首" title="下一首" disabled={songs.length === 0}><span aria-hidden="true">›</span></button>
+      </div>
+
+      <div class="move-pad" id="move-pad" role="group" aria-label="移动方向">
+        <button class="move-pad__up" type="button" data-move-x="0" data-move-z="-1" aria-label="向前走" title="向前走">↑</button>
+        <button class="move-pad__left" type="button" data-move-x="-1" data-move-z="0" aria-label="向左走" title="向左走">←</button>
+        <span class="move-pad__center" aria-hidden="true">✳</span>
+        <button class="move-pad__right" type="button" data-move-x="1" data-move-z="0" aria-label="向右走" title="向右走">→</button>
+        <button class="move-pad__down" type="button" data-move-x="0" data-move-z="1" aria-label="向后走" title="向后走">↓</button>
+      </div>
+
+      <aside class="song-drawer" id="song-drawer" aria-labelledby="song-drawer-title" hidden>
+        <div class="drawer-head">
+          <div><span class="drawer-kicker">SAKURA / MUSIC ARCHIVE</span><h2 id="song-drawer-title">小镇歌单</h2></div>
+          <button class="panel-icon" id="song-drawer-close" type="button" aria-label="关闭歌单" title="关闭歌单">×</button>
+        </div>
+        <div class="song-filters">
+          <label class="search-field"><span class="sr-only">搜索歌曲或专辑</span><span aria-hidden="true">⌕</span><input id="song-search" type="search" placeholder="搜索歌曲或专辑" autocomplete="off" /></label>
+          <label class="zone-field"><span class="sr-only">按场景筛选歌曲</span><select id="song-zone-filter"><option value="all">全部场景</option>{stops.map((stop, index) => <option value={index}>{stop.name}</option>)}</select></label>
+          <button class="favorites-filter" id="favorites-filter" type="button" aria-pressed="false" title="只看收藏">☆ <span>收藏</span></button>
+        </div>
+        <p class="song-count" id="song-count">{songs.length} 首歌曲</p>
+        <ol class="song-list" id="song-list">
+          {songs.map((song, index) => (
+            <li class="song-row" data-song-id={song.id}>
+              <span class="song-row__number">{String(index + 1).padStart(2, '0')}</span>
+              <span class="song-row__art" style={`--song-color: ${song.color}`} aria-hidden="true">♫</span>
+              <span class="song-row__body"><strong>{song.title}</strong><small>{song.album} · {song.year} · {stops[song.zone]?.name}</small></span>
+              <span class="song-row__actions">
+                <button class="song-row__open" type="button" data-open-song={song.id} aria-label={`打开《${song.title}》MV`} title={`打开《${song.title}》MV`}>▶</button>
+                <button class="song-row__favorite" type="button" data-favorite-song={song.id} aria-label={`收藏《${song.title}》`} aria-pressed="false" title={`收藏《${song.title}》`}>☆</button>
+                <a href={song.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label={`在${song.sourceLabel}打开《${song.title}》`} title={`在${song.sourceLabel}打开《${song.title}》`}>↗</a>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p class="song-empty" id="song-empty" hidden>这里没有匹配的歌曲。</p>
+      </aside>
+
+      <section class="video-panel" id="video-panel" aria-labelledby="video-title" hidden>
+        <div class="video-panel__head">
+          <div><span class="drawer-kicker">NOW OPEN / 原站播放</span><h2 id="video-title">歌曲 MV</h2></div>
+          <div class="video-panel__actions">
+            <button class="panel-icon" id="video-minimize" type="button" aria-label="收起 MV 小窗，继续保留播放" title="收起小窗，继续保留播放">−</button>
+            <button class="panel-icon" id="video-close" type="button" aria-label="关闭 MV 并停止播放" title="关闭 MV 并停止播放">×</button>
+          </div>
+        </div>
+        <div class="video-frame" id="video-frame"></div>
+        <div class="video-panel__foot"><span id="video-source-label">播放由原站控制</span><span class="video-panel__links"><a id="video-source" href="https://www.bilibili.com/" target="_blank" rel="noopener noreferrer">前往原站 ↗</a><a id="video-youtube" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">官方 MV ↗</a></span></div>
+      </section>
+
+      <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-title">
+        <div class="help-dialog__head"><span class="drawer-kicker">A LITTLE GUIDE</span><button class="panel-icon" id="help-close" type="button" aria-label="关闭帮助" title="关闭帮助">×</button></div>
+        <h2 id="help-title">小镇漫游</h2>
+        <p>沿五站路线走走，挑一首想听的歌。电脑上可用方向键或 WASD 行走，拖动画面转头；手机上使用方向键。</p>
+        <p>MV 从原站嵌入。收起小窗会保留播放器，关闭则停止；能否播放由原站决定。</p>
+        <div class="help-dialog__links"><a href="https://www.bilibili.com/video/BV1Ziac6JEUc/" target="_blank" rel="noopener noreferrer">视觉参考视频 ↗</a><a href="/">返回网站 ↗</a></div>
+        <small>非官方歌迷作品。歌曲与影像版权归原权利人。</small>
+      </dialog>
+
+      <noscript>
+        <div class="nojs-catalog">
+          <h2>周杰伦的樱花小镇</h2>
+          <p>3D 小镇与站内播放器需要 JavaScript。仍可从原站打开歌曲：</p>
+          <ol>{songs.map((song) => <li><a href={song.sourceUrl} target="_blank" rel="noopener noreferrer">{song.title} · {song.sourceLabel} ↗</a></li>)}</ol>
+        </div>
+      </noscript>
+    </main>
+
+    <script>
+      import { songs } from '../features/jay-town/songs'
+      import { mountTownScene } from '../features/jay-town/scene'
+
+      type Song = (typeof songs)[number]
+      const town = document.querySelector('#town') as HTMLElement
+      const canvas = document.querySelector('#town-canvas') as HTMLCanvasElement
+      const routeButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-zone]')]
+      const stationNames = ['樱花街口', '唱片小巷', '晴天广场', '花海车站', '七里香河堤']
+      const stationMoods = ['把第一首歌，留给春天。', '旧唱片转动，晚风也有了节拍。', '阳光落在屋檐和路面之间。', '下一班列车，开往花开的地方。', '沿着水声，再听一遍夏天。']
+      const sceneStatus = document.querySelector('#scene-status') as HTMLElement
+      const sceneFailure = document.querySelector('#scene-failure') as HTMLElement
+      const drawer = document.querySelector('#song-drawer') as HTMLElement
+      const drawerOpen = document.querySelector('#song-drawer-open') as HTMLButtonElement
+      const drawerClose = document.querySelector('#song-drawer-close') as HTMLButtonElement
+      const search = document.querySelector('#song-search') as HTMLInputElement
+      const zoneFilter = document.querySelector('#song-zone-filter') as HTMLSelectElement
+      const favoritesFilter = document.querySelector('#favorites-filter') as HTMLButtonElement
+      const songCount = document.querySelector('#song-count') as HTMLElement
+      const songEmpty = document.querySelector('#song-empty') as HTMLElement
+      const playerTitle = document.querySelector('#current-song') as HTMLElement
+      const playerStatus = document.querySelector('#current-status') as HTMLElement
+      const listenButton = document.querySelector('#listen-song') as HTMLButtonElement
+      const videoPanel = document.querySelector('#video-panel') as HTMLElement
+      const videoFrame = document.querySelector('#video-frame') as HTMLElement
+      const videoTitle = document.querySelector('#video-title') as HTMLElement
+      const videoSource = document.querySelector('#video-source') as HTMLAnchorElement
+      const videoYoutube = document.querySelector('#video-youtube') as HTMLAnchorElement
+      const videoSourceLabel = document.querySelector('#video-source-label') as HTMLElement
+      const rows = [...document.querySelectorAll<HTMLElement>('[data-song-id]')]
+      const favoriteKey = 'jay-town:favorites:v1'
+
+      let currentZone = 0
+      let currentSongId = songs[0]?.id ?? ''
+      let openSongId = ''
+      let night = false
+      let favoriteOnly = false
+      let favorites = new Set<string>()
+      try {
+        const saved = JSON.parse(localStorage.getItem(favoriteKey) || '[]')
+        if (Array.isArray(saved)) favorites = new Set(saved.filter((value): value is string => typeof value === 'string'))
+      } catch {}
+
+      const findSong = (id: string): Song | undefined => songs.find((song) => song.id === id)
+      const currentSong = (): Song | undefined => findSong(currentSongId)
+
+      function updateZone(index: number) {
+        if (!Number.isInteger(index) || index < 0 || index >= stationNames.length || currentZone === index) return
+        currentZone = index
+        ;(document.querySelector('#place-index') as HTMLElement).textContent = `${String(index + 1).padStart(2, '0')} / 05`
+        ;(document.querySelector('#place-name') as HTMLElement).textContent = stationNames[index]
+        ;(document.querySelector('#place-mood') as HTMLElement).textContent = stationMoods[index]
+        routeButtons.forEach((button, buttonIndex) => {
+          const active = buttonIndex === index
+          button.classList.toggle('is-active', active)
+          if (active) button.setAttribute('aria-current', 'location')
+          else button.removeAttribute('aria-current')
+        })
+      }
+
+      let scene: ReturnType<typeof mountTownScene> | null = null
+      try {
+        scene = mountTownScene(canvas, {
+          onReady() {
+            town.classList.add('scene-ready')
+            town.classList.remove('scene-error')
+            sceneStatus.hidden = true
+            sceneFailure.hidden = true
+          },
+          onError() {
+            town.classList.add('scene-error')
+            town.classList.remove('scene-ready')
+            sceneStatus.hidden = true
+            sceneFailure.hidden = false
+          },
+          onZoneChange: updateZone,
+        })
+      } catch (error) {
+        console.error('Unable to start sakura town', error)
+        town.classList.add('scene-error')
+        sceneStatus.hidden = true
+        sceneFailure.hidden = false
+      }
+
+      routeButtons.forEach((button) => button.addEventListener('click', () => {
+        const index = Number(button.dataset.zone)
+        if (!Number.isInteger(index)) return
+        scene?.goTo(index)
+      }))
+
+      const dayButton = document.querySelector('#day-toggle') as HTMLButtonElement
+      dayButton.addEventListener('click', () => {
+        night = !night
+        scene?.setNight(night)
+        town.classList.toggle('is-night', night)
+        dayButton.setAttribute('aria-pressed', String(night))
+        dayButton.setAttribute('aria-label', night ? '切换到白天' : '切换到夜晚')
+        dayButton.title = night ? '切换到白天' : '切换到夜晚'
+        dayButton.firstElementChild!.textContent = night ? '☀' : '☾'
+      })
+
+      const help = document.querySelector('#help-dialog') as HTMLDialogElement
+      const helpOpen = document.querySelector('#help-open') as HTMLButtonElement
+      helpOpen.addEventListener('click', () => help.showModal())
+      ;(document.querySelector('#help-close') as HTMLButtonElement).addEventListener('click', () => help.close())
+      help.addEventListener('click', (event) => { if (event.target === help) help.close() })
+
+      const restoreButton = document.querySelector('#ui-restore') as HTMLButtonElement
+      ;(document.querySelector('#ui-hide') as HTMLButtonElement).addEventListener('click', () => {
+        clearMovement()
+        town.classList.add('ui-hidden')
+        restoreButton.hidden = false
+        restoreButton.focus()
+      })
+      restoreButton.addEventListener('click', () => {
+        town.classList.remove('ui-hidden')
+        restoreButton.hidden = true
+        ;(document.querySelector('#ui-hide') as HTMLButtonElement).focus()
+      })
+
+      function setDrawer(open: boolean) {
+        drawer.hidden = !open
+        drawerOpen.setAttribute('aria-expanded', String(open))
+        if (open) search.focus()
+        else if (drawer.contains(document.activeElement)) drawerOpen.focus()
+      }
+      drawerOpen.addEventListener('click', () => setDrawer(drawer.hidden))
+      drawerClose.addEventListener('click', () => setDrawer(false))
+      ;(document.querySelector('#failure-songs') as HTMLButtonElement).addEventListener('click', () => setDrawer(true))
+
+      function updatePlayer() {
+        const song = currentSong()
+        playerTitle.textContent = song?.title ?? '小镇歌单'
+        playerStatus.textContent = song && openSongId === song.id ? 'MV 已打开' : '选择一首，开始散步'
+        listenButton.firstElementChild!.textContent = song && openSongId === song.id ? '↗' : '▶'
+        listenButton.setAttribute('aria-label', song && openSongId === song.id ? '展开当前 MV 小窗' : song ? `打开《${song.title}》MV` : '打开当前歌曲')
+        listenButton.title = listenButton.getAttribute('aria-label') || ''
+        rows.forEach((row) => row.classList.toggle('is-current', row.dataset.songId === currentSongId))
+      }
+
+      function closeVideo() {
+        videoFrame.replaceChildren()
+        videoPanel.hidden = true
+        openSongId = ''
+        updatePlayer()
+      }
+
+      function openSong(song: Song) {
+        currentSongId = song.id
+        const frame = document.createElement('iframe')
+        frame.src = song.embedUrl
+        frame.title = `《${song.title}》MV · ${song.sourceLabel}`
+        frame.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture'
+        frame.allowFullscreen = true
+        frame.referrerPolicy = 'strict-origin-when-cross-origin'
+        videoFrame.replaceChildren(frame)
+        openSongId = song.id
+        videoTitle.textContent = song.title
+        videoSource.href = song.sourceUrl
+        videoSource.textContent = `前往${song.sourceLabel} ↗`
+        videoYoutube.href = song.youtubeUrl
+        videoSourceLabel.textContent = '点击画面播放'
+        videoPanel.hidden = false
+        updatePlayer()
+        if (window.matchMedia('(max-width: 720px)').matches) setDrawer(false)
+      }
+
+      function stepSong(direction: number) {
+        if (!songs.length) return
+        const index = Math.max(0, songs.findIndex((song) => song.id === currentSongId))
+        openSong(songs[(index + direction + songs.length) % songs.length])
+      }
+      listenButton.addEventListener('click', () => {
+        const song = currentSong()
+        if (!song) return
+        if (openSongId === song.id) videoPanel.hidden = false
+        else openSong(song)
+      })
+      ;(document.querySelector('#previous-song') as HTMLButtonElement).addEventListener('click', () => stepSong(-1))
+      ;(document.querySelector('#next-song') as HTMLButtonElement).addEventListener('click', () => stepSong(1))
+      ;(document.querySelector('#video-minimize') as HTMLButtonElement).addEventListener('click', () => { videoPanel.hidden = true })
+      ;(document.querySelector('#video-close') as HTMLButtonElement).addEventListener('click', closeVideo)
+
+      function syncFavorites() {
+        rows.forEach((row) => {
+          const id = row.dataset.songId || ''
+          const button = row.querySelector<HTMLButtonElement>('[data-favorite-song]')!
+          const song = findSong(id)
+          const active = favorites.has(id)
+          button.setAttribute('aria-pressed', String(active))
+          button.setAttribute('aria-label', `${active ? '取消收藏' : '收藏'}《${song?.title ?? ''}》`)
+          button.title = button.getAttribute('aria-label') || ''
+          button.textContent = active ? '★' : '☆'
+        })
+      }
+
+      function filterSongs() {
+        const query = search.value.trim().toLocaleLowerCase()
+        const selectedZone = zoneFilter.value
+        let visible = 0
+        rows.forEach((row) => {
+          const song = findSong(row.dataset.songId || '')
+          if (!song) return
+          const matches = (`${song.title} ${song.album} ${song.year}`).toLocaleLowerCase().includes(query)
+            && (selectedZone === 'all' || String(song.zone) === selectedZone)
+            && (!favoriteOnly || favorites.has(song.id))
+          row.hidden = !matches
+          if (matches) visible++
+        })
+        songCount.textContent = `${visible} / ${songs.length} 首歌曲`
+        songEmpty.hidden = visible > 0
+      }
+
+      document.querySelector('#song-list')?.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement
+        const favorite = target.closest<HTMLButtonElement>('[data-favorite-song]')
+        if (favorite) {
+          const id = favorite.dataset.favoriteSong || ''
+          if (favorites.has(id)) favorites.delete(id)
+          else favorites.add(id)
+          try { localStorage.setItem(favoriteKey, JSON.stringify([...favorites])) } catch {}
+          syncFavorites()
+          filterSongs()
+          return
+        }
+        const open = target.closest<HTMLButtonElement>('[data-open-song]')
+        if (open) {
+          const song = findSong(open.dataset.openSong || '')
+          if (song) openSong(song)
+        }
+      })
+      search.addEventListener('input', filterSongs)
+      zoneFilter.addEventListener('change', filterSongs)
+      favoritesFilter.addEventListener('click', () => {
+        favoriteOnly = !favoriteOnly
+        favoritesFilter.setAttribute('aria-pressed', String(favoriteOnly))
+        favoritesFilter.classList.toggle('is-active', favoriteOnly)
+        filterSongs()
+      })
+      syncFavorites()
+      filterSongs()
+      updatePlayer()
+
+      const heldPointers = new Map<number, { x: number; z: number; button: HTMLButtonElement }>()
+      function updateMovement() {
+        let x = 0, z = 0
+        heldPointers.forEach((direction) => { x += direction.x; z += direction.z })
+        scene?.setMove(Math.sign(x), Math.sign(z))
+      }
+      function clearMovement() {
+        heldPointers.forEach((direction) => direction.button.classList.remove('is-pressed'))
+        heldPointers.clear()
+        scene?.setMove(0, 0)
+      }
+      document.querySelectorAll<HTMLButtonElement>('[data-move-x]').forEach((button) => {
+        button.addEventListener('pointerdown', (event) => {
+          event.preventDefault()
+          button.setPointerCapture(event.pointerId)
+          heldPointers.set(event.pointerId, { x: Number(button.dataset.moveX), z: Number(button.dataset.moveZ), button })
+          button.classList.add('is-pressed')
+          updateMovement()
+        })
+        button.addEventListener('pointerup', (event) => {
+          heldPointers.delete(event.pointerId)
+          button.classList.remove('is-pressed')
+          updateMovement()
+        })
+        button.addEventListener('pointercancel', clearMovement)
+        button.addEventListener('lostpointercapture', (event) => {
+          if (heldPointers.has(event.pointerId)) clearMovement()
+        })
+      })
+      window.addEventListener('blur', clearMovement)
+      document.addEventListener('visibilitychange', () => { if (document.hidden) clearMovement() })
+      window.addEventListener('pagehide', (event) => {
+        clearMovement()
+        if (!event.persisted) { closeVideo(); scene?.dispose() }
+      })
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return
+        if (!help.open && !drawer.hidden) setDrawer(false)
+        else if (!help.open && !videoPanel.hidden) videoPanel.hidden = true
+      })
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root { color-scheme: light; --ink: #1f3837; --cream: #f8f5ec; --pink: #e8a2ad; --pink-deep: #ac596c; --teal: #255956; --line: #d7dfd8; --sans: 'PingFang SC', 'Microsoft YaHei', sans-serif; --serif: 'Noto Serif CJK SC', 'Songti SC', SimSun, serif; }
+  * { box-sizing: border-box; }
+  html, body { min-width: 320px; min-height: 100%; margin: 0; }
+  body { font-family: var(--sans); letter-spacing: 0; background: #dcece7; color: var(--ink); }
+  button, input, select { font: inherit; letter-spacing: 0; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid #a44460; outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .skip-link { position: fixed; z-index: 80; left: 12px; top: 12px; padding: 9px 12px; background: var(--cream); color: var(--ink); transform: translateY(-160%); }
+  .skip-link:focus { transform: none; }
+
+  .town { position: fixed; inset: 0; isolation: isolate; overflow: hidden; background: #dcece7; }
+  .town-poster, .town-canvas, .town-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .town-poster { z-index: -3; background: linear-gradient(145deg, #b9dbe9, #f1dbe0 64%, #698785); }
+  .scene-error .town-poster { background: #b9dbe9 url('/jay-town/scene-poster.webp') center / cover no-repeat; }
+  .town-canvas { display: block; z-index: -2; opacity: 0; touch-action: none; cursor: grab; }
+  .town-canvas.is-dragging { cursor: grabbing; }
+  .scene-ready .town-canvas { opacity: 1; }
+  .town-shade { z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(22, 52, 53, .27) 0%, transparent 27%, transparent 59%, rgba(20, 49, 47, .3) 100%); }
+  .town.is-night .town-shade { background: linear-gradient(180deg, rgba(8, 20, 30, .53), transparent 30%, transparent 48%, rgba(7, 20, 30, .54)); }
+
+  .town-header { position: absolute; z-index: 4; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: max(24px, env(safe-area-inset-top)) max(26px, env(safe-area-inset-right)) 0 max(26px, env(safe-area-inset-left)); color: #fcfcf7; text-shadow: 0 2px 10px #1633318c; }
+  .identity { max-width: 380px; }
+  .identity__labels { display: flex; gap: 9px; margin-bottom: 13px; font: 700 10px/1 var(--sans); color: #fff8e8; }
+  .identity__labels span { padding: 6px 8px 5px; border: 1px solid #fff8e8a8; background: #22423b61; }
+  .identity__labels span:first-child { background: #f0a9b4e8; border-color: #f0a9b4; color: #173c3c; text-shadow: none; }
+  .identity h1 { margin: 0; font: 500 30px/1.25 var(--serif); text-shadow: 0 2px 16px #12342fc2; }
+  .identity h1 span { display: block; margin-top: 2px; font-size: 34px; font-weight: 700; }
+  .identity p { margin: 10px 0 0; font: 12px/1.55 var(--serif); }
+  .header-tools { display: flex; align-items: center; gap: 8px; }
+  .home-link, .tool-button, .hide-button { display: inline-flex; align-items: center; justify-content: center; min-height: 37px; border: 1px solid #f8f5ecb8; background: #173c3e7a; color: #fffdf6; text-decoration: none; text-shadow: none; backdrop-filter: blur(10px); }
+  .home-link { gap: 6px; padding: 0 11px; font-size: 12px; }
+  .tool-button { width: 37px; padding: 0; font-size: 19px; line-height: 1; }
+  .tool-button.day-toggle { font-size: 21px; }
+  .hide-button { padding: 0 11px; font-size: 11px; }
+  .home-link:hover, .tool-button:hover, .hide-button:hover { background: #1f5757cc; }
+  .ui-restore { position: absolute; z-index: 30; right: max(20px, env(safe-area-inset-right)); top: max(20px, env(safe-area-inset-top)); padding: 9px 12px; border: 1px solid #f8f5ecb8; background: #173c3eaa; color: #fff; backdrop-filter: blur(8px); }
+  .ui-hidden .town-header, .ui-hidden .town-route, .ui-hidden .place-stamp, .ui-hidden .player-bar, .ui-hidden .move-pad, .ui-hidden .song-drawer, .ui-hidden .video-panel, .ui-hidden .scene-status, .ui-hidden .scene-failure { display: none !important; }
+
+  .scene-status { position: absolute; z-index: 2; left: max(26px, env(safe-area-inset-left)); top: 178px; padding: 6px 9px; background: #f8f5ecdc; color: var(--ink); font-size: 11px; }
+  .scene-failure { position: absolute; z-index: 3; left: max(26px, env(safe-area-inset-left)); top: 178px; max-width: 235px; padding: 12px 14px; background: #f8f5ecee; color: var(--ink); font-size: 12px; line-height: 1.6; }
+  .scene-failure p { margin: 0 0 9px; }
+  .scene-failure__action { padding: 4px 0; border: 0; border-bottom: 1px solid var(--pink-deep); background: none; color: var(--pink-deep); }
+  .place-stamp { position: absolute; z-index: 2; right: max(28px, env(safe-area-inset-right)); bottom: 30px; display: grid; gap: 4px; color: #fffdf6; text-align: right; text-shadow: 0 2px 12px #0c322ab0; }
+  .place-stamp__index { font-size: 10px; font-weight: 700; }
+  .place-stamp strong { font: 600 18px/1.3 var(--serif); }
+  .place-stamp span:last-child { font: 11px/1.4 var(--serif); }
+
+  .town-route { position: absolute; z-index: 5; left: 50%; bottom: max(27px, env(safe-area-inset-bottom)); width: min(610px, calc(100% - 610px)); min-width: 475px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid #fffdf6b8; transform: translateX(-50%); }
+  .town-route__stop { position: relative; display: grid; align-content: start; justify-items: start; gap: 4px; min-width: 0; min-height: 56px; padding: 12px 2px 2px 0; border: 0; background: none; color: #fffdf6c9; text-align: left; text-shadow: 0 2px 8px #193f39ad; }
+  .town-route__marker { position: absolute; top: -4px; left: 0; width: 7px; height: 7px; border-radius: 50%; background: #f8f5ecb0; }
+  .town-route__number { font: 700 10px/1 var(--sans); }
+  .town-route__stop strong { overflow: hidden; max-width: 100%; font: 600 13px/1.25 var(--serif); white-space: nowrap; text-overflow: ellipsis; }
+  .town-route__stop:hover, .town-route__stop.is-active { color: #fff; }
+  .town-route__stop.is-active .town-route__marker { background: #ed9caa; box-shadow: 0 0 0 4px #ed9caa45, 0 0 12px #fff; }
+
+  .player-bar { position: absolute; z-index: 6; left: max(25px, env(safe-area-inset-left)); bottom: max(28px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 5px; width: 279px; height: 58px; padding: 5px 6px; border: 1px solid #fffdf6bd; border-radius: 7px; background: #f8f5ecee; color: var(--ink); box-shadow: 0 7px 26px #153c3738; backdrop-filter: blur(12px); }
+  .player-bar__record { flex: none; display: grid; place-items: center; width: 43px; height: 43px; border: 0; border-radius: 50%; background: #285c56; color: #fff8ed; font-size: 22px; }
+  .player-bar__record:hover { background: #a64f64; }
+  .player-bar__info { min-width: 0; flex: 1; display: grid; gap: 3px; }
+  .player-bar__info strong { overflow: hidden; font: 600 12px/1.25 var(--serif); white-space: nowrap; text-overflow: ellipsis; }
+  .player-bar__info span { overflow: hidden; color: #5f7771; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
+  .player-bar__control { flex: none; width: 24px; height: 30px; padding: 0; border: 0; background: none; color: var(--teal); font-size: 22px; line-height: 1; }
+  .player-bar__control--primary { font-size: 13px; }
+  .player-bar__control:not(:disabled):hover { color: var(--pink-deep); }
+
+  .move-pad { display: none; }
+
+  .song-drawer { position: absolute; z-index: 15; left: max(25px, env(safe-area-inset-left)); bottom: calc(max(28px, env(safe-area-inset-bottom)) + 68px); display: flex; flex-direction: column; width: min(420px, calc(100% - 50px)); max-height: min(645px, calc(100svh - 135px)); border: 1px solid #d8e0db; border-radius: 8px; background: #faf8f2f5; color: var(--ink); box-shadow: 0 16px 50px #142e3047; backdrop-filter: blur(16px); }
+  .drawer-head, .video-panel__head { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 18px 19px 11px; }
+  .drawer-kicker { color: var(--pink-deep); font: 700 10px/1.3 var(--sans); }
+  .drawer-head h2, .video-panel h2 { margin: 3px 0 0; font: 600 20px/1.35 var(--serif); }
+  .panel-icon { flex: none; display: grid; place-items: center; width: 29px; height: 29px; padding: 0; border: 1px solid #c9d4cb; border-radius: 4px; background: transparent; color: var(--ink); font-size: 22px; line-height: 1; }
+  .panel-icon:hover { background: #e8eee8; }
+  .song-filters { display: grid; grid-template-columns: minmax(0, 1fr) 118px 68px; gap: 6px; padding: 0 18px; }
+  .search-field, .zone-field { min-width: 0; height: 36px; display: flex; align-items: center; border: 1px solid #cad8cf; background: #fffefa; }
+  .search-field span[aria-hidden] { flex: none; padding-left: 9px; color: #728981; font-size: 22px; }
+  .search-field input { width: 100%; min-width: 0; height: 100%; padding: 0 7px; border: 0; outline: 0; background: none; color: var(--ink); font-size: 11px; }
+  .search-field:focus-within, .zone-field:focus-within { border-color: var(--pink-deep); }
+  .zone-field select { width: 100%; height: 100%; padding: 0 4px; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 11px; }
+  .favorites-filter { padding: 0 5px; border: 1px solid #cad8cf; background: #fffefa; color: #586d64; font-size: 11px; white-space: nowrap; }
+  .favorites-filter.is-active { border-color: #c6687a; background: #fcecf0; color: #a14a60; }
+  .song-count { margin: 12px 19px 7px; color: #70817a; font-size: 10px; }
+  .song-list { min-height: 0; margin: 0; padding: 0 9px 9px; overflow: auto; list-style: none; scrollbar-color: #c4d4cd transparent; }
+  .song-row { display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 7px 8px; border-top: 1px solid #e4eae4; }
+  .song-row:first-child { border-top: 0; }
+  .song-row.is-current { background: #e9f1eb; }
+  .song-row__number { flex: none; width: 18px; color: #82948b; font-size: 10px; }
+  .song-row__art { flex: none; display: grid; place-items: center; width: 39px; height: 39px; background: var(--song-color, #edb0bb); color: #fffdf6; font-size: 20px; }
+  .song-row__body { display: grid; gap: 4px; min-width: 0; flex: 1; }
+  .song-row__body strong { overflow: hidden; font: 600 13px/1.2 var(--serif); white-space: nowrap; text-overflow: ellipsis; }
+  .song-row__body small { overflow: hidden; color: #6c8179; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
+  .song-row__actions { display: flex; align-items: center; gap: 1px; }
+  .song-row__actions button, .song-row__actions a { display: grid; place-items: center; flex: none; width: 26px; height: 28px; padding: 0; border: 0; background: none; color: #4c7067; text-decoration: none; font-size: 16px; }
+  .song-row__actions button:hover, .song-row__actions a:hover { color: var(--pink-deep); }
+  .song-row__actions .song-row__open { font-size: 11px; }
+  .song-row__favorite[aria-pressed='true'] { color: #b2546b; }
+  .song-empty { padding: 16px 19px 23px; color: #6c8179; font-size: 12px; }
+
+  .video-panel { position: absolute; z-index: 14; right: max(25px, env(safe-area-inset-right)); top: 100px; width: min(365px, calc(100% - 50px)); border: 1px solid #d8e0db; border-radius: 8px; background: #faf8f2f5; color: var(--ink); box-shadow: 0 16px 50px #142e3047; backdrop-filter: blur(16px); }
+  .video-panel__actions { display: flex; gap: 6px; }
+  .video-panel__head { padding-bottom: 13px; }
+  .video-panel h2 { overflow: hidden; max-width: 220px; font-size: 17px; white-space: nowrap; text-overflow: ellipsis; }
+  .video-frame { aspect-ratio: 16 / 9; width: 100%; background: #112825; }
+  .video-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+  .video-panel__foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; color: #5d746d; font-size: 10px; }
+  .video-panel__foot span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .video-panel__links { display: flex; flex: none; gap: 9px; }
+  .video-panel__foot a { flex: none; color: #a04e61; text-decoration: none; }
+  .video-panel__foot a:hover { text-decoration: underline; }
+
+  .help-dialog { width: min(440px, calc(100% - 28px)); max-height: calc(100svh - 36px); padding: 23px 25px 21px; border: 1px solid #d7dfd8; border-radius: 8px; background: #faf8f2; color: var(--ink); box-shadow: 0 20px 70px #122e3290; }
+  .help-dialog::backdrop { background: #071d23a8; backdrop-filter: blur(3px); }
+  .help-dialog__head { display: flex; justify-content: space-between; align-items: start; }
+  .help-dialog h2 { margin: 9px 0 15px; font: 600 25px/1.3 var(--serif); }
+  .help-dialog p { margin: 0 0 13px; font: 13px/1.85 var(--serif); }
+  .help-dialog__links { display: flex; gap: 20px; padding: 9px 0 20px; }
+  .help-dialog__links a { color: #a04e61; font-size: 12px; text-decoration: none; }
+  .help-dialog__links a:hover { text-decoration: underline; }
+  .help-dialog small { display: block; padding-top: 14px; border-top: 1px solid #d7dfd8; color: #75867d; font-size: 11px; }
+  .nojs-catalog { position: absolute; z-index: 50; inset: 0; overflow: auto; padding: 28px; background: #faf8f2f2; }
+  .nojs-catalog h2 { margin: 0 0 12px; font: 600 25px/1.4 var(--serif); }
+  .nojs-catalog p { font-size: 13px; }
+  .nojs-catalog ol { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 9px 25px; padding-left: 20px; }
+  .nojs-catalog a { color: #8d4359; }
+
+  @media (max-width: 1220px) {
+    .town-route { width: min(620px, calc(100% - 375px)); }
+    .place-stamp { display: none; }
+    .player-bar { bottom: calc(max(27px, env(safe-area-inset-bottom)) + 82px); }
+    .song-drawer { bottom: calc(max(27px, env(safe-area-inset-bottom)) + 150px); max-height: calc(100svh - 240px); }
+  }
+  @media (max-width: 960px) {
+    .town-route { width: min(650px, calc(100% - 42px)); bottom: max(18px, env(safe-area-inset-bottom)); }
+    .player-bar { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 81px); }
+    .song-drawer { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 149px); max-height: calc(100svh - 245px); }
+    .video-panel { top: 120px; }
+  }
+  @media (max-width: 720px) {
+    .town-header { padding: max(14px, env(safe-area-inset-top)) 13px 0; gap: 10px; }
+    .identity { max-width: calc(100% - 147px); }
+    .identity__labels { gap: 4px; margin-bottom: 7px; font-size: 8px; }
+    .identity__labels span { padding: 4px 5px; }
+    .identity h1 { font-size: 19px; line-height: 1.28; }
+    .identity h1 span { font-size: 25px; }
+    .identity p { max-width: 200px; margin-top: 5px; font-size: 10px; line-height: 1.4; }
+    .header-tools { flex-wrap: wrap; justify-content: flex-end; gap: 5px; width: 135px; }
+    .home-link, .tool-button, .hide-button { min-height: 31px; }
+    .home-link { padding: 0 7px; font-size: 11px; }
+    .tool-button { width: 31px; font-size: 17px; }
+    .hide-button { padding: 0 6px; font-size: 10px; }
+    .town-shade { background: linear-gradient(180deg, #15363175 0%, transparent 34%, transparent 52%, #1536317a 100%); }
+    .scene-status, .scene-failure { top: 125px; left: 13px; }
+    .town-route { left: 9px; right: 9px; bottom: max(9px, env(safe-area-inset-bottom)); width: auto; min-width: 0; transform: none; }
+    .town-route__stop { min-height: 58px; padding-top: 10px; gap: 5px; }
+    .town-route__stop strong { font-size: 11px; }
+    .town-route__number { font-size: 9px; }
+    .player-bar { left: 11px; bottom: calc(max(9px, env(safe-area-inset-bottom)) + 168px); width: min(290px, calc(100% - 152px)); height: 52px; }
+    .player-bar__record { width: 38px; height: 38px; }
+    .move-pad { position: absolute; z-index: 7; right: 12px; bottom: calc(max(9px, env(safe-area-inset-bottom)) + 74px); display: grid; grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); gap: 2px; }
+    .move-pad button { width: 38px; height: 38px; padding: 0; border: 1px solid #fffdf6ac; border-radius: 5px; background: #f8f5ece5; color: #275c54; font-size: 20px; line-height: 1; touch-action: none; user-select: none; }
+    .move-pad button.is-pressed { background: #e7a0ad; color: #173a3b; }
+    .move-pad__up { grid-area: 1 / 2; }
+    .move-pad__left { grid-area: 2 / 1; }
+    .move-pad__right { grid-area: 2 / 3; }
+    .move-pad__down { grid-area: 3 / 2; }
+    .move-pad__center { grid-area: 2 / 2; display: grid; place-items: center; color: #fff8ee; text-shadow: 0 1px 6px #234a48; font-size: 17px; }
+    .song-drawer { left: 0; right: 0; bottom: 0; width: 100%; max-height: min(78svh, 650px); border-radius: 8px 8px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+    .video-panel { top: auto; right: 0; bottom: 0; width: 100%; border-radius: 8px 8px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+    .song-row { min-height: 58px; }
+  }
+  @media (max-width: 395px) {
+    .identity { max-width: calc(100% - 128px); }
+    .identity h1 { font-size: 17px; }
+    .identity h1 span { font-size: 22px; }
+    .header-tools { width: 125px; }
+    .home-link span { display: none; }
+    .town-route__stop strong { font-size: 10px; }
+    .song-filters { grid-template-columns: minmax(0, 1fr) 107px 57px; padding: 0 12px; }
+    .favorites-filter span { display: none; }
+  }
+  @media (max-height: 650px) and (max-width: 720px) {
+    .identity p { display: none; }
+    .player-bar { bottom: calc(max(9px, env(safe-area-inset-bottom)) + 143px); }
+    .move-pad { grid-template-columns: repeat(3, 32px); grid-template-rows: repeat(3, 32px); bottom: calc(max(9px, env(safe-area-inset-bottom)) + 72px); }
+    .move-pad button { width: 32px; height: 32px; }
+    .song-drawer { max-height: 86svh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .town-canvas { transition: none; }
+  }
+</style>

@@ -86,6 +86,12 @@ export const siteIndex: SiteIndexGroup[] = [
         note: `反应、记忆与专注的${cnCount(benchmarkGames.length)}个小挑战`,
       },
       { href: '/leaderboard', label: '排行榜', note: '每个挑战的最好成绩' },
+      {
+        href: '/jay-town/',
+        label: '樱花小镇',
+        note: '沿着周杰伦的歌，散步到花开的街角',
+        standalone: true,
+      },
     ],
   },
   {

@@ -1,4 +1,4 @@
-name: Deploy redirect and love letter
+name: Deploy redirect and standalone experiences
 
 on:
   push:
@@ -7,6 +7,11 @@ on:
       - ".github/workflows/deploy.yml"
       - "pages-redirect/**"
       - "public/mini-love/**"
+      - "src/pages/jay-town.astro"
+      - "src/features/jay-town/**"
+      - "public/jay-town/**"
+      - "package.json"
+      - "package-lock.json"
   workflow_dispatch:
 
 permissions:
@@ -27,12 +32,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build standalone experiences
+        run: |
+          npm ci
+          npm run build
       - name: Prepare Pages artifact
         run: |
           mkdir -p pages-artifact
           cp -a pages-redirect/. pages-artifact/
           cp -a public/mini-love pages-artifact/mini-love
-      - name: Upload redirect and letter
+          cp -a dist/jay-town pages-artifact/jay-town
+          cp -a dist/_astro pages-artifact/_astro
+          mkdir -p pages-artifact/icons
+          cp public/icons/favicon.svg pages-artifact/icons/favicon.svg
+      - name: Upload standalone pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: pages-artifact
