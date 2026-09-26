@@ -606,8 +606,13 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   const floatIsland = (cx, cy, cz, r, main = false) => {
     for (let x = -r; x <= r + 0.001; x += TILE) {
       for (let z = -r; z <= r + 0.001; z += TILE) {
-        if (Math.hypot(x, z) > r + R(-0.2, 0.2)) continue;
-        box(cx + x, cy - 0.12, cz + z, TILE, 0.24, TILE, pick(GRASS[3]), 0.1);
+        const radius = Math.hypot(x, z);
+        if (radius > r + R(-0.2, 0.2)) continue;
+        const edge = radius > r - 0.48;
+        const scale = edge ? R(0.92, 1.04) : 1;
+        const driftX = edge ? R(-0.045, 0.045) : 0;
+        const driftZ = edge ? R(-0.045, 0.045) : 0;
+        box(cx + x + driftX, cy - 0.12, cz + z + driftZ, TILE * scale, 0.24, TILE * scale, pick(GRASS[3]), 0.1);
         if (rng() < 0.05) gbox('magic', cx + x + R(-0.15, 0.15), cy + 0.05, cz + z + R(-0.15, 0.15), 0.06, 0.06, 0.06, pick(['#7fffd4', '#b98cff']));
       }
     }
@@ -618,8 +623,14 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       const shade = ['#3d3a54', '#36334c', '#2f2c44', '#29263c'][Math.min(3, Math.floor((k / layers) * 4))];
       for (let x = -rk; x <= rk + 0.001; x += TILE) {
         for (let z = -rk; z <= rk + 0.001; z += TILE) {
-          if (Math.hypot(x, z) > rk + R(-0.25, 0.1)) continue;
-          box(cx + x, y, cz + z, TILE, 0.42, TILE, shade, 0.08);
+          const radius = Math.hypot(x, z);
+          if (radius > rk + R(-0.25, 0.1)) continue;
+          const edge = radius > rk - 0.42;
+          const scale = edge ? R(0.9, 1.05) : 1;
+          const driftX = edge ? R(-0.05, 0.05) : 0;
+          const driftZ = edge ? R(-0.05, 0.05) : 0;
+          const layerHeight = 0.38 + R(-0.025, 0.055);
+          box(cx + x + driftX, y, cz + z + driftZ, TILE * scale, layerHeight, TILE * scale, shade, 0.08);
         }
       }
     }
@@ -641,7 +652,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     box(x + 0.6, y + 2.0, z, 0.9, 0.18, 0.18, '#3b2a3a', 0.04);
     box(x - 0.55, y + 2.2, z + 0.2, 0.8, 0.16, 0.16, '#33243a', 0.04);
     const cy = y + 2.8 * size;
-    const n = Math.round(150 * size * (lite ? 0.7 : 1));
+    const n = Math.round(112 * size * (lite ? 0.7 : 0.85));
     for (let i = 0; i < n; i++) {
       let u;
       let v;
@@ -651,7 +662,10 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         v = R(-1, 1);
         w = R(-1, 1);
       } while (u * u + v * v + w * w > 1);
-      const s = R(0.3, 0.48) * size;
+      const radial = Math.min(1, Math.hypot(u, w));
+      const density = 0.55 + (1 - radial) * 0.45;
+      if (rng() > density) continue;
+      const s = R(0.22, 0.4) * size * (1.04 - radial * 0.2);
       const px = x + u * 1.8 * size;
       const py = cy + v * 0.95 * size;
       const pz = z + w * 1.8 * size;
@@ -798,29 +812,42 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   grainTex.generateMipmaps = true;
   grainTex.colorSpace = THREE.NoColorSpace;
   grainTex.needsUpdate = true;
-  const withGrain = (material, amount = 0.08) => {
+  const withGrain = (material, amount = 0.08, faceTone = false) => {
+    const vertexVarying = faceTone ? 'varying vec3 vGrainNormal;\n' : '';
+    const vertexFace = faceTone ? '\n          vGrainNormal = normal;' : '';
+    const fragmentVarying = faceTone ? 'varying vec3 vGrainNormal;\n' : '';
+    const fragmentFace = faceTone ? `
+          float topFace = max(vGrainNormal.y, 0.0);
+          vec3 faceTint = mix(vec3(0.97, 0.98, 1.0), vec3(1.045, 1.025, 0.99), topFace);
+          diffuseColor.rgb *= mix(vec3(1.0), faceTint, 0.5);` : '';
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uGrainAmt = { value: amount };
-      shader.vertexShader = `varying vec3 vGrainPos;\n${shader.vertexShader}`
+      shader.vertexShader = `varying vec3 vGrainPos;\n${vertexVarying}${shader.vertexShader}`
         .replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
           vGrainPos = position;
           #ifdef USE_INSTANCING
             vGrainPos = (instanceMatrix * vec4(position, 1.0)).xyz;
-          #endif`
+          #endif${vertexFace}`
         );
-      shader.fragmentShader = `uniform float uGrainAmt;\nvarying vec3 vGrainPos;\n${shader.fragmentShader}`
+      shader.fragmentShader = `uniform float uGrainAmt;\n${fragmentVarying}varying vec3 vGrainPos;\n${shader.fragmentShader}`
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-          vec3 cell = floor(vGrainPos * 9.0);
-          float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-          float grain = mix(0.91, 1.09, h);
-          diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);`
+          vec3 cell = floor(vGrainPos * 3.2);
+          vec3 local = fract(vGrainPos * 3.2);
+          local = local * local * (3.0 - 2.0 * local);
+          float hash0 = fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float hash1 = fract(sin(dot(cell + vec3(1.0, 0.0, 0.0), vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float hash2 = fract(sin(dot(cell + vec3(0.0, 1.0, 0.0), vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float hash3 = fract(sin(dot(cell + vec3(1.0, 1.0, 0.0), vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float low = mix(mix(hash0, hash1, local.x), mix(hash2, hash3, local.x), local.y);
+          float grain = mix(0.965, 1.035, low);
+          diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);${fragmentFace}`
         );
     };
-    material.customProgramCacheKey = () => `grain-world-${amount}`;
+    material.customProgramCacheKey = () => `grain-world-${amount}-${faceTone ? 'faces' : 'plain'}`;
     return material;
   };
   const instanced = (list, material) => {
@@ -841,7 +868,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     scene.add(mesh);
     return mesh;
   };
-  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.32));
+  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.14, true));
   const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.06);
   const magicMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.07);
   instanced(glow.warm, warmMat);
@@ -1010,7 +1037,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     const n = Math.round(R(8, 16));
     for (let k = 0; k < n; k++) cloudList.push([cx + R(-3, 3), cy + (rng() < 0.3 ? 0.5 : 0), cz + R(-1.6, 1.6), R(1.2, 2.2), 0.55, R(1.0, 1.8), '#ffffff', 0.03]);
   }
-  const cloudMat = withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }), 0.1);
+  const cloudMat = withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }), 0.08, true);
   const clouds = instanced(cloudList, cloudMat);
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.18));
@@ -1664,10 +1691,12 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     const portrait = clamp01((0.92 - camera.aspect) / 0.55);
     if (portrait) {
       forward.subVectors(wantLook, wantPos).normalize();
-      wantPos.addScaledVector(forward, -portrait * 3.8);
+      const shortScreen = clamp01((760 - canvas.clientHeight) / 180);
+      const coverFrame = 1 - smooth(0.25, 1.0, story);
+      const coverPull = coverFrame * (1.35 + shortScreen * 1.45);
+      wantPos.addScaledVector(forward, -portrait * (3.8 + coverPull));
       wantPos.y += portrait * 1.0;
       wantLook.y += portrait * 0.65;
-      const shortScreen = clamp01((760 - canvas.clientHeight) / 180);
       wantLook.y += portrait * (1 - smooth(0.45, 1.0, story)) * (3.6 + shortScreen * 1.8);
     }
     return phaseAlong(story);
