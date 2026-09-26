@@ -132,7 +132,7 @@ SOFTWARE.
     html.has-island body::before { display:none; }
     html.has-island .page { position:relative; z-index:1; background:transparent; color:#f6efe4; }
     html.has-island .page::before { content:""; position:fixed; z-index:-1; left:50%; top:0; bottom:0; width:min(790px,100%); transform:translateX(-50%); pointer-events:none; background:linear-gradient(90deg,rgba(7,14,29,.16),rgba(7,14,29,.42) 8%,rgba(7,14,29,.42) 92%,rgba(7,14,29,.16)); }
-    html.has-island.island-day .page::before { background:linear-gradient(90deg,rgba(255,250,243,.08),rgba(255,250,243,.34) 8%,rgba(255,250,243,.34) 92%,rgba(255,250,243,.08)); }
+    html.has-island.island-day .page::before { background:linear-gradient(90deg,rgba(255,250,243,.06),rgba(255,250,243,.26) 8%,rgba(255,250,243,.26) 92%,rgba(255,250,243,.06)); }
     html.has-island.island-dusk .page::before { background:linear-gradient(90deg,rgba(12,16,39,.16),rgba(12,16,39,.38) 8%,rgba(12,16,39,.38) 92%,rgba(12,16,39,.16)); }
     html.has-island.island-night .page::before { background:linear-gradient(90deg,rgba(5,9,25,.18),rgba(5,9,25,.46) 8%,rgba(5,9,25,.46) 92%,rgba(5,9,25,.18)); }
     html.has-island .program a,
@@ -239,7 +239,7 @@ SOFTWARE.
     /* ── 卷首与信封（信封层叠与起落改编自 luo-5/love-letter-site-template，MIT） ── */
     .cover { position:relative; text-align:center; padding-top:27px; }
     html.has-island.island-day .cover-copy { position:relative; isolation:isolate; }
-    html.has-island.island-day .cover-copy::before { content:""; position:absolute; z-index:-1; inset:-18px -12px; background:radial-gradient(ellipse at 50% 44%,rgba(251,248,240,.7),rgba(251,248,240,.35) 56%,transparent 82%); filter:blur(7px); pointer-events:none; }
+    html.has-island.island-day .cover-copy::before { content:""; position:absolute; z-index:-1; inset:-18px -12px; background:radial-gradient(ellipse at 50% 44%,rgba(251,248,240,.48),rgba(251,248,240,.22) 56%,transparent 82%); filter:blur(7px); pointer-events:none; }
     .bokeh { position:absolute; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
     .bokeh i { position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%; background:radial-gradient(circle,var(--c) 0%,transparent 68%); opacity:.5; animation:bokehFloat var(--d) ease-in-out var(--delay) infinite alternate; }
     .cover-mark { display:block; width:43px; height:37px; margin:0 auto 13px; }
