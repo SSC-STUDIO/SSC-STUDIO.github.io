@@ -1,4 +1,4 @@
-name: Redirect GitHub Pages
+name: Deploy redirect and love letter
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/deploy.yml"
       - "pages-redirect/**"
+      - "public/mini-love/**"
   workflow_dispatch:
 
 permissions:
@@ -26,10 +27,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Upload redirect
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p pages-artifact
+          cp -a pages-redirect/. pages-artifact/
+          cp -a public/mini-love pages-artifact/mini-love
+      - name: Upload redirect and letter
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages-redirect
+          path: pages-artifact
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
