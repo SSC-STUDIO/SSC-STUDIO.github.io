@@ -109,6 +109,12 @@ export const siteIndex: SiteIndexGroup[] = [
     title: '信笺',
     items: [
       {
+        href: '/fulei-night/',
+        label: '傅雷中学的夜晚',
+        note: '给潘潘和朋友的一段夜路',
+        standalone: true,
+      },
+      {
         href: '/mini-love/',
         label: '写给诗菡',
         note: '那次合唱，后来有了回声',

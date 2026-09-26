@@ -1,0 +1,439 @@
+---
+const stops = [
+  {
+    name: '校门',
+    title: '先在这里停一停',
+    line: '从校名旁走过，今晚的路就重新属于你们。',
+  },
+  {
+    name: '树下',
+    title: '把脚步放慢',
+    line: '路灯照着树影，你和朋友想说的事，不必赶着说完。',
+  },
+  {
+    name: '操场',
+    title: '听一会儿晚风',
+    line: '离开以后，有些熟悉的声音，站在这里就会想起。',
+  },
+  {
+    name: '教学楼',
+    title: '灯还亮着',
+    line: '那些在这里度过的日子，留给你们自己慢慢讲。',
+  },
+] as const
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101d20" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta
+      name="description"
+      content="给潘潘和同行的朋友：一段通往傅雷中学的夜路，也是一句没能赴约的道歉。"
+    />
+    <meta property="og:title" content="傅雷中学，夜里的那一程" />
+    <meta
+      property="og:description"
+      content="潘潘，原本说好一起去的。先请你和朋友在这里走一遍。"
+    />
+    <title>傅雷中学，夜里的那一程 · 给潘潘</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#letter">跳到信笺</a>
+    <main>
+      <section class="visit" id="visit" aria-labelledby="visit-title">
+        <canvas class="campus-canvas" id="campus-canvas" aria-hidden="true"></canvas>
+        <div class="visit-shade" aria-hidden="true"></div>
+
+        <header class="visit-header">
+          <a class="home-link" href="/" aria-label="返回陈润森的个人网站">
+            <span aria-hidden="true">←</span><span>陈润森</span>
+          </a>
+          <span class="visit-header__mark">一封没有走完的夜行信</span>
+          <button class="share-link" id="share-link" type="button">分享这段夜路</button>
+        </header>
+
+        <div class="visit-content">
+          <div class="visit-intro">
+            <p class="eyebrow">上海 · 浦东 / 一次迟到的同行</p>
+            <h1 id="visit-title">傅雷中学<span>夜里的那一程</span></h1>
+            <p class="visit-intro__note">给潘潘和同行的朋友。</p>
+          </div>
+
+          <div class="visit-bottom">
+            <div class="moment" aria-live="polite" aria-atomic="true">
+              <p class="moment__count"><span id="stop-count">01</span><span class="moment__slash">/</span>04 <span id="stop-name">校门</span></p>
+              <h2 id="stop-title">先在这里停一停</h2>
+              <p id="stop-line">从校名旁走过，今晚的路就重新属于你们。</p>
+            </div>
+
+            <div class="route-controls">
+              <nav class="route" aria-label="夜行路线" data-stops={JSON.stringify(stops)}>
+                {stops.map((stop, index) => (
+                  <button
+                    class:list={['route__stop', index === 0 && 'is-active']}
+                    type="button"
+                    data-stop={index}
+                    aria-current={index === 0 ? 'step' : undefined}
+                    aria-label={`第 ${index + 1} 站：${stop.name}`}
+                  >
+                    <span class="route__number">{String(index + 1).padStart(2, '0')}</span>
+                    <span class="route__name">{stop.name}</span>
+                  </button>
+                ))}
+              </nav>
+              <div class="step-buttons">
+                <button class="step-button" id="previous-stop" type="button" aria-label="上一站" disabled>←</button>
+                <button class="step-button" id="next-stop" type="button" aria-label="下一站">→</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="scene-message" id="scene-message" role="status">夜景正在亮起…</p>
+        <noscript><p class="scene-nojs">夜景需要脚本才能显示，信仍在下方。</p><style>.scene-message { display: none; }</style></noscript>
+      </section>
+
+      <section class="letter" id="letter" aria-labelledby="letter-title">
+        <div class="letter__inner">
+          <div class="letter__side" aria-hidden="true">
+            <span class="letter__side-number">01 — 04</span>
+            <span class="letter__side-rule"></span>
+            <span>给潘潘</span>
+          </div>
+          <div class="letter__body">
+            <p class="letter__eyebrow">写在夜路尽头</p>
+            <h2 id="letter-title">说好的那一晚，<br />我还记得。</h2>
+            <div class="letter__prose">
+              <p>潘潘：</p>
+              <p>我们说好一起去看看傅雷中学。可这一次，我没办法陪你去。对不起。</p>
+              <p>你已经从这里毕业。再回到校门前，一定有许多只有你和朋友知道的事，我不替你们写。所以这里只留了校门、树影、操场和几盏还亮着的灯。你们可以慢慢走，在想停的地方停下。</p>
+              <p>这次不能赴约，但我没有忘记。希望这段小小的夜路，能陪你们把那晚走完。</p>
+              <p class="letter__sign">润森</p>
+            </div>
+            <div class="letter__actions">
+              <a href="#visit">再走一遍 <span aria-hidden="true">↑</span></a>
+              <button id="copy-link" type="button">复制链接 <span aria-hidden="true">↗</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="source-note">
+      <span>校门参考关岳路校区照片重建；夜色与校内路线为创作。</span>
+      <a href="/">返回首页</a>
+    </footer>
+    <p class="toast" id="toast" role="status" aria-live="polite"></p>
+
+    <script>
+      import { mountCampusScene } from '../features/fulei-night/scene'
+
+      const stops = JSON.parse((document.querySelector('.route') as HTMLElement).dataset.stops || '[]') as {
+        name: string
+        title: string
+        line: string
+      }[]
+      const canvas = document.querySelector('#campus-canvas') as HTMLCanvasElement
+      const count = document.querySelector('#stop-count') as HTMLElement
+      const name = document.querySelector('#stop-name') as HTMLElement
+      const title = document.querySelector('#stop-title') as HTMLElement
+      const line = document.querySelector('#stop-line') as HTMLElement
+      const previous = document.querySelector('#previous-stop') as HTMLButtonElement
+      const next = document.querySelector('#next-stop') as HTMLButtonElement
+      const route = [...document.querySelectorAll<HTMLButtonElement>('[data-stop]')]
+      const sceneMessage = document.querySelector('#scene-message') as HTMLElement
+      const toast = document.querySelector('#toast') as HTMLElement
+
+      let current = 0
+      let toastTimer: number | undefined
+
+      const scene = mountCampusScene(canvas, {
+        onReady() {
+          document.body.classList.add('scene-ready')
+          sceneMessage.textContent = ''
+        },
+        onError() {
+          document.body.classList.add('scene-error')
+          sceneMessage.textContent = '夜景暂时无法显示，下面的信仍在。'
+        },
+      })
+
+      function showStop(index: number) {
+        const target = Math.max(0, Math.min(stops.length - 1, index))
+        current = target
+        const stop = stops[target]
+        count.textContent = String(target + 1).padStart(2, '0')
+        name.textContent = stop.name
+        title.textContent = stop.title
+        line.textContent = stop.line
+        previous.disabled = target === 0
+        next.disabled = target === stops.length - 1
+        route.forEach((button, buttonIndex) => {
+          const active = buttonIndex === target
+          button.classList.toggle('is-active', active)
+          if (active) button.setAttribute('aria-current', 'step')
+          else button.removeAttribute('aria-current')
+        })
+        scene.goTo(target)
+      }
+
+      route.forEach((button) => button.addEventListener('click', () => showStop(Number(button.dataset.stop))))
+      previous.addEventListener('click', () => showStop(current - 1))
+      next.addEventListener('click', () => showStop(current + 1))
+
+      document.addEventListener('keydown', (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return
+        if (event.key === 'ArrowRight' && current < stops.length - 1) showStop(current + 1)
+        if (event.key === 'ArrowLeft' && current > 0) showStop(current - 1)
+      })
+
+      let touchStartX = 0
+      const visit = document.querySelector('.visit') as HTMLElement
+      visit.addEventListener('touchstart', (event) => {
+        touchStartX = event.changedTouches[0].screenX
+      }, { passive: true })
+      visit.addEventListener('touchend', (event) => {
+        const difference = event.changedTouches[0].screenX - touchStartX
+        if (Math.abs(difference) < 65) return
+        showStop(current + (difference < 0 ? 1 : -1))
+      }, { passive: true })
+
+      function announce(message: string) {
+        toast.textContent = message
+        toast.classList.add('is-visible')
+        window.clearTimeout(toastTimer)
+        toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 3000)
+      }
+
+      async function copyUrl() {
+        const url = window.location.href.split('#')[0]
+        try {
+          await navigator.clipboard.writeText(url)
+          announce('链接已复制')
+        } catch {
+          const input = document.createElement('textarea')
+          input.value = url
+          input.style.position = 'fixed'
+          input.style.opacity = '0'
+          document.body.appendChild(input)
+          input.select()
+          const copied = document.execCommand('copy')
+          input.remove()
+          announce(copied ? '链接已复制' : '复制失败，请从地址栏分享')
+        }
+      }
+
+      async function share() {
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: '傅雷中学，夜里的那一程',
+              text: '潘潘，原本说好一起去的。先和朋友在这里走一遍。',
+              url: window.location.href.split('#')[0],
+            })
+            return
+          } catch (error) {
+            if ((error as DOMException).name === 'AbortError') return
+          }
+        }
+        await copyUrl()
+      }
+
+      document.querySelector('#share-link')?.addEventListener('click', share)
+      document.querySelector('#copy-link')?.addEventListener('click', copyUrl)
+      window.addEventListener('resize', () => scene.resize(), { passive: true })
+      window.addEventListener('pagehide', (event) => {
+        if (!event.persisted) scene.dispose()
+      })
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --night: #101d20;
+    --night-ink: #f5f1e8;
+    --lamplight: #e6bc74;
+    --soft: #b9c7bd;
+    --paper: #e8e7de;
+    --paper-ink: #24302e;
+    --vermilion: #8b4842;
+    --serif: 'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', SimSun, serif;
+    --sans: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--night); }
+  body { margin: 0; color: var(--night-ink); font-family: var(--sans); }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button { font: inherit; cursor: pointer; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--lamplight); outline-offset: 4px; }
+  ::selection { background: #d4a95d80; }
+
+  .skip-link {
+    position: fixed; z-index: 20; left: 12px; top: 12px; padding: 10px 14px;
+    color: #152122; background: #fff; transform: translateY(-150%);
+  }
+  .skip-link:focus { transform: none; }
+  .visit {
+    position: relative; isolation: isolate; min-height: calc(100svh - 70px);
+    overflow: hidden; background: #17282c;
+  }
+  .campus-canvas, .visit-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .campus-canvas { display: block; z-index: -2; }
+  .visit-shade {
+    z-index: -1; pointer-events: none;
+    background: linear-gradient(90deg, #0c181bdb 0%, #0c181b72 36%, transparent 77%),
+      linear-gradient(180deg, #0c181bc9 0%, transparent 24%, transparent 43%, #091517be 82%, #091517eb 100%);
+  }
+  .visit-header {
+    position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; min-height: 66px; padding: max(12px, env(safe-area-inset-top)) clamp(18px, 4vw, 56px);
+    border-bottom: 1px solid #d5d7c929; font-size: 13px;
+  }
+  .home-link { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; white-space: nowrap; }
+  .home-link span:first-child { font-size: 23px; line-height: 0.8; }
+  .visit-header__mark { color: #c2cec4; font-family: var(--serif); }
+  .share-link {
+    padding: 7px 0; border: 0; border-bottom: 1px solid #e6bc7490;
+    background: none; color: #f2d8aa; white-space: nowrap;
+  }
+  .share-link:hover { color: #fff; }
+  .visit-content {
+    width: min(100%, 1600px); min-height: calc(100svh - 136px); margin: 0 auto;
+    padding: clamp(36px, 7vh, 94px) clamp(18px, 5.3vw, 82px) 25px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
+  }
+  .eyebrow, .letter__eyebrow {
+    margin: 0 0 15px; color: var(--lamplight); font-size: 11px;
+    letter-spacing: 0; text-transform: uppercase;
+  }
+  .visit h1 {
+    margin: 0; font: 500 clamp(42px, 5vw, 78px)/1.13 var(--serif);
+    text-shadow: 0 3px 20px #071014a8;
+  }
+  .visit h1 span { display: block; margin-top: 9px; color: #e4e6d8; font-size: 0.51em; }
+  .visit-intro__note { margin: 23px 0 0; color: #d4dcd2; font: 16px/1.75 var(--serif); }
+  .visit-bottom { width: 100%; }
+  .moment { min-height: 133px; }
+  .moment__count { margin: 0 0 10px; color: var(--lamplight); font: 12px/1 var(--sans); }
+  .moment__count #stop-name { margin-left: 13px; color: #d1dbd0; }
+  .moment__slash { margin: 0 5px; color: #8a9990; }
+  .moment h2 { margin: 0 0 7px; font: 500 clamp(23px, 2.4vw, 34px)/1.35 var(--serif); }
+  .moment p:last-child { max-width: 31em; margin: 0; color: #d1d9d0; font: 14px/1.65 var(--serif); }
+  .route-controls { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+  .route {
+    width: min(100%, 660px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid #d8dfd44d;
+  }
+  .route__stop {
+    position: relative; display: grid; justify-items: start; gap: 6px; min-width: 0;
+    padding: 15px 4px 4px 0; border: 0; background: transparent; color: #bac9be;
+    text-align: left; transition: color 250ms ease;
+  }
+  .route__stop::before {
+    position: absolute; left: 0; top: -4px; width: 7px; height: 7px; border-radius: 50%;
+    background: #9daa9e; content: ''; transition: background 250ms ease, box-shadow 250ms ease;
+  }
+  .route__stop:hover, .route__stop.is-active { color: #fff5e6; }
+  .route__stop.is-active::before { background: var(--lamplight); box-shadow: 0 0 15px var(--lamplight); }
+  .route__number { font-size: 10px; }
+  .route__name { font: 14px/1.25 var(--serif); }
+  .step-buttons { display: flex; gap: 8px; padding-bottom: 2px; }
+  .step-button {
+    width: 42px; height: 42px; padding: 0; border: 1px solid #cbd6ca8f;
+    border-radius: 50%; background: #152c2e80; color: #f5f1e8; font-size: 22px;
+  }
+  .step-button:hover:not(:disabled) { background: #e6bc74; border-color: #e6bc74; color: #17231f; }
+  .step-button:disabled { opacity: .35; cursor: not-allowed; }
+  .scene-message {
+    position: absolute; z-index: 1; right: clamp(18px, 5.3vw, 82px); top: 95px;
+    margin: 0; color: #d9e0d8; font: 12px/1.6 var(--serif);
+  }
+  .scene-ready .scene-message:empty { display: none; }
+  .scene-nojs { position: absolute; right: 20px; top: 78px; margin: 0; color: #d9e0d8; font: 12px/1.6 var(--serif); }
+
+  .letter { background: var(--paper); color: var(--paper-ink); }
+  .letter__inner {
+    display: grid; grid-template-columns: 150px minmax(0, 740px); gap: clamp(25px, 8vw, 140px);
+    width: min(100% - 48px, 1230px); margin: 0 auto; padding: clamp(80px, 11vw, 150px) 0 120px;
+  }
+  .letter__side { display: flex; flex-direction: column; align-items: start; gap: 22px; color: #66756d; font: 12px/1.2 var(--serif); }
+  .letter__side-number { color: var(--vermilion); font: 12px/1 var(--sans); }
+  .letter__side-rule { height: 90px; width: 1px; background: #a9b6a9; }
+  .letter__eyebrow { color: var(--vermilion); }
+  .letter h2 { margin: 0 0 45px; font: 500 clamp(32px, 3.3vw, 52px)/1.38 var(--serif); }
+  .letter__prose { max-width: 620px; font: 18px/2.15 var(--serif); }
+  .letter__prose p { margin: 0 0 24px; }
+  .letter__prose .letter__sign { margin-top: 45px; color: var(--vermilion); }
+  .letter__actions { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 80px; border-top: 1px solid #a7b3a5; }
+  .letter__actions a, .letter__actions button {
+    display: inline-flex; align-items: center; gap: 12px; padding: 21px 0;
+    border: 0; background: none; color: var(--paper-ink); font: 14px/1.5 var(--sans);
+    text-decoration: none;
+  }
+  .letter__actions a:hover, .letter__actions button:hover { color: var(--vermilion); }
+  .source-note {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: center;
+    padding: 27px 20px max(27px, env(safe-area-inset-bottom));
+    background: #25362f; color: #d0dad0; font: 11px/1.65 var(--sans); text-align: center;
+  }
+  .source-note a { color: #eac38a; }
+  .toast {
+    position: fixed; z-index: 10; left: 50%; bottom: max(22px, env(safe-area-inset-bottom));
+    max-width: calc(100% - 24px); margin: 0; padding: 11px 17px; border-radius: 4px;
+    background: #f0eadf; color: #23342e; box-shadow: 0 8px 35px #0005;
+    font: 13px/1.4 var(--sans); opacity: 0; pointer-events: none;
+    transform: translate(-50%, 10px); transition: opacity 250ms ease, transform 250ms ease;
+  }
+  .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 760px) {
+    .visit { min-height: calc(100svh - 54px); }
+    .visit-shade {
+      background: linear-gradient(180deg, #0c181be8 0%, #0c181bab 29%, #09151773 54%, #091517ee 100%);
+    }
+    .visit-header { min-height: 58px; padding: max(12px, env(safe-area-inset-top)) 18px 11px; }
+    .visit-header__mark { display: none; }
+    .visit-content { min-height: calc(100svh - 112px); padding: clamp(32px, 5vh, 58px) 20px 23px; }
+    .visit h1 { font-size: clamp(39px, 10vw, 54px); }
+    .visit-intro__note { margin-top: 15px; font-size: 14px; }
+    .moment { min-height: 126px; }
+    .moment h2 { font-size: 25px; }
+    .moment p:last-child { font-size: 13px; }
+    .route-controls { align-items: end; gap: 10px; }
+    .route__stop { padding-right: 1px; }
+    .route__name { font-size: 12px; }
+    .step-button { width: 37px; height: 37px; font-size: 20px; }
+    .scene-message { top: 72px; right: 20px; }
+    .letter__inner { display: block; width: min(100% - 42px, 610px); padding: 85px 0 105px; }
+    .letter__side { display: none; }
+    .letter h2 { margin-bottom: 36px; }
+    .letter__prose { font-size: 17px; line-height: 2.05; }
+  }
+
+  @media (max-width: 370px) {
+    .visit-content { padding-top: 25px; }
+    .eyebrow { font-size: 10px; }
+    .route__name { font-size: 11px; }
+    .step-buttons { gap: 5px; }
+    .step-button { width: 34px; height: 34px; }
+  }
+
+  @media (max-height: 680px) {
+    .visit-content { padding-top: 22px; gap: 8px; }
+    .visit-intro__note { margin-top: 10px; }
+    .moment { min-height: 110px; }
+    .moment__count { margin-bottom: 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .route__stop, .route__stop::before, .toast { transition: none; }
+  }
+</style>
