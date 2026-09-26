@@ -150,6 +150,7 @@ const stops = [
 
       let current = 0
       let toastTimer: number | undefined
+      const shareUrl = 'https://ssc-studio.github.io/fulei-night/'
 
       const scene = mountCampusScene(canvas, {
         onReady() {
@@ -210,7 +211,7 @@ const stops = [
       }
 
       async function copyUrl() {
-        const url = window.location.href.split('#')[0]
+        const url = shareUrl
         try {
           await navigator.clipboard.writeText(url)
           announce('链接已复制')
@@ -233,7 +234,7 @@ const stops = [
             await navigator.share({
               title: '傅雷中学，夜里的那一程',
               text: '潘潘，原本说好一起去的。先和朋友在这里走一遍。',
-              url: window.location.href.split('#')[0],
+              url: shareUrl,
             })
             return
           } catch (error) {
