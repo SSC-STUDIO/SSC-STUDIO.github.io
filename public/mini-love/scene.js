@@ -3,7 +3,7 @@
  * three 按需从 CDN 加载；失败时页面照常显示信纸。镜头随阅读进度前进，不接受拖拽。
  */
 
-const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
+const THREE_URL = './vendor/three.module.min.js';
 
 const mulberry32 = (seed) => () => {
   seed |= 0;
@@ -106,7 +106,11 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.0;
 
+  const mobile = window.matchMedia?.('(pointer: coarse)').matches
+    || window.innerWidth < 600
+    || /Android|HarmonyOS/i.test(navigator.userAgent || '');
   const lite = reduced
+    || mobile
     || (navigator.deviceMemory && navigator.deviceMemory <= 4)
     || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
   const rng = mulberry32(20260925);
@@ -885,7 +889,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           float n1 = noise(dir * 5.2 + vec3(uTime * 0.01, 0.0, 0.0));
           float n2 = noise(dir * 15.0);
           col += (vec3(0.42, 0.34, 0.8) * (0.25 + 0.75 * n1) + vec3(0.8, 0.5, 0.7) * n2 * 0.25) * band * uNight * 0.9;
-          float aBand = smoothstep(0.02, 0.2, dir.y) * smoothstep(0.62, 0.26, dir.y);
+          float aBand = smoothstep(0.02, 0.2, dir.y) * (1.0 - smoothstep(0.26, 0.62, dir.y));
           float wave = sin(dir.x * 5.5 + uTime * 0.22 + sin(dir.z * 3.1 + uTime * 0.13) * 2.2);
           float curtain = pow(0.5 + 0.5 * wave, 3.0) * (0.35 + 0.65 * noise(vec3(dir.x * 9.0, dir.y * 2.0 + uTime * 0.08, dir.z * 9.0)));
           vec3 aurora = mix(vec3(0.18, 0.95, 0.72), vec3(0.62, 0.34, 0.98), smoothstep(0.12, 0.5, dir.y));
@@ -943,7 +947,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         vec2 p = gl_PointCoord - 0.5;
         float d = dot(p, p);
         if (d > 0.25) discard;
-        gl_FragColor = vec4(vec3(1.0, 0.96, 0.9), smoothstep(0.25, 0.0, d) * vA);
+        gl_FragColor = vec4(vec3(1.0, 0.96, 0.9), (1.0 - smoothstep(0.0, 0.25, d)) * vA);
       }
     `,
   }));
@@ -1050,9 +1054,9 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           vec3 b = mix(vec3(0.24, 0.5, 0.82), vec3(0.46, 0.72, 0.93), k);
           vec3 c = mix(vec3(0.1, 0.14, 0.22), vec3(0.24, 0.3, 0.4), k);
           vec3 d = mix(vec3(0.03, 0.05, 0.16), vec3(0.09, 0.13, 0.32), k);
-          float t1 = smoothstep(-4.0, -8.0, z);
-          float t2 = smoothstep(-18.5, -22.0, z);
-          float t3 = smoothstep(-33.0, -37.0, z);
+          float t1 = 1.0 - smoothstep(-8.0, -4.0, z);
+          float t2 = 1.0 - smoothstep(-22.0, -18.5, z);
+          float t3 = 1.0 - smoothstep(-37.0, -33.0, z);
           return mix(mix(mix(a, b, t1), c, t2), d, t3);
         }
         void main() {
@@ -1106,7 +1110,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         void main() {
           float s = fract(vUv.y * 5.0 + uTime * 1.6 + sin(vUv.x * 18.0) * 0.12);
           vec3 col = mix(vec3(0.46, 0.88, 0.86), vec3(0.95, 1.0, 1.0), smoothstep(0.72, 1.0, s) * 0.7);
-          float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x);
+          float edge = smoothstep(0.0, 0.12, vUv.x) * (1.0 - smoothstep(0.88, 1.0, vUv.x));
           gl_FragColor = vec4(col, 0.88 * edge);
         }
       `,
@@ -1203,7 +1207,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     void main() {
       vec2 q = (vUv - 0.5) * vec2(1.0, 1.35);
       float d = length(q);
-      float notch = smoothstep(0.08, 0.0, abs(q.x)) * step(0.3, q.y);
+          float notch = (1.0 - smoothstep(0.0, 0.08, abs(q.x))) * step(0.3, q.y);
       if (d > 0.5 || notch > 0.5) discard;
       gl_FragColor = vec4(vColor * uTint * (0.86 + 0.28 * (0.5 - d)), vFade);
     }
@@ -1267,7 +1271,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       mat3 r = rotAxis(axis, uTime * (1.2 + aSeed.x * 2.2) + aSeed.y * 6.28);
       vec3 local = r * vec3(position.x * 0.14, position.y * 0.1, 0.0);
       gl_Position = projectionMatrix * modelViewMatrix * vec4(p + local, 1.0);
-      vFade = smoothstep(0.0, 0.25, drop) * smoothstep(height, height - 0.3, drop);
+      vFade = smoothstep(0.0, 0.25, drop) * (1.0 - smoothstep(height - 0.3, height, drop));
       vColor = aColor;
       vUv = uv;
     }
@@ -1318,7 +1322,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       mat3 r = rotAxis(vec3(0.0, 1.0, 0.0), uTime * 0.3 + aSeed.w * 6.28);
       vec3 local = r * vec3(position.x * 0.16, 0.0, position.y * 0.12);
       gl_Position = projectionMatrix * modelViewMatrix * vec4(p + local, 1.0);
-      vFade = smoothstep(0.0, 0.08, t) * smoothstep(1.0, 0.9, t) * 0.95;
+      vFade = smoothstep(0.0, 0.08, t) * (1.0 - smoothstep(0.9, 1.0, t)) * 0.95;
       vColor = aColor;
       vUv = uv;
     }
@@ -1357,7 +1361,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       mat3 r = rotAxis(axis, t * (2.0 + aSeed.y * 3.0));
       vec3 local = r * vec3(position.x * 0.16, position.y * 0.12, 0.0) * alive;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(p + local, 1.0);
-      vFade = alive * smoothstep(0.0, 0.4, t) * smoothstep(9.0, 6.0, t);
+      vFade = alive * smoothstep(0.0, 0.4, t) * (1.0 - smoothstep(6.0, 9.0, t));
       vColor = aColor;
       vUv = uv;
     }
@@ -1430,7 +1434,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
         float d = dot(p, p);
         if (d > 0.25) discard;
         vec3 col = mix(vec3(1.0, 0.95, 0.6), vec3(1.0, 0.62, 0.78), vPink);
-        gl_FragColor = vec4(col, smoothstep(0.25, 0.0, d) * vA);
+        gl_FragColor = vec4(col, (1.0 - smoothstep(0.0, 0.25, d)) * vA);
       }
     `,
   }));
@@ -1472,7 +1476,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           vec2 p = gl_PointCoord - 0.5;
           float d = dot(p, p);
           if (d > 0.25) discard;
-          gl_FragColor = vec4(uColor, smoothstep(0.25, 0.0, d) * (1.0 - vLife) * smoothstep(0.0, 0.1, vLife) * uAlpha);
+          gl_FragColor = vec4(uColor, (1.0 - smoothstep(0.0, 0.25, d)) * (1.0 - vLife) * smoothstep(0.0, 0.1, vLife) * uAlpha);
         }
       `,
     });
@@ -1847,6 +1851,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   };
   document.addEventListener('visibilitychange', onHide);
   window.addEventListener('resize', resize);
+  window.visualViewport?.addEventListener('resize', resize);
 
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -2036,6 +2041,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       cancelAnimationFrame(frame);
       document.removeEventListener('visibilitychange', onHide);
       window.removeEventListener('resize', resize);
+      window.visualViewport?.removeEventListener('resize', resize);
       renderer.dispose();
     },
   };
