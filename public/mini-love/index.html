@@ -304,11 +304,14 @@ SOFTWARE.
     .pg-dots { flex:1; border-bottom:1px dotted #c8b79f; transform:translateY(-4px); }
     .pg-title { white-space:nowrap; transition:color .2s; }
     .program-foot { margin:18px 0 0; color:var(--muted); font:13px/2 var(--serif); letter-spacing:1px; }
-    .program-audio { display:flex; justify-content:center; margin:16px 0 0; }
+    .program-audio { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:16px 0 0; }
     .program-sound { display:inline-flex; align-items:center; justify-content:center; min-height:46px; margin:0; padding:0 20px; border:1px solid #bc858a; border-radius:23px; background:#fffaf4; color:var(--rose); font-size:14px; letter-spacing:1px; transition:background .3s,color .3s; }
     .program-sound[aria-pressed="true"] { background:var(--rose); color:#fff8ee; }
     .program-note { margin:10px 0 0; color:#9a8b7d; font-size:12px; line-height:1.8; }
-    .music-source { display:block; margin-top:5px; color:inherit; font:12px/1.8 var(--serif); opacity:.86; }
+    .piano-player { width:min(100%,560px); margin:18px auto 0; text-align:left; }
+    .piano-player iframe { display:block; width:100%; aspect-ratio:16/9; border:0; background:#111827; }
+    .piano-player a { display:inline-block; margin-top:8px; color:var(--rose); font:12px/1.8 var(--serif); text-underline-offset:4px; }
+    .music-source { display:block; margin-top:5px; color:inherit; font:12px/1.8 var(--serif); opacity:.86; text-underline-offset:4px; }
     .starry-tribute { margin:30px 0 8px; padding:20px 19px 18px; border:1px solid rgba(230,206,172,.55); border-radius:8px; background:linear-gradient(145deg,rgba(18,24,58,.96),rgba(20,37,73,.88)); color:#f8eee0; box-shadow:0 16px 40px rgba(8,11,28,.16); overflow:hidden; position:relative; }
     .starry-tribute::before { content:"✦  ·  ✧  ·  ✦"; position:absolute; top:10px; right:16px; color:#f6d99a; opacity:.7; letter-spacing:7px; font-size:11px; }
     .starry-visual { position:relative; height:118px; margin:-4px -4px 16px; overflow:hidden; border:1px solid rgba(248,224,178,.16); border-radius:7px; background:#111b3b; isolation:isolate; }
@@ -674,9 +677,14 @@ SOFTWARE.
         </ol>
         <p class="program-foot">演唱：陈润森（暂为独唱）<br />献给：潘诗菡</p>
         <div class="program-audio">
+          <button class="program-sound" id="piano-toggle" type="button" aria-expanded="false" aria-controls="piano-player" hidden><span>听《手写的从前》钢琴演奏</span></button>
           <button class="program-sound js-sound-toggle" type="button" aria-pressed="false" data-on="♪ 原创星夜钢琴已打开" data-off="♪ 听原创星夜钢琴"><span>♪ 听原创星夜钢琴</span></button>
         </div>
-        <p class="program-note">原创星夜钢琴：陈润森 · 约 26 秒一段，自动循环</p>
+        <div class="piano-player" id="piano-player" hidden>
+          <iframe id="piano-frame" title="林离《手写的从前》钢琴演奏，B站播放器" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          <a href="https://www.bilibili.com/video/BV1D58364Ean" target="_blank" rel="noopener noreferrer">在 B 站打开演奏</a>
+        </div>
+        <p class="program-note">《手写的从前》钢琴演奏：林离 · 原创星夜钢琴：陈润森</p>
       </section>
 
       <article class="letter" aria-label="陈润森写给潘诗菡的信">
@@ -756,7 +764,7 @@ SOFTWARE.
             <p class="tribute-kicker">JAY CHOU / STAR NIGHT</p>
             <h3>把喜欢放进星空里</h3>
             <p>知道你喜欢周杰伦，我把帽檐、麦克风和琴键画进星空，也把《手写的从前》的钢琴演奏留在这封信里。</p>
-            <p class="music-source">《手写的从前》钢琴版是这段星夜钢琴的灵感来源。</p>
+            <a class="music-source" href="https://www.bilibili.com/video/BV1D58364Ean" target="_blank" rel="noopener noreferrer">打开林离《手写的从前》钢琴演奏 · B站</a>
           </aside>
           <figure class="world" id="world-figure">
             <h3>给你留了一格晴天</h3>
@@ -2012,10 +2020,21 @@ SOFTWARE.
         audio.held = null;
       };
       const soundButtons = $$('.js-sound-toggle');
+      const pianoToggle = $('#piano-toggle');
+      const pianoPlayer = $('#piano-player');
+      const pianoFrame = $('#piano-frame');
+      const pianoEmbed = 'https://player.bilibili.com/player.html?bvid=BV1D58364Ean&page=1&danmaku=0&autoplay=0&isOutside=true';
       const syncSound = () => soundButtons.forEach((button) => {
         button.setAttribute('aria-pressed', String(audio.on));
         button.querySelector('span').textContent = audio.on ? button.dataset.on : button.dataset.off;
       });
+      const closePiano = () => {
+        if (!pianoPlayer || pianoPlayer.hidden) return;
+        pianoFrame.removeAttribute('src');
+        pianoPlayer.hidden = true;
+        pianoToggle.setAttribute('aria-expanded', 'false');
+        pianoToggle.querySelector('span').textContent = '听《手写的从前》钢琴演奏';
+      };
       const resumeAudio = async () => {
         const ctx = initAudio();
         if (!ctx) return false;
@@ -2039,6 +2058,20 @@ SOFTWARE.
         stopThemeLoop();
         syncSound();
       };
+      if (pianoToggle && pianoPlayer && pianoFrame) {
+        pianoToggle.hidden = false;
+        pianoToggle.addEventListener('click', () => {
+          if (!pianoPlayer.hidden) {
+            closePiano();
+            return;
+          }
+          muteAudio();
+          pianoFrame.src = pianoEmbed;
+          pianoPlayer.hidden = false;
+          pianoToggle.setAttribute('aria-expanded', 'true');
+          pianoToggle.querySelector('span').textContent = '关闭《手写的从前》播放器';
+        });
+      }
       soundButtons.forEach((button) => {
         button.hidden = false;
         button.addEventListener('click', async () => {
@@ -2046,6 +2079,7 @@ SOFTWARE.
             muteAudio();
             return;
           }
+          closePiano();
           const requestId = ++audio.requestId;
           if (!(await resumeAudio()) || requestId !== audio.requestId) return;
           audio.on = true;
