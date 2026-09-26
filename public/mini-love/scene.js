@@ -1,6 +1,6 @@
 /**
  * 一座从白天走到星夜的方块小岛：奶油童话的花园、日系的樱花河、中式的灯笼水乡、星空下的浮岛。
- * three 按需从 CDN 加载；失败时页面照常显示信纸。镜头随阅读进度前进，不接受拖拽。
+ * three 按需从站内模块加载；失败时页面照常显示信纸。镜头随阅读进度前进，不接受拖拽。
  */
 
 const THREE_URL = './vendor/three.module.min.js';
@@ -26,7 +26,7 @@ const hexRGB = (hex) => {
 
 /* 四段天色（显示色）：奶油晨光、清透白天、灯笼黄昏、星夜 */
 const SKY = [
-  { z: [0.6, 0.8, 0.97], m: [0.84, 0.9, 0.98], h: [1.0, 0.9, 0.87], sun: [1.0, 0.95, 0.9], sunI: 1.35, hs: [0.86, 0.91, 1.0], hg: [0.85, 0.9, 0.74], hI: 1.05, fog: 0.018 },
+  { z: [0.35, 0.6, 0.83], m: [0.59, 0.76, 0.91], h: [0.82, 0.84, 0.88], sun: [1.0, 0.95, 0.9], sunI: 1.35, hs: [0.86, 0.91, 1.0], hg: [0.85, 0.9, 0.74], hI: 1.05, fog: 0.018 },
   { z: [0.33, 0.6, 0.93], m: [0.62, 0.8, 0.97], h: [0.88, 0.94, 0.99], sun: [1.0, 1.0, 0.97], sunI: 1.55, hs: [0.8, 0.88, 1.0], hg: [0.66, 0.78, 0.56], hI: 1.0, fog: 0.016 },
   { z: [0.08, 0.16, 0.35], m: [0.27, 0.32, 0.58], h: [0.48, 0.45, 0.66], sun: [1.0, 0.7, 0.5], sunI: 1.0, hs: [0.63, 0.65, 0.82], hg: [0.34, 0.34, 0.42], hI: 0.75, fog: 0.022 },
   { z: [0.006, 0.018, 0.09], m: [0.02, 0.07, 0.22], h: [0.06, 0.15, 0.33], sun: [0.7, 0.84, 1.0], sunI: 0.5, hs: [0.18, 0.32, 0.64], hg: [0.05, 0.08, 0.19], hI: 0.62, fog: 0.02 },
@@ -793,31 +793,34 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
   }
   const grainTex = new THREE.CanvasTexture(grainCanvas);
   grainTex.wrapS = grainTex.wrapT = THREE.RepeatWrapping;
-  grainTex.magFilter = THREE.NearestFilter;
-  grainTex.minFilter = THREE.NearestFilter;
-  grainTex.generateMipmaps = false;
+  grainTex.magFilter = THREE.LinearFilter;
+  grainTex.minFilter = THREE.LinearMipmapLinearFilter;
+  grainTex.generateMipmaps = true;
   grainTex.colorSpace = THREE.NoColorSpace;
   grainTex.needsUpdate = true;
   const withGrain = (material, amount = 0.08) => {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uGrainAmt = { value: amount };
-      shader.vertexShader = `varying vec3 vLocalPos;\n${shader.vertexShader}`
+      shader.vertexShader = `varying vec3 vGrainPos;\n${shader.vertexShader}`
         .replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
-          vLocalPos = position;`
+          vGrainPos = position;
+          #ifdef USE_INSTANCING
+            vGrainPos = (instanceMatrix * vec4(position, 1.0)).xyz;
+          #endif`
         );
-      shader.fragmentShader = `uniform float uGrainAmt;\nvarying vec3 vLocalPos;\n${shader.fragmentShader}`
+      shader.fragmentShader = `uniform float uGrainAmt;\nvarying vec3 vGrainPos;\n${shader.fragmentShader}`
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
-          vec3 cell = floor(vLocalPos * 28.0 + 0.5);
+          vec3 cell = floor(vGrainPos * 9.0);
           float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-          float grain = mix(0.975, 1.025, h);
+          float grain = mix(0.91, 1.09, h);
           diffuseColor.rgb *= mix(1.0, grain, uGrainAmt);`
         );
     };
-    material.customProgramCacheKey = () => `grain-hash-${amount}`;
+    material.customProgramCacheKey = () => `grain-world-${amount}`;
     return material;
   };
   const instanced = (list, material) => {
@@ -838,7 +841,7 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     scene.add(mesh);
     return mesh;
   };
-  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.1));
+  instanced(lit, withGrain(new THREE.MeshLambertMaterial({ color: 0xffffff }), 0.32));
   const warmMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.06);
   const magicMat = withGrain(new THREE.MeshBasicMaterial({ color: 0xffffff }), 0.07);
   instanced(glow.warm, warmMat);
@@ -1079,11 +1082,11 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
           vec3 viewDir = normalize(cameraPosition - vWorld);
           vec3 lightDir = normalize(vec3(0.35, 0.82, 0.28));
           float spec = pow(max(0.0, dot(reflect(-lightDir, nrm), viewDir)), 48.0);
-          float streak = pow(max(0.0, 1.0 - abs(nrm.x * 2.2 + nrm.z * 0.6)), 10.0) * (0.55 + 0.45 * wave);
-          vec3 spark = mix(vec3(0.92, 0.96, 1.0), vec3(1.0, 0.82, 0.58), uLamp);
-          col += spark * (spec * (0.28 + 0.35 * uLamp) + streak * (0.12 + 0.18 * uLamp));
-          float glint = pow(max(0.0, wave), 5.0);
-          col += glint * spark * (0.08 + 0.12 * uLamp);
+           float streak = pow(max(0.0, 1.0 - abs(nrm.x * 2.2 + nrm.z * 0.6)), 14.0) * (0.55 + 0.45 * wave);
+           vec3 spark = mix(vec3(0.92, 0.96, 1.0), vec3(1.0, 0.82, 0.58), uLamp);
+           col += spark * (spec * (0.28 + 0.35 * uLamp) + streak * (0.045 + 0.09 * uLamp));
+           float glint = pow(max(0.0, wave), 5.0);
+           col += glint * spark * (0.05 + 0.08 * uLamp);
           vec2 cell = floor(xz * 6.5);
           float sp = step(0.997, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
           col += vec3(0.85, 0.88, 1.0) * sp * uNight * (0.5 + 0.5 * sin(uTime * 3.0 + cell.x));
@@ -1617,7 +1620,9 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
     hemi.intensity = env.hI;
     const cloudTint = phase < 1.6 ? [1, 1, 1] : mix3([1.0, 0.78, 0.74], [0.26, 0.28, 0.46], smooth(2.0, 2.8, phase));
     display(cloudTint, cloudMat.color);
-    cloudMat.opacity = 0.92 - night * 0.62;
+    const portraitCover = smooth(0.15, 0.7, clamp01((0.92 - camera.aspect) / 0.55))
+      * (1 - smooth(0.45, 1.0, story));
+    cloudMat.opacity = (0.92 - night * 0.62) * (1 - portraitCover * 0.96);
     moon.material.opacity = smooth(1.7, 2.6, phase);
     moonGlow.material.opacity = 0.55 * smooth(1.7, 2.6, phase);
     sunGlow.material.opacity = 0.75 * day;
@@ -1662,6 +1667,8 @@ export async function mountIsland(canvas, { reduced = false } = {}) {
       wantPos.addScaledVector(forward, -portrait * 3.8);
       wantPos.y += portrait * 1.0;
       wantLook.y += portrait * 0.65;
+      const shortScreen = clamp01((760 - canvas.clientHeight) / 180);
+      wantLook.y += portrait * (1 - smooth(0.45, 1.0, story)) * (3.6 + shortScreen * 1.8);
     }
     return phaseAlong(story);
   };
