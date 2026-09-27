@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1130" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="二〇二六年中秋，陈润森写给潘诗菡：今晚的月亮很圆，想分你一半。" />
+  <meta property="og:title" content="诗菡，中秋快乐 · 陈润森" />
+  <meta property="og:description" content="今晚的月亮很圆，想分你一半。" />
+  <title>中秋快乐 · 陈润森致潘诗菡</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23f6e2a8'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%23e3c47e'/%3E%3Ccircle cx='20' cy='19' r='4' fill='%23e3c47e'/%3E%3C/svg%3E" />
+  <style>
+    :root { color-scheme:dark; --night:#0b1130; --ink:#f4ecdc; --muted:#b7b1c6; --gold:#f1cf86; --gold-deep:#d9a24a; --rose:#eba3b6; --line:rgba(241,207,134,.22); --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC",SimSun,serif; --sans:"PingFang SC","Microsoft YaHei",sans-serif; }
+    * { box-sizing:border-box; }
+    html { background:var(--night); scroll-behavior:smooth; }
+    html,body { overflow-x:hidden; }
+    @supports (overflow:clip) { html,body { overflow-x:clip; } }
+    body { margin:0; color:var(--ink); font-family:var(--sans); -webkit-text-size-adjust:100%; }
+    button,input { font:inherit; color:inherit; }
+    button,a { -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+    button { cursor:pointer; }
+    :focus-visible { outline:2px solid var(--gold); outline-offset:4px; }
+    ::selection { background:#f1cf8655; }
+    [hidden] { display:none !important; }
+    .u-sr { position:absolute; width:1px; height:1px; margin:-1px; clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
+
+    html, body { background:#090f2c; }
+    .island-stage { position:fixed; inset:0; z-index:0; pointer-events:none; background:#090f2c; }
+    .island-stage canvas { display:block; width:100%; height:100%; }
+    .island-stage.is-loading::after { content:"月色铺开中…"; position:absolute; inset:0; display:grid; place-items:center; color:#f1cf86; font:14px/1.6 "Songti SC","Noto Serif SC",serif; letter-spacing:4px; pointer-events:none; }
+    .page { position:relative; z-index:1; width:min(100%,1120px); margin:0 auto; padding:0 max(24px,env(safe-area-inset-right)) 0 max(24px,env(safe-area-inset-left)); }
+    .page::before { content:""; position:fixed; z-index:-1; left:50%; top:0; bottom:0; width:min(720px,100%); transform:translateX(-50%); pointer-events:none; background:linear-gradient(90deg,rgba(8,12,36,.12),rgba(8,12,36,.42) 10%,rgba(8,12,36,.42) 90%,rgba(8,12,36,.12)); }
+    h1, .sub, .lunar, .moon-line, .prose, .kicker, h2, .quote, .cake-note, .phase-text, .phase-after, .wish-echo, .sign, .privacy { text-shadow:0 1px 14px rgba(6,10,28,.7),0 0 28px rgba(6,10,28,.35); }
+    .hero { min-height:calc(100svh - 50px); }
+    .topline { display:flex; justify-content:space-between; gap:12px; padding-top:max(22px,env(safe-area-inset-top)); padding-bottom:14px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; letter-spacing:2px; }
+
+    /* ── 卷首：月亮、问候与夜里的小岛 ── */
+    .hero { position:relative; min-height:calc(100svh - 50px); display:grid; grid-template-rows:auto auto 1fr; padding-top:4vh; }
+    .moon-wrap { position:relative; justify-self:end; width:min(64vw,330px); margin:0 -6vw -6vh 0; transform:translate3d(0,calc(var(--rise,0) * -46px),0); z-index:0; }
+    .moon-wrap::before { content:""; position:absolute; inset:-55%; border-radius:50%; background:repeating-conic-gradient(from 0deg,rgba(255,236,190,.07) 0deg 5deg,transparent 5deg 17deg); -webkit-mask:radial-gradient(circle,#000 22%,transparent 68%); mask:radial-gradient(circle,#000 22%,transparent 68%); animation:raysSpin 90s linear infinite; pointer-events:none; }
+    .moon { position:relative; display:block; width:100%; aspect-ratio:1; padding:0; border:0; background:none; border-radius:50%; animation:moonRise 2.2s cubic-bezier(.16,1,.3,1) .15s both; }
+    .moon::before { content:""; position:absolute; inset:-38%; border-radius:50%; background:radial-gradient(circle,rgba(255,232,178,.34) 0%,rgba(255,220,160,.12) 38%,transparent 66%); animation:halo 6s ease-in-out infinite; pointer-events:none; }
+    .moon svg { position:relative; display:block; width:100%; height:100%; filter:drop-shadow(0 0 26px rgba(255,230,170,.5)); transition:filter .6s; }
+    .moon.is-blush svg { filter:drop-shadow(0 0 30px rgba(255,170,190,.75)); }
+    .moon .blush { opacity:0; transition:opacity .6s; }
+    .moon.is-blush .blush { opacity:1; }
+    .moon.is-pulse::before { animation:haloPulse .9s ease-out; }
+    .moon.is-untouched::after { content:""; position:absolute; inset:-12px; border:1.5px dashed rgba(241,207,134,.6); border-radius:50%; animation:hintRing 2.6s ease-in-out infinite; pointer-events:none; }
+    .greeting { position:relative; z-index:1; }
+    .lunar { margin:0 0 14px; color:var(--gold); font:13px/1.6 var(--serif); letter-spacing:4px; animation:fadeUp 1s cubic-bezier(.16,1,.3,1) .6s both; }
+    h1 { margin:0; font:500 clamp(40px,11vw,64px)/1.35 var(--serif); letter-spacing:3px; }
+    h1 span { display:block; animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) both; }
+    h1 span:first-child { animation-delay:.75s; }
+    h1 .accent { background:linear-gradient(100deg,var(--gold) 0%,var(--gold) 40%,#fff6dc 50%,var(--gold) 60%,var(--gold) 100%); background-size:260% 100%; background-position:100% 0; -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 16px rgba(241,207,134,.4)); animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) .9s both,shimmer 5.5s ease-in-out 2.6s infinite; }
+    .sub { margin:18px 0 0; color:#ddd6e6; font:16px/2 var(--serif); letter-spacing:1px; animation:fadeUp 1.1s cubic-bezier(.16,1,.3,1) 1.1s both; }
+    .moon-line { min-height:28px; margin:10px 0 0; color:var(--rose); font:14px/2 var(--serif); letter-spacing:1px; transition:opacity .5s; }
+    .moon-line.is-hidden { opacity:0; }
+    .moon-line--hint { color:var(--muted); font-size:13px; letter-spacing:2px; animation:fadeUp 1s ease 1.6s both; }
+    .island { display:block; width:100%; max-width:560px; height:auto; margin:0 auto; }
+    .island .cloud-two { animation-delay:-6s; }
+    .island .sparkles path { animation:twinkle 3.2s ease-in-out infinite; }
+    .island .gui { animation:twinkle 2.6s ease-in-out infinite; }
+    .island .lantern:nth-of-type(2) .lantern-sway { animation-delay:-1.8s; }
+    .scroll-hint { justify-self:center; margin:6px 0 max(18px,env(safe-area-inset-bottom)); color:var(--muted); font-size:12px; letter-spacing:2px; text-decoration:none; animation:fadeUp 1s ease 2s both; }
+    .scroll-hint::after { content:""; display:block; width:1px; height:26px; margin:8px auto 0; background:linear-gradient(var(--gold),transparent); animation:hintLine 2.4s ease-in-out infinite; }
+
+    /* ── 正文各节 ── */
+    section.block { padding:64px 0; border-top:1px solid var(--line); }
+    .kicker { margin:0 0 10px; color:var(--gold); font:12px/1.6 var(--serif); letter-spacing:5px; }
+    h2 { margin:0 0 22px; font:500 26px/1.6 var(--serif); letter-spacing:3px; }
+    .prose { max-width:620px; font:17px/2.1 var(--serif); letter-spacing:.6px; text-align:justify; }
+    .prose p { margin:0 0 22px; }
+    .prose .salute { color:var(--gold); font-size:22px; letter-spacing:4px; }
+    .quote { margin:30px 0; padding:4px 0 4px 18px; border-left:2px solid var(--gold-deep); color:#efe0bd; font:19px/1.9 var(--serif); letter-spacing:2px; }
+    .quote small { display:block; margin-top:4px; color:var(--muted); font-size:12px; letter-spacing:1px; }
+    .reveal { opacity:0; transform:translateY(18px); transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1); }
+    .reveal.is-in { opacity:1; transform:none; }
+
+    /* 月饼 */
+    .cake-stage { display:grid; justify-items:center; gap:18px; margin:10px auto 0; max-width:520px; text-align:center; }
+    .mooncake { width:min(78vw,300px); padding:0; border:0; background:none; border-radius:50%; }
+    .mooncake svg { display:block; width:100%; height:auto; overflow:visible; }
+    .cake-half { transition:transform .9s cubic-bezier(.22,1.2,.36,1); transform-box:fill-box; transform-origin:center; }
+    .is-split .cake-half { transition-delay:.3s; }
+    .knife { stroke:#fff6dc; stroke-width:2.5; stroke-linecap:round; stroke-dasharray:220; stroke-dashoffset:220; opacity:0; filter:drop-shadow(0 0 5px #fff1bd); }
+    .is-cutting .knife { animation:knife .45s ease-out both; }
+    .crumbs circle { fill:#d69a4d; opacity:0; }
+    .is-split .crumbs circle { animation:crumb 1s ease-in .35s both; }
+    .is-split .crumbs circle:nth-child(2) { animation-delay:.45s; }
+    .is-split .crumbs circle:nth-child(3) { animation-delay:.4s; }
+    .is-split .crumbs circle:nth-child(4) { animation-delay:.5s; }
+    .mooncake:active svg { transform:scale(.98); }
+    .mooncake svg { transition:transform .15s; }
+    .is-split .cake-left { transform:translate(-20px,6px) rotate(-8deg); }
+    .is-split .cake-right { transform:translate(22px,-4px) rotate(7deg); }
+    .cake-inside { opacity:0; transition:opacity .5s .25s; }
+    .is-split .cake-inside { opacity:1; }
+    .cake-tag { opacity:0; transition:opacity .5s .5s; font:13px var(--serif); letter-spacing:2px; }
+    .is-split .cake-tag { opacity:1; }
+    .cake-hint { margin:0; color:var(--muted); font-size:13px; letter-spacing:1px; }
+    .cake-note { min-height:96px; margin:0; font:16px/2 var(--serif); letter-spacing:.6px; color:#e9e1d2; }
+    .cake-note strong { color:var(--gold); font-weight:500; }
+
+    /* 此刻月相 */
+    .phase { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:26px; max-width:620px; }
+    .phase-moon { width:112px; height:112px; filter:drop-shadow(0 0 18px rgba(255,230,170,.35)); }
+    .phase-num { margin:0 0 6px; font:500 34px/1.2 var(--serif); color:var(--gold); letter-spacing:1px; }
+    .phase-num small { font-size:14px; color:var(--muted); letter-spacing:2px; margin-left:6px; }
+    .phase-text { margin:0; font:15px/2 var(--serif); color:#e3dccf; }
+    .timeline { max-width:620px; margin:30px 0 0; }
+    .tl-track { position:relative; height:4px; margin:28px 8px 0; border-radius:2px; background:rgba(241,207,134,.18); }
+    .tl-fill { position:absolute; left:0; top:0; bottom:0; width:0; border-radius:2px; background:linear-gradient(90deg,rgba(241,207,134,.25),var(--gold)); }
+    .tl-now { position:absolute; top:50%; left:0; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; background:var(--gold); box-shadow:0 0 12px rgba(241,207,134,.8); }
+    .tl-now b { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); color:var(--gold); font:500 12px/1 var(--serif); letter-spacing:2px; white-space:nowrap; }
+    .tl-full { position:absolute; top:50%; right:-8px; width:16px; height:16px; margin-top:-8px; border-radius:50%; background:#f6e5b8; box-shadow:0 0 14px rgba(255,230,170,.7); }
+    .tl-labels { display:flex; justify-content:space-between; gap:12px; margin-top:14px; color:var(--muted); font-size:12px; letter-spacing:.5px; }
+    .phase-after { max-width:620px; margin:26px 0 0; font:16px/2.1 var(--serif); color:#e9e1d2; }
+
+    /* 放灯 */
+    .wish { position:relative; display:flex; gap:10px; max-width:520px; margin:6px 0 12px; }
+    .fly { position:absolute; right:30px; top:6px; width:14px; height:18px; border-radius:6px 6px 4px 4px; background:linear-gradient(#ffe3a6,#ec7a40); box-shadow:0 0 18px 6px rgba(255,190,110,.45); pointer-events:none; animation:fly 1.7s ease-out both; }
+    .wish input { flex:1; min-width:0; min-height:50px; padding:10px 14px; border:1px solid rgba(241,207,134,.35); border-radius:4px; background:rgba(10,14,40,.5); color:var(--ink); font-size:16px; }
+    .wish input::placeholder { color:#8f8aa6; }
+    .wish button { min-height:50px; padding:0 20px; border:1px solid var(--gold-deep); border-radius:4px; background:linear-gradient(180deg,#f3c46c,#dc9442); color:#2a1a0c; font-weight:600; letter-spacing:2px; white-space:nowrap; }
+    .wish button:active { transform:translateY(1px); }
+    .privacy { margin:0; color:var(--muted); font-size:12px; line-height:1.9; letter-spacing:.5px; }
+    .wish-echo { min-height:32px; margin:16px 0 0; color:var(--rose); font:15px/2 var(--serif); letter-spacing:1px; }
+
+    /* 落款 */
+    .sign { padding:56px 0 30px; border-top:1px solid var(--line); text-align:right; }
+    .sign p { margin:0; color:var(--muted); font-size:13px; letter-spacing:2px; }
+    .sign strong { display:block; margin:6px 0 4px; font:500 28px/1.6 var(--serif); letter-spacing:6px; color:var(--ink); }
+    .seal { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; margin-top:10px; border:1.5px solid #e0796a; color:#e0796a; font:20px/1 var(--serif); transform:rotate(-8deg); }
+    .ps { margin:36px 0 0; padding:18px 20px; border:1px dashed rgba(241,207,134,.3); border-radius:4px; text-align:left; font:15px/2 var(--serif); color:#ddd5e4; }
+    .ps a { color:var(--gold); text-underline-offset:5px; }
+    .foot { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; padding:18px 0 calc(max(28px,env(safe-area-inset-bottom)) + 52px); border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .sound { position:fixed; right:max(14px,env(safe-area-inset-right)); bottom:max(16px,env(safe-area-inset-bottom)); z-index:9; display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border:1px solid rgba(241,207,134,.4); border-radius:20px; background:rgba(11,17,48,.72); color:var(--muted); font-size:12px; letter-spacing:1px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+    .sound[aria-pressed="true"] { border-color:var(--gold-deep); color:var(--gold); box-shadow:0 0 16px rgba(241,207,134,.25); }
+    .sound svg { width:14px; height:14px; }
+    .sound::before { content:"点这里可关掉"; position:absolute; right:calc(100% + 10px); top:50%; transform:translateY(-50%); padding:6px 10px; border-radius:4px; background:rgba(244,236,220,.95); color:#1b1f3a; font-size:12px; white-space:nowrap; opacity:0; transition:opacity .4s; pointer-events:none; }
+    .sound.is-hint { animation:soundHint 1.3s ease-in-out 3; }
+    .sound.is-hint::before { opacity:1; }
+    .foot a { color:var(--muted); text-decoration:none; }
+    .foot a:hover { color:var(--gold); }
+    .share { min-height:44px; padding:8px 14px; border:1px solid rgba(241,207,134,.3); border-radius:4px; background:transparent; color:#e6dcc8; font-size:13px; letter-spacing:1px; }
+    .toast { position:fixed; left:50%; bottom:calc(max(16px,env(safe-area-inset-bottom)) + 52px); transform:translateX(-50%); max-width:calc(100vw - 32px); padding:12px 18px; border-radius:6px; background:#f4ecdc; color:#1b1f3a; font-size:13px; line-height:1.7; z-index:10; }
+
+    @keyframes moonRise { from { opacity:0; transform:translateY(60px) scale(.94); } to { opacity:1; transform:none; } }
+    @keyframes halo { 0%,100% { opacity:.85; transform:scale(1); } 50% { opacity:1; transform:scale(1.05); } }
+    @keyframes haloPulse { 0% { transform:scale(1); opacity:1; } 45% { transform:scale(1.16); opacity:1; } 100% { transform:scale(1); opacity:.85; } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    @keyframes drift { from { transform:translateX(-5px); } to { transform:translateX(7px); } }
+    @keyframes breathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes twinkle { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+    @keyframes sway { from { transform:rotate(-5deg); } to { transform:rotate(5deg); } }
+    @keyframes flicker { 0%,100% { opacity:.9; } 40% { opacity:.7; } 55% { opacity:1; } 70% { opacity:.8; } }
+    @keyframes shimmer { 0% { background-position:100% 0; } 55%,100% { background-position:0% 0; } }
+    @keyframes raysSpin { to { transform:rotate(360deg); } }
+    @keyframes hintRing { 0%,100% { transform:scale(1); opacity:.45; } 50% { transform:scale(1.04); opacity:1; } }
+    @keyframes knife { 0% { stroke-dashoffset:220; opacity:1; } 65% { stroke-dashoffset:0; opacity:1; } 100% { stroke-dashoffset:0; opacity:0; } }
+    @keyframes crumb { 0% { opacity:1; transform:translateY(-4px); } 100% { opacity:0; transform:translateY(28px); } }
+    @keyframes fly { 0% { opacity:0; transform:translateY(6px) scale(.8); } 15% { opacity:1; } 100% { opacity:0; transform:translate(-12px,-150px) scale(.55); } }
+    @keyframes soundHint { 0%,100% { box-shadow:0 0 0 0 rgba(241,207,134,0); } 50% { box-shadow:0 0 0 9px rgba(241,207,134,.22); color:var(--gold); } }
+    @keyframes hintLine { 0%,100% { transform:scaleY(.4); transform-origin:top; opacity:.4; } 50% { transform:scaleY(1); transform-origin:top; opacity:1; } }
+
+    @media (min-width:900px) {
+      .page { padding:0 48px; }
+      .hero { grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); grid-template-rows:auto 1fr auto; column-gap:40px; min-height:calc(100vh - 56px); padding-top:6vh; }
+      .greeting { grid-column:1; grid-row:1 / span 2; align-self:center; }
+      .moon-wrap { grid-column:2; grid-row:1; justify-self:end; width:min(26vw,330px); margin:0 4% -40px 0; }
+      .scroll-hint { grid-column:1 / -1; grid-row:3; }
+      html.has-island .hero { grid-template-columns:minmax(0,1fr) minmax(0,.72fr); }
+      html.has-island .greeting { grid-column:1; grid-row:1 / span 2; max-width:560px; }
+      html.has-island .moon-wrap { grid-column:2; grid-row:1 / span 2; align-self:center; width:min(22vw,280px); margin:0 2% 0 0; }
+      h1 { font-size:66px; }
+      .sub { font-size:18px; }
+      section.block { padding:84px 0; }
+      .prose { font-size:18px; }
+      .blocks-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 64px; }
+    }
+    @media (max-width:360px) { .page { padding:0 18px; } h1 { font-size:36px; } .prose { font-size:16px; } .wish { flex-direction:column; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation:none !important; transition:none !important; } .reveal { opacity:1; transform:none; } }
+  </style>
+</head>
+<body>
+  <div class="island-stage is-loading" id="island-stage" aria-hidden="true"><canvas id="autumn-world"></canvas></div>
+
+  <div class="page">
+    <header class="topline"><span>二〇二六 · 中秋</span><span>陈润森 致 潘诗菡</span></header>
+
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="moon-wrap">
+          <button class="moon is-untouched" id="moon" type="button" aria-label="轻触月亮" aria-describedby="moon-line">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <defs>
+                <radialGradient id="moon-face" cx="42%" cy="38%" r="72%">
+                  <stop offset="0" stop-color="#fffbef" />
+                  <stop offset=".6" stop-color="#f7e6bd" />
+                  <stop offset="1" stop-color="#e6c98a" />
+                </radialGradient>
+                <radialGradient id="moon-blush" cx="50%" cy="50%" r="50%">
+                  <stop offset="0" stop-color="#ffb3c4" stop-opacity=".55" />
+                  <stop offset="1" stop-color="#ffb3c4" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="92" fill="url(#moon-face)" />
+              <g fill="#dcbd7c" opacity=".42">
+                <circle cx="70" cy="76" r="17" /><circle cx="118" cy="60" r="9" /><circle cx="130" cy="116" r="21" />
+                <circle cx="78" cy="132" r="11" /><circle cx="150" cy="84" r="6" /><circle cx="104" cy="150" r="7" />
+              </g>
+              <g fill="#fffaf0" opacity=".5"><circle cx="62" cy="70" r="5" /><circle cx="124" cy="110" r="6" /></g>
+              <g class="blush"><circle cx="64" cy="118" r="20" fill="url(#moon-blush)" /><circle cx="140" cy="118" r="20" fill="url(#moon-blush)" /></g>
+            </svg>
+          </button>
+        </div>
+
+        <div class="greeting">
+          <p class="lunar">丙午年 · 八月十五</p>
+          <h1 id="title"><span>诗菡，</span><span class="accent">中秋快乐。</span></h1>
+          <p class="sub">今晚的月亮很圆，<br />想分你一半。</p>
+          <p class="moon-line moon-line--hint" id="moon-line" aria-live="polite">轻触月亮，它会回话。</p>
+        </div>
+
+        <a class="scroll-hint" href="#letter">轻触月亮，或者往下读</a>
+      </section>
+
+      <section class="block reveal" id="letter" aria-labelledby="letter-title">
+        <p class="kicker">写在十五的晚上</p>
+        <h2 class="u-sr" id="letter-title">一封中秋的短信</h2>
+        <div class="prose">
+          <p class="salute">诗菡：</p>
+          <p>中秋快乐。</p>
+          <p>今天是团圆的日子。这会儿，你大概正和家人坐在一起，吃月饼，聊天，说一些平时来不及说的话。这样的晚上很珍贵，我不想打扰，只想在里面悄悄放一句祝福。</p>
+          <p>团圆饭，我已经说不清有多久没坐上了。</p>
+          <p>月亮每年都圆。看见它，还是会停一下——是那张桌子离我太远。</p>
+          <p>今年不一样。月亮还是旧的，可我多了一个牵挂的人。</p>
+          <blockquote class="quote">但愿人长久，千里共婵娟。<small>苏轼《水调歌头》</small></blockquote>
+          <p>写中秋的诗那么多，这一句最有名。我们平时离得不远，用不着千里；可今晚抬头的时候，想到我们看的是同一轮月亮，还是觉得很好。</p>
+          <p>愿你今晚吃到喜欢的口味，许的愿都作数；愿你以后的每一个十五，都有一轮这么圆的月亮。</p>
+        </div>
+      </section>
+
+      <section class="block reveal" aria-labelledby="cake-title">
+        <p class="kicker">分你一半</p>
+        <h2 id="cake-title">月饼要分着吃</h2>
+        <div class="cake-stage">
+          <button class="mooncake" id="mooncake" type="button" aria-pressed="false" aria-describedby="cake-note">
+            <svg viewBox="-30 -20 260 240" aria-hidden="true">
+              <defs>
+                <radialGradient id="cake-top" cx="44%" cy="40%" r="70%">
+                  <stop offset="0" stop-color="#f0c27a" />
+                  <stop offset=".55" stop-color="#d69a4d" />
+                  <stop offset="1" stop-color="#ad6d2c" />
+                </radialGradient>
+                <clipPath id="cake-shape"><path class="js-scallop" d="" /></clipPath>
+                <clipPath id="cut-left"><rect x="-40" y="-40" width="128" height="280" /></clipPath>
+                <clipPath id="cut-right"><rect x="88" y="-40" width="160" height="280" /></clipPath>
+                <g id="cake">
+                  <path class="js-scallop" d="" fill="#8f5520" transform="translate(0 7)" />
+                  <path class="js-scallop" d="" fill="url(#cake-top)" />
+                  <circle cx="100" cy="100" r="70" fill="none" stroke="#9c5f24" stroke-width="3" opacity=".55" />
+                  <circle cx="100" cy="100" r="62" fill="none" stroke="#f6d69c" stroke-width="1.4" opacity=".6" />
+                  <g class="js-petals" fill="#b57634" opacity=".55"></g>
+                  <text x="100" y="118" text-anchor="middle" font-size="50" font-family="'Songti SC','Noto Serif CJK SC','Noto Serif SC',SimSun,serif" fill="#f7dca6" opacity=".7" transform="translate(-1.2 -1.2)">菡</text>
+                  <text x="100" y="118" text-anchor="middle" font-size="50" font-family="'Songti SC','Noto Serif CJK SC','Noto Serif SC',SimSun,serif" fill="#9a5c22">菡</text>
+                </g>
+              </defs>
+              <g class="cake-half cake-left">
+                <use href="#cake" clip-path="url(#cut-left)" />
+                <g class="cake-inside" clip-path="url(#cake-shape)"><rect x="83" y="0" width="5" height="200" fill="#ecd29a" /><rect x="83" y="80" width="5" height="40" rx="2" fill="#f0a33b" /></g>
+                <text class="cake-tag" x="40" y="222" text-anchor="middle" fill="#b7b1c6">我的</text>
+              </g>
+              <g class="cake-half cake-right">
+                <use href="#cake" clip-path="url(#cut-right)" />
+                <g class="cake-inside" clip-path="url(#cake-shape)"><rect x="88" y="0" width="5" height="200" fill="#ecd29a" /><rect x="88" y="78" width="5" height="44" rx="2" fill="#f0a33b" /></g>
+                <text class="cake-tag" x="150" y="222" text-anchor="middle" fill="#f1cf86">给你</text>
+              </g>
+              <line class="knife" x1="88" y1="-10" x2="88" y2="210" />
+              <g class="crumbs"><circle cx="85" cy="194" r="2.2" /><circle cx="92" cy="198" r="1.7" /><circle cx="82" cy="201" r="1.4" /><circle cx="96" cy="190" r="1.3" /></g>
+            </svg>
+          </button>
+          <p class="cake-hint" id="cake-hint">轻触月饼，切开它</p>
+          <p class="cake-note" id="cake-note" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="block reveal" aria-labelledby="phase-title">
+        <p class="kicker">此刻的月亮</p>
+        <h2 id="phase-title">它现在有多圆</h2>
+        <div class="phase">
+          <svg class="phase-moon" viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="#1d2550" />
+            <path id="phase-lit" d="" fill="#f6e5b8" />
+          </svg>
+          <div>
+            <p class="phase-num" id="phase-num">--%<small>被照亮</small></p>
+            <p class="phase-text" id="phase-text">正在算月亮的位置……</p>
+          </div>
+        </div>
+        <div class="timeline" id="timeline" hidden>
+          <div class="tl-track" aria-hidden="true"><span class="tl-fill" id="tl-fill"></span><span class="tl-now" id="tl-now"><b>现在</b></span><span class="tl-full"></span></div>
+          <div class="tl-labels"><span id="tl-start"></span><span id="tl-end"></span></div>
+        </div>
+        <p class="phase-after">都说“十五的月亮十六圆”。今年的中秋更有耐心一点：月亮最圆的那一刻，要等到农历八月十七的凌晨。<br />有些事也一样，不用着急，慢慢会圆的。</p>
+      </section>
+
+      <section class="block reveal" id="lanterns" aria-labelledby="lantern-title">
+        <p class="kicker">放一盏灯</p>
+        <h2 id="lantern-title">把愿望交给今晚的风</h2>
+        <form class="wish" id="wish-form" autocomplete="off">
+          <label class="u-sr" for="wish">你的愿望</label>
+          <input id="wish" name="wish" maxlength="20" placeholder="写一个愿望，也可以不写" enterkeyhint="send" />
+          <button type="submit">放灯</button>
+        </form>
+        <p class="privacy">愿望只留在你的屏幕上：这个页面不会记录，也不会发给任何人，包括我。</p>
+        <p class="wish-echo" id="wish-echo" aria-live="polite"></p>
+      </section>
+
+      <footer class="sign">
+        <p>十五的晚上，写给你</p>
+        <strong>陈润森</strong>
+        <p>丙午年 · 中秋</p>
+        <span class="seal" aria-hidden="true">森</span>
+        <p class="ps">P.S. 那封写在合唱之后的信，也还在这里——<a href="/mini-love/">去读一读</a></p>
+      </footer>
+    </main>
+
+    <div class="foot">
+      <a href="/">← 回到陈润森的网站</a>
+      <button class="share" id="share" type="button">分享这一页</button>
+    </div>
+  </div>
+  <button class="sound" id="sound" type="button" aria-pressed="true" title="背景音乐，可关掉" hidden>
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11 1v9.3A2.5 2.5 0 1 1 9.5 8V3.6L6 4.4v7.9A2.5 2.5 0 1 1 4.5 10V2.9z"/></svg><span>声音开</span>
+  </button>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script>
+    (() => {
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* 三维水乡：只用本地 vendor/three，必须挂上 */
+      let worldApi = null;
+      const stage = document.getElementById('island-stage');
+      const talkWorld = (fn) => { try { if (worldApi) fn(worldApi); } catch {} };
+      const bootWorld = async (attempt = 0) => {
+        try {
+          const { mountAutumn } = await import('./scene.js');
+          const api = await mountAutumn(document.getElementById('autumn-world'), { reduced });
+          if (!api) throw new Error('mountAutumn returned null');
+          worldApi = api;
+          document.documentElement.classList.add('has-island');
+          stage.classList.remove('is-loading');
+          syncWorld();
+          if (!reduced) {
+            setTimeout(() => talkWorld((a) => a.launchFirework({ x: -1.2, z: -10 })), 900);
+            setTimeout(() => talkWorld((a) => a.launchFirework({ x: 1.6, z: -14 })), 1700);
+            setTimeout(() => talkWorld((a) => a.launchFirework({ x: 0.2, z: -18, color: 0xffb7c8 })), 2600);
+          }
+        } catch (err) {
+          console.error('mid-autumn scene', err);
+          if (attempt < 4) setTimeout(() => bootWorld(attempt + 1), 600 + attempt * 400);
+          else stage.classList.remove('is-loading');
+        }
+      };
+      bootWorld();
+
+      const sectionMarks = [
+        { el: '.hero', s: 0 },
+        { el: '#letter', s: 1 },
+        { el: '#cake-title', s: 2 },
+        { el: '#phase-title', s: 3 },
+        { el: '#lanterns', s: 4 },
+        { el: '.sign', s: 5 },
+      ];
+      const syncWorld = () => {
+        if (!worldApi) return;
+        const mid = window.scrollY + window.innerHeight * 0.42;
+        let best = 0;
+        for (const mark of sectionMarks) {
+          const node = document.querySelector(mark.el);
+          if (!node) continue;
+          const top = node.getBoundingClientRect().top + window.scrollY;
+          if (mid >= top - 40) best = mark.s;
+        }
+        talkWorld((api) => api.setProgress(best));
+      };
+      window.addEventListener('scroll', () => { syncWorld(); }, { passive: true });
+
+      /* ── 背景音乐 bgm.m4a：默认出声，循环轻放；振幅驱动蒲公英 ── */
+      const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, B5: 987.77, C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98 };
+      const audio = { ctx: null, out: null, analyser: null, data: null, on: true, wired: false };
+      const bgm = new Audio('./bgm.m4a');
+      bgm.loop = true;
+      bgm.preload = 'auto';
+      bgm.volume = 0.32;
+      const initAudio = () => {
+        if (audio.ctx) return audio.ctx;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch {}
+        const ctx = new AC();
+        const master = ctx.createGain();
+        master.gain.value = 0.18;
+        master.connect(ctx.destination);
+        audio.ctx = ctx;
+        audio.out = master;
+        if (!audio.wired) {
+          try {
+            const src = ctx.createMediaElementSource(bgm);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.82;
+            const bgmGain = ctx.createGain();
+            bgmGain.gain.value = 0.85;
+            src.connect(analyser);
+            analyser.connect(bgmGain);
+            bgmGain.connect(ctx.destination);
+            audio.analyser = analyser;
+            audio.data = new Uint8Array(analyser.frequencyBinCount);
+            audio.wired = true;
+          } catch (err) {
+            console.warn('bgm analyser', err);
+          }
+        }
+        return ctx;
+      };
+      const pluck = (freq, at, dur, level) => {
+        const { ctx, out } = audio;
+        if (!ctx || !out) return;
+        const env = ctx.createGain();
+        env.gain.setValueAtTime(0.0001, at);
+        env.gain.exponentialRampToValueAtTime(level, at + 0.008);
+        env.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+        env.connect(out);
+        [[freq, 'sine', 1], [freq * 2.01, 'sine', 0.22], [freq * 3.98, 'triangle', 0.05]].forEach(([f, type, g]) => {
+          const osc = ctx.createOscillator(); osc.type = type; osc.frequency.value = f;
+          const gain = ctx.createGain(); gain.gain.value = g;
+          osc.connect(gain); gain.connect(env);
+          osc.start(at); osc.stop(at + dur + 0.05);
+        });
+      };
+      const play = (notes, step = 0.32, level = 0.55) => {
+        if (!audio.on || !audio.ctx) return;
+        const t0 = audio.ctx.currentTime + 0.04;
+        notes.forEach((n, i) => { const last = i === notes.length - 1; pluck(NOTE[n], t0 + i * step, last ? 2.2 : 1.4, last ? level * 1.15 : level); });
+      };
+      const syncSoundUi = () => {
+        soundButton.setAttribute('aria-pressed', String(audio.on));
+        soundButton.querySelector('span').textContent = audio.on ? '声音开' : '声音关';
+      };
+      const startBgm = async () => {
+        const ctx = initAudio();
+        if (!ctx) return false;
+        if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+        if (!audio.on) return false;
+        try {
+          await bgm.play();
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      const stopBgm = () => {
+        try { bgm.pause(); } catch {}
+      };
+      const enableAudio = async () => {
+        const ok = await startBgm();
+        return ok;
+      };
+      const crisp = () => {
+        if (!audio.on || !audio.ctx) return;
+        const { ctx, out } = audio;
+        const length = Math.floor(ctx.sampleRate * 0.06);
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 2;
+        const src = ctx.createBufferSource(); src.buffer = buffer;
+        const band = ctx.createBiquadFilter(); band.type = 'bandpass'; band.frequency.value = 2200; band.Q.value = 0.9;
+        const gain = ctx.createGain(); gain.gain.value = 0.7;
+        src.connect(band); band.connect(gain); gain.connect(out);
+        src.start(ctx.currentTime + 0.02);
+      };
+      const thump = () => {
+        if (!audio.on || !audio.ctx) return;
+        const { ctx, out } = audio;
+        const length = Math.floor(ctx.sampleRate * 0.4);
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 3;
+        const src = ctx.createBufferSource(); src.buffer = buffer;
+        const low = ctx.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 420;
+        const gain = ctx.createGain(); gain.gain.value = 0.55;
+        src.connect(low); low.connect(gain); gain.connect(out);
+        src.start(ctx.currentTime + 0.01);
+      };
+      const soundButton = document.getElementById('sound');
+      soundButton.hidden = false;
+      syncSoundUi();
+      enableAudio().then((ok) => { if (!ok) soundButton.classList.add('is-hint'); });
+      const unlockEvents = ['pointerdown', 'touchstart', 'keydown'];
+      const unlockAudio = () => {
+        enableAudio().then((ok) => {
+          if (ok) {
+            soundButton.classList.remove('is-hint');
+            unlockEvents.forEach((type) => document.removeEventListener(type, unlockAudio, true));
+          }
+        });
+      };
+      unlockEvents.forEach((type) => document.addEventListener(type, unlockAudio, true));
+      const pulseFromBgm = () => {
+        if (audio.on && audio.analyser && audio.data && !bgm.paused && !bgm.ended) {
+          audio.analyser.getByteFrequencyData(audio.data);
+          let sum = 0;
+          const n = audio.data.length;
+          for (let i = 0; i < n; i++) sum += audio.data[i];
+          const avg = sum / (n * 255);
+          let peak = 0;
+          for (let i = 0; i < n; i++) if (audio.data[i] > peak) peak = audio.data[i];
+          const level = Math.min(1.35, avg * 2.4 + (peak / 255) * 0.55);
+          talkWorld((api) => api.setMusicPulse(0.2 + level));
+        }
+        requestAnimationFrame(pulseFromBgm);
+      };
+      requestAnimationFrame(pulseFromBgm);
+      soundButton.addEventListener('click', async () => {
+        soundButton.classList.remove('is-hint');
+        initAudio();
+        audio.on = !audio.on;
+        syncSoundUi();
+        if (audio.on) {
+          await startBgm();
+        } else {
+          stopBgm();
+        }
+      });
+
+      /* ── 烟花 / 放灯：只走三维场景 ── */
+      const releaseLantern = () => talkWorld((api) => api.releaseLantern({ x: (Math.random() - 0.5) * 4, z: -8 - Math.random() * 10 }));
+      const launchFirework = (opts = {}) => {
+        if (reduced) return;
+        const shape = opts.shape;
+        talkWorld((api) => api.launchFirework({
+          x: typeof opts.x === 'number' && opts.x > 20
+            ? (opts.x / Math.max(window.innerWidth, 1) - 0.5) * 8
+            : (typeof opts.x === 'number' ? opts.x : (Math.random() - 0.5) * 5),
+          z: -8 - Math.random() * 12,
+          color: shape === 'heart' ? 0xffb7c8 : opts.color,
+        }));
+      };
+      const sparkleAt = () => talkWorld((api) => api.setMusicPulse(0.35));
+
+      /* ── 月亮：轻触会回话 ── */
+      const moon = document.getElementById('moon');
+      const moonLine = document.getElementById('moon-line');
+      const moonLines = ['月亮替我，看了你一眼。', '它说，今晚的你一定很开心。', '再点，它就要害羞了。', '……它真的害羞了。'];
+      let moonTaps = 0;
+      moon.addEventListener('click', () => {
+        const line = moonLines[moonTaps % moonLines.length];
+        moonTaps += 1;
+        moon.classList.remove('is-untouched');
+        moonLine.classList.remove('moon-line--hint');
+        moonLine.classList.add('is-hidden');
+        setTimeout(() => { moonLine.textContent = line; moonLine.classList.remove('is-hidden'); }, reduced ? 0 : 180);
+        moon.classList.remove('is-pulse'); void moon.offsetWidth; moon.classList.add('is-pulse');
+        moon.classList.toggle('is-blush', line.startsWith('……'));
+        talkWorld((api) => {
+          api.pulseMoon(line.startsWith('……') ? 1.2 : 0.7);
+          api.blushMoon(line.startsWith('……'));
+          if (line.startsWith('……')) api.launchFirework({ x: 1.2, z: -10, color: 0xffb7c8 });
+        });
+        if (line.startsWith('……')) launchFirework({ shape: 'heart' });
+        const chimes = [['E5', 'A5'], ['G5', 'C6'], ['A5', 'D6'], ['E6', 'D6', 'C6', 'A5']];
+        play(chimes[(moonTaps - 1) % chimes.length], line.startsWith('……') ? 0.14 : 0.24);
+      });
+
+      /* ── 卷首视差：往下读时月亮再升一点 ── */
+      const moonWrap = document.querySelector('.moon-wrap');
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking || reduced) return;
+        ticking = true;
+        requestAnimationFrame(() => { ticking = false; moonWrap.style.setProperty('--rise', Math.min(1.4, window.scrollY / window.innerHeight).toFixed(3)); });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      /* ── 入场显影 ── */
+      if (!reduced && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          for (const entry of entries) if (entry.isIntersecting) { entry.target.classList.add('is-in'); io.unobserve(entry.target); }
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+      } else document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-in'));
+
+      /* ── 月饼：花边、切开与合上 ── */
+      const scallop = (cx, cy, R, n) => {
+        const a = R * Math.sin(Math.PI / n) * 1.12;
+        let d = '';
+        for (let i = 0; i <= n; i++) {
+          const t = (i / n) * Math.PI * 2 - Math.PI / 2;
+          const x = (cx + R * Math.cos(t)).toFixed(2), y = (cy + R * Math.sin(t)).toFixed(2);
+          d += i ? ` A${a.toFixed(2)} ${a.toFixed(2)} 0 0 1 ${x} ${y}` : `M${x} ${y}`;
+        }
+        return d + 'Z';
+      };
+      const rim = scallop(100, 100, 92, 16);
+      document.querySelectorAll('.js-scallop').forEach((path) => path.setAttribute('d', rim));
+      const petalGroup = document.querySelector('.js-petals');
+      for (let i = 0; i < 12; i++) {
+        const t = (i / 12) * Math.PI * 2;
+        const e = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        e.setAttribute('cx', (100 + 80 * Math.cos(t)).toFixed(2)); e.setAttribute('cy', (100 + 80 * Math.sin(t)).toFixed(2));
+        e.setAttribute('rx', '6'); e.setAttribute('ry', '3.2');
+        e.setAttribute('transform', `rotate(${((t * 180) / Math.PI + 90).toFixed(1)} ${(100 + 80 * Math.cos(t)).toFixed(2)} ${(100 + 80 * Math.sin(t)).toFixed(2)})`);
+        petalGroup.appendChild(e);
+      }
+      const cake = document.getElementById('mooncake');
+      const cakeNote = document.getElementById('cake-note');
+      const cakeHint = document.getElementById('cake-hint');
+      cake.addEventListener('click', () => {
+        const split = cake.classList.toggle('is-split');
+        cake.setAttribute('aria-pressed', String(split));
+        if (split) {
+          cake.classList.remove('is-cutting'); void cake.offsetWidth; cake.classList.add('is-cutting');
+          setTimeout(() => cake.classList.remove('is-cutting'), 600);
+          crisp();
+          play(['E5', 'G5'], 0.2, 0.6);
+          talkWorld((api) => api.cakeSplit());
+          cakeHint.textContent = '再点一下，把它合起来';
+          cakeNote.innerHTML = '我切得不太均匀——<strong>大的那一半，给你。</strong><br />是莲蓉蛋黄的。莲蓉是莲子做的，莲子是荷花结的；而你名字里的“菡”，本来就是荷花。';
+        } else {
+          play(['C5', 'E5', 'G5', 'C6'], 0.16, 0.65);
+          cakeHint.textContent = '轻触月饼，切开它';
+          cakeNote.innerHTML = '分开是两半，合起来，<strong>还是一个圆。</strong>';
+        }
+      });
+
+      /* ── 此刻月相（Meeus《天文算法》第 48、49 章的简化式） ── */
+      const rad = (d) => (d * Math.PI) / 180;
+      const toJd = (d) => d.getTime() / 86400000 + 2440587.5;
+      const fromJd = (jd) => new Date((jd - 2440587.5) * 86400000);
+      const phaseMoment = (k, full) => {
+        const T = k / 1236.85;
+        let jde = 2451550.09766 + 29.530588861 * k + 0.00015437 * T * T - 0.00000015 * T ** 3 + 0.00000000073 * T ** 4;
+        const E = 1 - 0.002516 * T - 0.0000074 * T * T;
+        const M = rad(2.5534 + 29.1053567 * k - 0.0000014 * T * T - 0.00000011 * T ** 3);
+        const Mp = rad(201.5643 + 385.81693528 * k + 0.0107582 * T * T + 0.00001238 * T ** 3 - 0.000000058 * T ** 4);
+        const F = rad(160.7108 + 390.67050284 * k - 0.0016118 * T * T - 0.00000227 * T ** 3 + 0.000000011 * T ** 4);
+        const Om = rad(124.7746 - 1.56375588 * k + 0.0020672 * T * T + 0.00000215 * T ** 3);
+        const c = full ? [-0.40614, 0.17302, 0.01614, 0.01043, 0.00734, -0.00515, 0.00209] : [-0.4072, 0.17241, 0.01608, 0.01039, 0.00739, -0.00514, 0.00208];
+        jde += c[0] * Math.sin(Mp) + c[1] * E * Math.sin(M) + c[2] * Math.sin(2 * Mp) + c[3] * Math.sin(2 * F) + c[4] * E * Math.sin(Mp - M) + c[5] * E * Math.sin(Mp + M) + c[6] * E * E * Math.sin(2 * M)
+          - 0.00111 * Math.sin(Mp - 2 * F) - 0.00057 * Math.sin(Mp + 2 * F) + 0.00056 * E * Math.sin(2 * Mp + M) - 0.00042 * Math.sin(3 * Mp) + 0.00042 * E * Math.sin(M + 2 * F) + 0.00038 * E * Math.sin(M - 2 * F)
+          - 0.00024 * E * Math.sin(2 * Mp - M) - 0.00017 * Math.sin(Om) - 0.00007 * Math.sin(Mp + 2 * M) + 0.00004 * Math.sin(2 * Mp - 2 * F) + 0.00004 * Math.sin(3 * M);
+        return fromJd(jde - 69 / 86400);
+      };
+      const lit = (date) => {
+        const T = (toJd(date) - 2451545) / 36525;
+        const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T;
+        const M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T * T;
+        const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T;
+        const i = 180 - D - 6.289 * Math.sin(rad(Mp)) + 2.1 * Math.sin(rad(M)) - 1.274 * Math.sin(rad(2 * D - Mp)) - 0.658 * Math.sin(rad(2 * D)) - 0.214 * Math.sin(rad(2 * Mp)) - 0.11 * Math.sin(rad(D));
+        return (1 + Math.cos(rad(i))) / 2;
+      };
+      const shanghai = (d) => {
+        const parts = Object.fromEntries(new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map((p) => [p.type, p.value]));
+        return `${parts.month} 月 ${parts.day} 日 ${parts.hour}:${parts.minute}`;
+      };
+      const phasePath = (k, waxing) => {
+        const R = 46, top = '50 4', bottom = '50 96';
+        if (k > 0.995) return 'M50 4A46 46 0 1 1 49.99 4Z';
+        if (k < 0.005) return '';
+        const rx = (R * Math.abs(1 - 2 * k)).toFixed(2);
+        const limb = waxing ? 1 : 0;
+        const term = waxing ? (k > 0.5 ? 1 : 0) : (k > 0.5 ? 0 : 1);
+        return `M${top}A${R} ${R} 0 0 ${limb} ${bottom}A${rx} ${R} 0 0 ${term} ${top}Z`;
+      };
+      const renderPhase = () => {
+        const now = new Date();
+        const k0 = Math.floor((now.getUTCFullYear() + now.getUTCMonth() / 12 - 2000) * 12.3685) - 2;
+        const fulls = [], news = [];
+        for (let i = 0; i < 6; i++) { fulls.push(phaseMoment(k0 + i + 0.5, true)); news.push(phaseMoment(k0 + i, false)); }
+        const next = fulls.find((d) => d > now);
+        const prev = [...fulls].reverse().find((d) => d <= now);
+        const nextNew = news.find((d) => d > now);
+        const waxing = next && nextNew ? next < nextNew : true;
+        const k = lit(now);
+        document.getElementById('phase-lit').setAttribute('d', phasePath(k, waxing));
+        document.getElementById('phase-num').innerHTML = `${(k * 100).toFixed(1)}%<small>被照亮</small>`;
+        const hours = (a, b) => Math.round(Math.abs(a - b) / 3600000);
+        let text;
+        if (next && next - now < 3 * 86400000) text = `还差一点点。最圆的那一刻在 ${shanghai(next)}，再等大约 ${hours(next, now)} 小时。`;
+        else if (prev && now - prev < 3 * 86400000) text = `最圆的那一刻，在 ${shanghai(prev)} 已经过去了。不过它还是很亮。`;
+        else text = `下一次满月在 ${shanghai(next).replace(/ \d{2}:\d{2}$/, '')}。到那天，记得抬头。`;
+        document.getElementById('phase-text').textContent = text;
+
+        const timeline = document.getElementById('timeline');
+        timeline.hidden = !(next && next - now < 3 * 86400000);
+        if (!timeline.hidden) {
+          const start = Math.min(now - 6 * 3600000, next - 48 * 3600000);
+          const at = clampUnit((now - start) / (next - start));
+          document.getElementById('tl-fill').style.width = `${(at * 100).toFixed(1)}%`;
+          document.getElementById('tl-now').style.left = `${(at * 100).toFixed(1)}%`;
+          document.getElementById('tl-start').textContent = shanghai(new Date(start)).replace(/ \d{2}:\d{2}$/, '');
+          document.getElementById('tl-end').textContent = `满月 · ${shanghai(next)}`;
+        }
+      };
+      const clampUnit = (v) => Math.min(1, Math.max(0, v));
+      renderPhase();
+      setInterval(renderPhase, 60000);
+
+      /* ── 放灯 ── */
+      const form = document.getElementById('wish-form');
+      const input = document.getElementById('wish');
+      const echo = document.getElementById('wish-echo');
+      let released = 0;
+      const echoes = ['抬头看：灯正从屏幕下方飘起来。愿望会被月亮收好的。', '又一盏。今晚的风很温柔。', '天上亮起来了，都是你的愿望。'];
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const fly = document.createElement('span');
+        fly.className = 'fly';
+        fly.setAttribute('aria-hidden', 'true');
+        form.appendChild(fly);
+        setTimeout(() => fly.remove(), 1800);
+        releaseLantern();
+        setTimeout(() => launchFirework(), 1500);
+        play(['C5', 'D5', 'E5', 'G5', 'A5', 'C6'], 0.1, 0.5);
+        input.value = '';
+        echo.textContent = echoes[Math.min(released, echoes.length - 1)];
+        released += 1;
+      });
+      const lanternSection = document.getElementById('lanterns');
+      if ('IntersectionObserver' in window) {
+        const first = new IntersectionObserver((entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          first.disconnect();
+          releaseLantern();
+          talkWorld((api) => api.releaseLantern({ x: -1.2, z: -9 }));
+          play(['G5', 'A5', 'C6', 'D6'], 0.12, 0.45);
+          echo.textContent = '我先放了一盏。轮到你了。';
+        }, { threshold: 0.4 });
+        first.observe(lanternSection);
+      }
+
+      /* ── 落款处的收尾烟花；点夜空迸出桂花星光 ── */
+      if ('IntersectionObserver' in window) {
+        const finale = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          finale.disconnect();
+          talkWorld((api) => api.finale());
+          launchFirework({ shape: 'heart' });
+          setTimeout(() => launchFirework(), 700);
+          setTimeout(() => launchFirework(), 1200);
+        }, { threshold: 0.5 });
+        finale.observe(document.querySelector('.sign'));
+      }
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('a,button,input,form')) return;
+        sparkleAt(e.clientX, e.clientY);
+      });
+
+      /* ── 分享 ── */
+      const toast = document.getElementById('toast');
+      let toastTimer;
+      const notify = (message) => { toast.textContent = message; toast.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true; }, 3600); };
+      document.getElementById('share').addEventListener('click', async () => {
+        const url = new URL(window.location.href); url.hash = ''; url.search = '';
+        if (navigator.share) {
+          try { await navigator.share({ title: '诗菡，中秋快乐', text: '今晚的月亮很圆，想分你一半。', url: url.href }); return; }
+          catch (error) { if (error.name === 'AbortError') return; }
+        }
+        try { await navigator.clipboard.writeText(url.href); notify('链接已复制。'); }
+        catch { window.prompt('复制这个链接：', url.href); }
+      });
+    })();
+  </script>
+</body>
+</html>

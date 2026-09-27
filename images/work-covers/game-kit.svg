@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 636" role="img" aria-label="Game Kit">
+  <rect width="1082" height="636" fill="#4c1d95"/>
+  <rect x="280" y="180" width="520" height="280" rx="40" fill="#6B21A8" stroke="#FACC15" stroke-width="4"/>
+  <circle cx="380" cy="320" r="28" fill="#FACC15"/>
+  <circle cx="480" cy="320" r="28" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="580" y="290" width="120" height="24" rx="12" fill="#FACC15"/>
+  <rect x="580" y="340" width="80" height="24" rx="12" fill="#FFFFFF" opacity="0.7"/>
+  <text x="80" y="560" fill="#FACC15" font-family="system-ui,sans-serif" font-size="44" font-weight="700">GAME KIT</text>
+</svg>

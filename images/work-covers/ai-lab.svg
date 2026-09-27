@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 636" role="img" aria-label="AI Lab">
+  <rect width="1082" height="636" fill="#1e1b4b"/>
+  <circle cx="540" cy="318" r="200" fill="none" stroke="#6B21A8" stroke-width="3"/>
+  <circle cx="540" cy="318" r="120" fill="none" stroke="#FACC15" stroke-width="2" opacity="0.8"/>
+  <path fill="#FACC15" d="M540 198l18 58 60 0-48 35 18 58-48-35-48 35 18-58-48-35 60 0z"/>
+  <text x="80" y="560" fill="#FFFFFF" font-family="system-ui,sans-serif" font-size="48" font-weight="700">AI LAB NOTES</text>
+</svg>

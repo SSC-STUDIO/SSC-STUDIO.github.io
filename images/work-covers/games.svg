@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 636" role="img" aria-label="Games">
+  <rect width="1082" height="636" fill="#312e81"/>
+  <g fill="#FACC15">
+    <rect x="200" y="140" width="80" height="80" rx="8"/>
+    <rect x="320" y="140" width="80" height="80" rx="8" opacity="0.7"/>
+    <rect x="440" y="140" width="80" height="80" rx="8" opacity="0.5"/>
+    <rect x="560" y="140" width="80" height="80" rx="8" opacity="0.35"/>
+  </g>
+  <path fill="none" stroke="#FFFFFF" stroke-width="6" d="M200 380h680"/>
+  <circle cx="350" cy="450" r="50" fill="#6B21A8" stroke="#FACC15" stroke-width="4"/>
+  <circle cx="650" cy="450" r="50" fill="#6B21A8" stroke="#FFFFFF" stroke-width="4"/>
+  <text x="80" y="560" fill="#FFFFFF" font-family="system-ui,sans-serif" font-size="48" font-weight="700">GAMES LAB</text>
+</svg>

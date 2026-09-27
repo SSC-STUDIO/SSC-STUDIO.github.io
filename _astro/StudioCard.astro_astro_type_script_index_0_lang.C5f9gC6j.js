@@ -1,0 +1,1 @@
+import{s as n,D as a,r as u}from"./daypart.B3_GE7I8.js";let e=null;function t(){const r=document.querySelector(".js-studio-duty");r&&(r.textContent=a[u()])}function o(){t(),!e&&(e=new MutationObserver(t),e.observe(document.documentElement,{attributes:!0,attributeFilter:["data-daypart"]}))}n(t);o();document.addEventListener("astro:page-load",t);
