@@ -1,0 +1,58 @@
+name: Publish the built site
+
+# The site is published from `gh-pages`, which holds built output only -- there is
+# no source in this repository to build from (see README).
+#
+# This workflow exists because the branch *builder* does not work here.  Both of
+# its modes fail on this site, for the same underlying reason: `gh-pages` is
+# Astro output, and Astro puts its entire bundle in `_astro`.
+#
+#   - legacy (Jekyll) publishing ignores any directory whose name starts with an
+#     underscore, so every asset 404s and the pages ship with no CSS or JS.  A
+#     `.nojekyll` at the root is meant to switch Jekyll off, and it did not take
+#     effect on this repository.
+#   - the Actions source just sat at "not built" and never republished at all.
+#
+# Uploading the checked-out branch as the Pages artifact with
+# `actions/deploy-pages` skips both: nothing is built, nothing is processed for
+# Jekyll, and the tree goes up exactly as it is committed.
+
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the published branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Fail early if the asset bundle is missing
+        run: |
+          test -d _astro || { echo "::error::_astro is missing -- the build output is incomplete"; exit 1; }
+          test -f index.html || { echo "::error::index.html is missing"; exit 1; }
+
+      - name: Upload the tree as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
